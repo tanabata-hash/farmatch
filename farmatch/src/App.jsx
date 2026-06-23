@@ -5,6 +5,7 @@ import { InquiryManager } from "./components/InquiryManager.jsx";
 import { TermsPage, PrivacyPage } from "./pages/Legal.jsx";
 
 
+
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
   sub: "全国の遊休農地と就農希望者・移住希望者をマッチング", year: 2025,
