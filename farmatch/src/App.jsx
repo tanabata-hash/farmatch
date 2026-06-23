@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { supabase } from "./supabase";
-import { AuthModal } from "./components/Auth";
-import { InquiryManager } from "./components/InquiryManager";
-import { TermsPage, PrivacyPage } from "./pages/Legal";
+import { supabase } from "./supabase.js";
+import { AuthModal } from "./components/Auth.jsx";
+import { InquiryManager } from "./components/InquiryManager.jsx";
+import { TermsPage, PrivacyPage } from "./pages/Legal.jsx";
+
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
