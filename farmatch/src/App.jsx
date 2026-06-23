@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 
 // ── BRAND & THEME ──────────────────────────────────────────
 const BRAND = {
@@ -16,44 +17,50 @@ const C = {
   muted: "#6B6B6B", border: "#E0D8CC", sky: "#4A90D9",
 };
 
-// ── DATA ──────────────────────────────────────────────────
-const FARMS = [
-  { id:1, name:"南部農地 A区画", region:"鹿児島県", location:"南薩摩エリア",
-    lat:31.178, lng:130.529, area:"約800㎡", type:"畑", status:"貸出可能",
-    rent:"月額 5,000円", water:"井戸・雨水", access:"最寄り駅より車5分",
+// ── フォールバック用サンプルデータ ─────────────────────────
+const SAMPLE_FARMS = [
+  { id:"1", name:"南部農地 A区画", region:"鹿児島県", location:"南薩摩エリア",
+    lat:31.178, lng:130.529, area_label:"約800㎡", farm_type:"畑", status:"貸出可能",
+    rent_label:"月額 5,000円", water_source:"井戸・雨水", access_info:"最寄り駅より車5分",
     crops:["さつまいも","かぼちゃ","スイカ","オクラ","菜の花"],
-    suitability:{water:4,sun:5,soil:4,climate:5,access:3},
-    desc:"温暖な気候と黒ボク土に恵まれた畑地。根菜・果菜類に最適で、年間日照時間が長く多様な作物に対応できます。",
-    tags:["初心者向け","温暖気候","多品種"], premium:false },
-  { id:2, name:"南部農地 B区画", region:"鹿児島県", location:"南薩摩エリア",
-    lat:31.181, lng:130.531, area:"約1,200㎡", type:"水田・畑", status:"調整中",
-    rent:"応相談", water:"農業用水路", access:"最寄り駅より車8分",
+    score_water:4, score_sun:5, score_soil:4, score_climate:5, score_access:3,
+    description:"温暖な気候と黒ボク土に恵まれた畑地。根菜・果菜類に最適です。",
+    tags:["初心者向け","温暖気候","多品種"], is_premium:false },
+  { id:"2", name:"南部農地 B区画", region:"鹿児島県", location:"南薩摩エリア",
+    lat:31.181, lng:130.531, area_label:"約1,200㎡", farm_type:"水田・畑", status:"調整中",
+    rent_label:"応相談", water_source:"農業用水路", access_info:"最寄り駅より車8分",
     crops:["米","さつまいも","菜の花"],
-    suitability:{water:5,sun:4,soil:5,climate:5,access:3},
-    desc:"水田転換も可能な平坦地。用水路が隣接しており水管理が容易。米作りから畑作まで幅広く対応できる汎用性の高い農地。",
-    tags:["水田可能","大区画","平坦地"], premium:true },
-  { id:3, name:"東部農地 C区画", region:"鹿児島県", location:"南薩摩エリア",
-    lat:31.183, lng:130.535, area:"約500㎡", type:"畑", status:"貸出可能",
-    rent:"月額 3,000円", water:"雨水・近隣水源", access:"最寄り駅より車10分",
+    score_water:5, score_sun:4, score_soil:5, score_climate:5, score_access:3,
+    description:"水田転換も可能な平坦地。用水路が隣接しており水管理が容易です。",
+    tags:["水田可能","大区画","平坦地"], is_premium:true },
+  { id:"3", name:"東部農地 C区画", region:"鹿児島県", location:"南薩摩エリア",
+    lat:31.183, lng:130.535, area_label:"約500㎡", farm_type:"畑", status:"貸出可能",
+    rent_label:"月額 3,000円", water_source:"雨水・近隣水源", access_info:"最寄り駅より車10分",
     crops:["かぼちゃ","スイカ","オクラ","さつまいも"],
-    suitability:{water:3,sun:5,soil:4,climate:5,access:2},
-    desc:"日当たり抜群の南向き農地。風通しが良く果菜類の栽培に向いており、週末農業・体験農業にも適したコンパクトサイズ。",
-    tags:["週末農業向け","南向き","コンパクト"], premium:false },
+    score_water:3, score_sun:5, score_soil:4, score_climate:5, score_access:2,
+    description:"日当たり抜群の南向き農地。週末農業・体験農業にも最適です。",
+    tags:["週末農業向け","南向き","コンパクト"], is_premium:false },
 ];
 
-const HOUSES = [
-  { id:1, name:"古民家リノベ物件 No.1", region:"鹿児島県", location:"南薩摩エリア",
-    type:"古民家", rent:"月額 35,000円", area:"120㎡ / 4LDK", lat:31.180, lng:130.527,
-    desc:"築60年の古民家を全面リノベーション。農地まで徒歩5分圏内。薪ストーブ・広縁付きで農的暮らしにぴったり。",
-    subsidy:"市区町村移住補助金対象（最大50万円）", tags:["補助金対象","農地近接","ペット可"], nearFarm:[1,3] },
-  { id:2, name:"移住者向け賃貸 No.2", region:"鹿児島県", location:"南薩摩エリア",
-    type:"アパート", rent:"月額 42,000円", area:"65㎡ / 2LDK", lat:31.242, lng:130.634,
-    desc:"最寄り駅徒歩10分。スーパー・病院が近く生活利便性が高い。都市部からの移住者が多く住む落ち着いたエリア。",
-    subsidy:"都道府県移住支援金対象（最大100万円）", tags:["駅近","生活利便","移住者コミュニティ"], nearFarm:[2] },
-  { id:3, name:"一戸建て空き家 No.3", region:"鹿児島県", location:"南薩摩エリア",
-    type:"一戸建て", rent:"月額 28,000円", area:"95㎡ / 3DK", lat:31.176, lng:130.532,
-    desc:"山並みビューの静かな立地。広い庭付きで家庭菜園も可能。農業に集中できる環境が整っています。",
-    subsidy:"空き家バンク登録物件（改修補助最大30万円）", tags:["空き家バンク","庭付き","山ビュー"], nearFarm:[1,3] },
+const SAMPLE_HOUSES = [
+  { id:"1", name:"古民家リノベ物件 No.1", region:"鹿児島県", location:"南薩摩エリア",
+    house_type:"古民家", rent_label:"月額 35,000円", area_label:"120㎡ / 4LDK",
+    lat:31.180, lng:130.527,
+    description:"築60年の古民家を全面リノベーション。農地まで徒歩5分圏内。",
+    subsidy_info:"市区町村移住補助金対象（最大50万円）",
+    tags:["補助金対象","農地近接","ペット可"] },
+  { id:"2", name:"移住者向け賃貸 No.2", region:"鹿児島県", location:"南薩摩エリア",
+    house_type:"アパート", rent_label:"月額 42,000円", area_label:"65㎡ / 2LDK",
+    lat:31.242, lng:130.634,
+    description:"最寄り駅徒歩10分。スーパー・病院が近く生活利便性が高い。",
+    subsidy_info:"都道府県移住支援金対象（最大100万円）",
+    tags:["駅近","生活利便","移住者コミュニティ"] },
+  { id:"3", name:"一戸建て空き家 No.3", region:"鹿児島県", location:"南薩摩エリア",
+    house_type:"一戸建て", rent_label:"月額 28,000円", area_label:"95㎡ / 3DK",
+    lat:31.176, lng:130.532,
+    description:"山並みビューの静かな立地。広い庭付きで家庭菜園も可能。",
+    subsidy_info:"空き家バンク登録物件（改修補助最大30万円）",
+    tags:["空き家バンク","庭付き","山ビュー"] },
 ];
 
 const CROP_CALENDAR = [
@@ -121,8 +128,7 @@ function MapView({ farms, houses, focusId, onSelectFarm, onSelectHouse }) {
   useState(() => {
     if (document.getElementById("leaflet-css")) { initMap(); return; }
     const link = document.createElement("link");
-    link.id = "leaflet-css";
-    link.rel = "stylesheet";
+    link.id = "leaflet-css"; link.rel = "stylesheet";
     link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
     document.head.appendChild(link);
     const script = document.createElement("script");
@@ -137,6 +143,7 @@ function MapView({ farms, houses, focusId, onSelectFarm, onSelectHouse }) {
       if (!el || el._leaflet_id) return;
       const L = window.L; if (!L) return;
       const all = [...farms, ...houses];
+      if (all.length === 0) return;
       const avgLat = all.reduce((s,p)=>s+p.lat,0)/all.length;
       const avgLng = all.reduce((s,p)=>s+p.lng,0)/all.length;
       const map = L.map(containerId, { scrollWheelZoom:false }).setView([avgLat,avgLng], 13);
@@ -146,18 +153,18 @@ function MapView({ farms, houses, focusId, onSelectFarm, onSelectHouse }) {
       farms.forEach(f => {
         const icon = L.divIcon({ html:`<div style="background:#2D5016;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #7AB648;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🌱</div>`, className:"", iconSize:[36,36], iconAnchor:[18,18] });
         L.marker([f.lat,f.lng],{icon}).addTo(map)
-          .bindPopup(`<div style="font-family:sans-serif;min-width:180px"><div style="font-weight:700;color:#2D5016;margin-bottom:4px">${f.name}</div><div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${f.region} ${f.location}</div><div style="font-size:12px">📐 ${f.area} ／ 🌱 ${f.type}</div><div style="font-size:12px">💴 ${f.rent}</div><div style="margin-top:8px"><span style="background:${f.status==="貸出可能"?"#7AB648":"#C4883A"};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${f.status}</span></div></div>`)
+          .bindPopup(`<div style="font-family:sans-serif;min-width:180px"><div style="font-weight:700;color:#2D5016;margin-bottom:4px">${f.name}</div><div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${f.region} ${f.location}</div><div style="font-size:12px">📐 ${f.area_label} ／ 🌱 ${f.farm_type}</div><div style="font-size:12px">💴 ${f.rent_label}</div><div style="margin-top:8px"><span style="background:${f.status==="貸出可能"?"#7AB648":"#C4883A"};color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${f.status}</span></div></div>`)
           .on("click", ()=>onSelectFarm(f));
       });
       houses.forEach(h => {
         const icon = L.divIcon({ html:`<div style="background:#8B5A1A;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #C4883A;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🏡</div>`, className:"", iconSize:[36,36], iconAnchor:[18,18] });
         L.marker([h.lat,h.lng],{icon}).addTo(map)
-          .bindPopup(`<div style="font-family:sans-serif;min-width:180px"><div style="font-weight:700;color:#8B5A1A;margin-bottom:4px">${h.name}</div><div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${h.region} ${h.location}</div><div style="font-size:12px">📐 ${h.area} ／ 🏠 ${h.type}</div><div style="font-size:12px">💴 ${h.rent}</div><div style="font-size:11px;margin-top:6px;color:#2D5016">💰 ${h.subsidy}</div></div>`)
+          .bindPopup(`<div style="font-family:sans-serif;min-width:180px"><div style="font-weight:700;color:#8B5A1A;margin-bottom:4px">${h.name}</div><div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${h.region} ${h.location}</div><div style="font-size:12px">📐 ${h.area_label} ／ 🏠 ${h.house_type}</div><div style="font-size:12px">💴 ${h.rent_label}</div><div style="font-size:11px;margin-top:6px;color:#2D5016">💰 ${h.subsidy_info}</div></div>`)
           .on("click", ()=>onSelectHouse(h));
       });
       if (focusId) {
         const [type,id] = focusId.split("-");
-        const t = type==="farm" ? farms.find(f=>f.id===Number(id)) : houses.find(h=>h.id===Number(id));
+        const t = type==="farm" ? farms.find(f=>f.id===id) : houses.find(h=>h.id===id);
         if (t) map.flyTo([t.lat,t.lng], 15);
       }
     }, 300);
@@ -293,33 +300,59 @@ function PricingView() {
   );
 }
 
-function AdminPanel() {
+// ── ADMIN PANEL（Supabase連携） ───────────────────────────
+function AdminPanel({ farms, houses, onRefresh }) {
   const [tab, setTab] = useState("farms");
-  const [farms, setFarms] = useState(FARMS);
-  const [houses, setHouses] = useState(HOUSES);
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState("farm");
-  const [form, setForm] = useState({ name:"", region:"", location:"", area:"", rent:"", type:"畑", status:"貸出可能", desc:"", crops:"" });
+  const [form, setForm] = useState({ name:"", region:"", location:"", area_label:"", rent_label:"", farm_type:"畑", status:"貸出可能", description:"", crops:"" });
   const [toast, setToast] = useState("");
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2500); };
 
-  const handleAdd = () => {
-    if(!form.name||!form.region) return;
+  const handleAdd = async () => {
+    if(!form.name || !form.region) return;
     if(formType==="farm") {
-      setFarms(prev=>[...prev,{ ...form, id:Date.now(), crops:form.crops.split(/[、,]/).map(c=>c.trim()).filter(Boolean), lat:31.178, lng:130.529, suitability:{water:3,sun:3,soil:3,climate:3,access:3}, tags:[], premium:false }]);
+      const { error } = await supabase.from("farms").insert([{
+        name: form.name, region: form.region, location: form.location,
+        area_label: form.area_label, rent_label: form.rent_label,
+        farm_type: form.farm_type, status: form.status,
+        description: form.description,
+        crops: form.crops.split(/[、,]/).map(c=>c.trim()).filter(Boolean),
+        tags: [], is_premium: false, plan: "basic",
+      }]);
+      if(error) { showToast("❌ エラー: "+error.message); return; }
     } else {
-      setHouses(prev=>[...prev,{ ...form, id:Date.now(), lat:31.180, lng:130.527, subsidy:"詳細確認中", tags:[], nearFarm:[] }]);
+      const { error } = await supabase.from("houses").insert([{
+        name: form.name, region: form.region, location: form.location,
+        area_label: form.area_label, rent_label: form.rent_label,
+        house_type: form.farm_type || "一戸建て",
+        status: "掲載中", description: form.description,
+        tags: [], plan: "basic",
+      }]);
+      if(error) { showToast("❌ エラー: "+error.message); return; }
     }
-    setForm({ name:"",region:"",location:"",area:"",rent:"",type:"畑",status:"貸出可能",desc:"",crops:"" });
-    setShowForm(false); showToast("✅ 登録しました");
+    setForm({ name:"", region:"", location:"", area_label:"", rent_label:"", farm_type:"畑", status:"貸出可能", description:"", crops:"" });
+    setShowForm(false);
+    showToast("✅ 登録しました");
+    onRefresh();
+  };
+
+  const handleDelete = async (type, id) => {
+    const table = type==="farm" ? "farms" : "houses";
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if(error) { showToast("❌ エラー: "+error.message); return; }
+    showToast("🗑 削除しました");
+    onRefresh();
   };
 
   const stats = [
     { label:"掲載農地数", value:`${farms.length}件`, color:C.green },
     { label:"掲載物件数", value:`${houses.length}件`, color:C.soil },
-    { label:"今月問い合わせ", value:"12件", color:C.sky },
-    { label:"今月収益", value:"¥68,000", color:"#8B5CF6" },
+    { label:"今月問い合わせ", value:"—", color:C.sky },
+    { label:"今月収益", value:"—", color:"#8B5CF6" },
   ];
+
+  const tableItems = tab==="farms" ? farms : houses;
 
   return (
     <div>
@@ -351,32 +384,37 @@ function AdminPanel() {
             ))}</tr>
           </thead>
           <tbody>
-            {(tab==="farms"?farms:houses).map((item,i)=>(
+            {tableItems.map((item,i)=>(
               <tr key={item.id} style={{ background: i%2===0 ? C.white : C.cream }}>
                 <td style={{ padding:"10px 12px", fontWeight:600, color:C.text }}>{item.name}</td>
                 <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.region||"—"}</td>
                 <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.location||"—"}</td>
-                <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.area}{item.type?` / ${item.type}`:""}</td>
-                <td style={{ padding:"10px 12px", color:C.text }}>{item.rent}</td>
+                <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.area_label}{(item.farm_type||item.house_type)?` / ${item.farm_type||item.house_type}`:""}</td>
+                <td style={{ padding:"10px 12px", color:C.text }}>{item.rent_label}</td>
                 <td style={{ padding:"10px 12px" }}>
-                  <span style={{ background: item.status==="貸出可能"?C.lightGreen:C.soil,
+                  <span style={{ background: item.status==="貸出可能"||item.status==="掲載中"?C.lightGreen:C.soil,
                     color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>
                     {item.status||"掲載中"}</span>
                 </td>
                 <td style={{ padding:"10px 12px" }}>
-                  <button onClick={()=>{ if(tab==="farms") setFarms(p=>p.filter(f=>f.id!==item.id)); else setHouses(p=>p.filter(h=>h.id!==item.id)); showToast("🗑 削除しました"); }}
+                  <button onClick={()=>handleDelete(tab==="farms"?"farm":"house", item.id)}
                     style={{ background:"none", border:"1px solid #E57373", color:"#E57373",
                       borderRadius:6, padding:"3px 10px", fontSize:11, cursor:"pointer" }}>削除</button>
                 </td>
               </tr>
             ))}
+            {tableItems.length===0 && (
+              <tr><td colSpan={7} style={{ padding:32, textAlign:"center", color:C.muted }}>
+                登録データがありません。「＋ 新規登録」から追加してください。
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
       {showForm && (
         <Modal onClose={()=>setShowForm(false)}>
           <h3 style={{ margin:"0 0 16px", color:C.green }}>{formType==="farm"?"🌱 農地を登録":"🏡 物件を登録"}</h3>
-          {[{key:"name",label:"名称 *",ph:"例：南部農地 D区画"},{key:"region",label:"都道府県 *",ph:"例：鹿児島県"},{key:"location",label:"エリア名",ph:"例：南薩摩エリア"},{key:"area",label:"面積",ph:"例：約600㎡"},{key:"rent",label:"賃料",ph:"例：月額 4,000円"}].map(({key,label,ph})=>(
+          {[{key:"name",label:"名称 *",ph:"例：南部農地 D区画"},{key:"region",label:"都道府県 *",ph:"例：鹿児島県"},{key:"location",label:"エリア名",ph:"例：南薩摩エリア"},{key:"area_label",label:"面積",ph:"例：約600㎡"},{key:"rent_label",label:"賃料",ph:"例：月額 4,000円"}].map(({key,label,ph})=>(
             <div key={key} style={{ marginBottom:12 }}>
               <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>{label}</label>
               <input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={ph}
@@ -392,7 +430,7 @@ function AdminPanel() {
           )}
           <div style={{ marginBottom:16 }}>
             <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>概要説明</label>
-            <textarea value={form.desc} onChange={e=>setForm({...form,desc:e.target.value})} rows={3}
+            <textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3}
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
           <div style={{ display:"flex", gap:10 }}>
@@ -412,9 +450,31 @@ function AdminPanel() {
   );
 }
 
+// ── CONTACT MODAL（Supabase保存） ─────────────────────────
 function ContactModal({ item, onClose }) {
   const [form, setForm] = useState({ name:"", email:"", purpose:"", msg:"" });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if(!form.name || !form.email) return;
+    setLoading(true);
+    const isHouse = !!item.house_type;
+    const { error } = await supabase.from("inquiries").insert([{
+      target_type: isHouse ? "house" : "farm",
+      farm_id: isHouse ? null : item.id,
+      house_id: isHouse ? item.id : null,
+      name: form.name,
+      email: form.email,
+      purpose: form.purpose,
+      message: form.msg,
+      status: "new",
+    }]);
+    setLoading(false);
+    if(error) { alert("送信エラー: "+error.message); return; }
+    setSent(true);
+  };
+
   return (
     <Modal onClose={onClose}>
       {sent ? (
@@ -442,7 +502,9 @@ function ContactModal({ item, onClose }) {
           </div>
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
-            <Btn onClick={()=>{ if(form.name&&form.email) setSent(true); }} style={{ flex:2 }}>送信する</Btn>
+            <Btn onClick={handleSubmit} style={{ flex:2, opacity:loading?0.7:1 }}>
+              {loading ? "送信中..." : "送信する"}
+            </Btn>
           </div>
         </>
       )}
@@ -451,6 +513,10 @@ function ContactModal({ item, onClose }) {
 }
 
 function FarmDetail({ farm, onContact, onClose, isPremium }) {
+  const suitability = {
+    water: farm.score_water, sun: farm.score_sun, soil: farm.score_soil,
+    climate: farm.score_climate, access: farm.score_access,
+  };
   return (
     <div style={{ background:C.white, borderRadius:12, border:`2px solid ${C.border}`, padding:22, position:"sticky", top:16 }}>
       <button onClick={onClose} style={{ background:"none", border:"none", color:C.muted, fontSize:12, cursor:"pointer", marginBottom:10, padding:0 }}>← 一覧に戻る</button>
@@ -462,39 +528,43 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
         <span style={{ background: farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700 }}>{farm.status}</span>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px 16px", background:C.cream, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
-        {[["面積",farm.area],["区分",farm.type],["賃料",farm.rent],["水源",farm.water],["アクセス",farm.access]].map(([k,v])=>(
-          <div key={k}><div style={{ fontSize:10, color:C.muted, marginBottom:2 }}>{k}</div><div style={{ fontSize:13, fontWeight:600, color:C.text }}>{v}</div></div>
+        {[["面積",farm.area_label],["区分",farm.farm_type],["賃料",farm.rent_label],["水源",farm.water_source],["アクセス",farm.access_info]].map(([k,v])=>(
+          <div key={k}><div style={{ fontSize:10, color:C.muted, marginBottom:2 }}>{k}</div><div style={{ fontSize:13, fontWeight:600, color:C.text }}>{v||"—"}</div></div>
         ))}
       </div>
-      <div style={{ marginBottom:12 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:C.green, marginBottom:6 }}>作れる作物</div>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{farm.crops.map(c=><Tag key={c}>{CROP_EMOJI[c]||"🌱"} {c}</Tag>)}</div>
-      </div>
-      <div style={{ marginBottom:14 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:C.green, marginBottom:8 }}>農地適性スコア</div>
-        {Object.entries(farm.suitability).map(([k,v])=>(
-          <div key={k} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
-            <div style={{ width:52, fontSize:11, color:C.muted }}>{SL[k]}</div>
-            <ScoreBar value={v}/>
-            <div style={{ fontSize:11, color:C.green, fontWeight:600 }}>{v}/5</div>
-          </div>
-        ))}
-      </div>
-      {farm.premium && !isPremium ? (
+      {farm.crops?.length > 0 && (
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:C.green, marginBottom:6 }}>作れる作物</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>{farm.crops.map(c=><Tag key={c}>{CROP_EMOJI[c]||"🌱"} {c}</Tag>)}</div>
+        </div>
+      )}
+      {Object.values(suitability).some(v=>v) && (
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:C.green, marginBottom:8 }}>農地適性スコア</div>
+          {Object.entries(suitability).map(([k,v])=> v ? (
+            <div key={k} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
+              <div style={{ width:52, fontSize:11, color:C.muted }}>{SL[k]}</div>
+              <ScoreBar value={v}/>
+              <div style={{ fontSize:11, color:C.green, fontWeight:600 }}>{v}/5</div>
+            </div>
+          ) : null)}
+        </div>
+      )}
+      {farm.is_premium && !isPremium ? (
         <div style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, borderRadius:8, padding:"12px 14px", marginBottom:14, textAlign:"center" }}>
           <div style={{ fontSize:13, fontWeight:700, color:C.soil, marginBottom:4 }}>🔒 プレミアム限定情報</div>
-          <p style={{ fontSize:12, color:C.muted, margin:"0 0 10px" }}>詳細情報・写真・オーナー連絡先はプレミアム会員のみ閲覧できます</p>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 10px" }}>詳細情報はプレミアム会員のみ閲覧できます</p>
           <Btn style={{ background:C.soil, width:"100%", textAlign:"center" }}>プレミアム会員に登録（¥1,480/月）</Btn>
         </div>
       ) : (
-        <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>{farm.desc}</p>
+        <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>{farm.description}</p>
       )}
       <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>この農地に問い合わせる</Btn>
     </div>
   );
 }
 
-function HousingView({ onContact, onMapFocus }) {
+function HousingView({ houses, onContact, onMapFocus }) {
   return (
     <div>
       <div style={{ background:`linear-gradient(135deg,#7B4F1A,${C.soil})`, borderRadius:12, padding:"18px 20px", color:"#fff", marginBottom:20 }}>
@@ -506,22 +576,27 @@ function HousingView({ onContact, onMapFocus }) {
           ))}
         </div>
       </div>
-      {HOUSES.map(h=>(
+      {houses.map(h=>(
         <div key={h.id} style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:12, padding:"18px 20px", marginBottom:14 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
             <div>
               <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>🏡 {h.name}</div>
-              <div style={{ fontSize:12, color:C.muted }}>📍 {h.region} {h.location}　📐 {h.area}　💴 {h.rent}　🏠 {h.type}</div>
+              <div style={{ fontSize:12, color:C.muted }}>📍 {h.region} {h.location}　📐 {h.area_label}　💴 {h.rent_label}　🏠 {h.house_type}</div>
             </div>
             <button onClick={()=>onMapFocus(`house-${h.id}`)} style={{ background:C.paleGreen, border:`1px solid #B8D98A`, borderRadius:6, padding:"4px 10px", fontSize:11, color:C.green, cursor:"pointer", fontWeight:600, whiteSpace:"nowrap" }}>🗺 地図</button>
           </div>
-          <p style={{ fontSize:13, color:C.muted, margin:"0 0 10px", lineHeight:1.6 }}>{h.desc}</p>
-          <div style={{ background:C.paleGreen, borderRadius:6, padding:"8px 12px", fontSize:12, color:C.green, marginBottom:10, fontWeight:500 }}>💰 {h.subsidy}</div>
-          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>{h.tags.map(t=><Tag key={t}>{t}</Tag>)}</div>
-          {h.nearFarm.length>0 && <div style={{ fontSize:12, color:C.muted, marginBottom:12 }}>近接農地：{h.nearFarm.map(id=>FARMS.find(f=>f.id===id)?.name).filter(Boolean).join("・")}</div>}
+          <p style={{ fontSize:13, color:C.muted, margin:"0 0 10px", lineHeight:1.6 }}>{h.description}</p>
+          {h.subsidy_info && <div style={{ background:C.paleGreen, borderRadius:6, padding:"8px 12px", fontSize:12, color:C.green, marginBottom:10, fontWeight:500 }}>💰 {h.subsidy_info}</div>}
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>{(h.tags||[]).map(t=><Tag key={t}>{t}</Tag>)}</div>
           <Btn onClick={()=>onContact(h)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
         </div>
       ))}
+      {houses.length===0 && (
+        <div style={{ textAlign:"center", padding:40, color:C.muted }}>
+          <div style={{ fontSize:32, marginBottom:8 }}>🏡</div>
+          <div>物件情報を準備中です。</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -529,12 +604,29 @@ function HousingView({ onContact, onMapFocus }) {
 // ── MAIN APP ──────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("farms");
+  const [farms, setFarms] = useState([]);
+  const [houses, setHouses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [contact, setContact] = useState(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("すべて");
   const [mapFocus, setMapFocus] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const [{ data: farmsData }, { data: housesData }] = await Promise.all([
+      supabase.from("farms").select("*").neq("status","非公開").order("created_at", { ascending:false }),
+      supabase.from("houses").select("*").neq("status","非公開").order("created_at", { ascending:false }),
+    ]);
+    // DBにデータがなければサンプルデータを使用
+    setFarms(farmsData?.length > 0 ? farmsData : SAMPLE_FARMS);
+    setHouses(housesData?.length > 0 ? housesData : SAMPLE_HOUSES);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const TABS = [
     { id:"farms", label:"🌱 農地" },
@@ -545,15 +637,16 @@ export default function App() {
     { id:"admin", label:"⚙️ 管理" },
   ];
 
-  const filteredFarms = FARMS.filter(f => {
-    const mf = filter==="すべて" || f.status===filter || f.type===filter;
-    const ms = !search || f.crops.some(c=>c.includes(search)) || f.name.includes(search) || f.tags.some(t=>t.includes(search)) || f.region.includes(search) || f.location.includes(search);
+  const filteredFarms = farms.filter(f => {
+    const mf = filter==="すべて" || f.status===filter || f.farm_type===filter;
+    const ms = !search || (f.crops||[]).some(c=>c.includes(search)) ||
+      f.name.includes(search) || (f.tags||[]).some(t=>t.includes(search)) ||
+      f.region?.includes(search) || f.location?.includes(search);
     return mf && ms;
   });
 
   return (
     <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
-
       {/* Header */}
       <div style={{ background:C.deepGreen }}>
         <div style={{ maxWidth:1100, margin:"0 auto", padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -600,7 +693,15 @@ export default function App() {
       {/* Content */}
       <div style={{ maxWidth:1100, margin:"0 auto", padding:"20px 16px" }}>
 
-        {tab==="farms" && (
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign:"center", padding:60, color:C.muted }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>🌱</div>
+            <div>データを読み込み中...</div>
+          </div>
+        )}
+
+        {!loading && tab==="farms" && (
           <>
             <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
               {["すべて","貸出可能","畑","水田・畑"].map(f=>(
@@ -616,15 +717,15 @@ export default function App() {
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
                       <div>
                         <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>{farm.name}</div>
-                        <div style={{ fontSize:12, color:C.muted }}>📍 {farm.region} {farm.location}　📐 {farm.area}　🌱 {farm.type}</div>
+                        <div style={{ fontSize:12, color:C.muted }}>📍 {farm.region} {farm.location}　📐 {farm.area_label}　🌱 {farm.farm_type}</div>
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end" }}>
                         <span style={{ background: farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{farm.status}</span>
-                        {farm.premium && <span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
+                        {farm.is_premium && <span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
                       </div>
                     </div>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:6 }}>{farm.crops.map(c=><Tag key={c}>{CROP_EMOJI[c]||"🌱"} {c}</Tag>)}</div>
-                    <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>{farm.tags.map(t=><Tag key={t} color={C.soilLight} border={C.soilBorder} text={C.soil}>{t}</Tag>)}</div>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:6 }}>{(farm.crops||[]).map(c=><Tag key={c}>{CROP_EMOJI[c]||"🌱"} {c}</Tag>)}</div>
+                    <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>{(farm.tags||[]).map(t=><Tag key={t} color={C.soilLight} border={C.soilBorder} text={C.soil}>{t}</Tag>)}</div>
                   </div>
                 ))}
                 {filteredFarms.length===0 && <div style={{ textAlign:"center", padding:40, color:C.muted }}><div style={{ fontSize:32, marginBottom:8 }}>🔍</div><div>該当する農地が見つかりませんでした</div></div>}
@@ -639,16 +740,16 @@ export default function App() {
           </>
         )}
 
-        {tab==="housing" && <HousingView onContact={h=>setContact(h)} onMapFocus={id=>{ setMapFocus(id); setTab("map"); }}/>}
-        {tab==="map" && (
+        {!loading && tab==="housing" && <HousingView houses={houses} onContact={h=>setContact(h)} onMapFocus={id=>{ setMapFocus(id); setTab("map"); }}/>}
+        {!loading && tab==="map" && (
           <div>
-            <MapView farms={FARMS} houses={HOUSES} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
+            <MapView farms={farms} houses={houses} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
             <p style={{ fontSize:12, color:C.muted, marginTop:10, lineHeight:1.6 }}>OpenStreetMap による実地図表示。ピンをクリックすると農地・住居の概要が表示されます。</p>
           </div>
         )}
         {tab==="calendar" && <CropCalendar/>}
         {tab==="pricing" && <PricingView/>}
-        {tab==="admin" && <AdminPanel/>}
+        {!loading && tab==="admin" && <AdminPanel farms={farms} houses={houses} onRefresh={fetchData}/>}
       </div>
 
       {/* Footer */}
