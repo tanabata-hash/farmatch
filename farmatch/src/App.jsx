@@ -401,6 +401,105 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     showToast("🗑 削除しました"); onRefresh();
   };
 
+  // ── エクスポート機能 ──────────────────────────────────────
+  const toCSV = (rows, cols) => {
+    const header = cols.map(c=>c.label).join(",");
+    const body = rows.map(r=>
+      cols.map(c=>{
+        const v = r[c.key];
+        const s = Array.isArray(v) ? v.join("・") : (v==null?"":String(v));
+        return `"${s.replace(/"/g,'""')}"`;
+      }).join(",")
+    ).join("\n");
+    return header+"\n"+body;
+  };
+
+  const downloadCSV = (content, filename) => {
+    const bom = "\uFEFF";
+    const blob = new Blob([bom+content], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadExcel = (rows, cols, filename) => {
+    const header = cols.map(c=>`<th>${c.label}</th>`).join("");
+    const body = rows.map(r=>
+      "<tr>"+cols.map(c=>{
+        const v=r[c.key];
+        const s=Array.isArray(v)?v.join("・"):(v==null?"":String(v));
+        return `<td>${s}</td>`;
+      }).join("")+"</tr>"
+    ).join("");
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="UTF-8"/></head><body><table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+    const blob = new Blob([html], {type:"application/vnd.ms-excel;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const FARM_COLS = [
+    {key:"id",label:"ID"},{key:"name",label:"名称"},{key:"region",label:"都道府県"},
+    {key:"location",label:"エリア"},{key:"farm_type",label:"区分"},{key:"status",label:"ステータス"},
+    {key:"area_label",label:"面積"},{key:"rent_label",label:"賃料"},
+    {key:"water_source",label:"水源"},{key:"access_info",label:"アクセス"},
+    {key:"crops",label:"作物"},{key:"tags",label:"タグ"},{key:"description",label:"説明"},
+    {key:"score_water",label:"水源スコア"},{key:"score_sun",label:"日照スコア"},
+    {key:"score_soil",label:"土質スコア"},{key:"score_climate",label:"気候スコア"},
+    {key:"score_access",label:"アクセススコア"},{key:"is_premium",label:"プレミアム"},
+    {key:"lat",label:"緯度"},{key:"lng",label:"経度"},{key:"created_at",label:"登録日時"},
+  ];
+  const HOUSE_COLS = [
+    {key:"id",label:"ID"},{key:"name",label:"名称"},{key:"region",label:"都道府県"},
+    {key:"location",label:"エリア"},{key:"house_type",label:"種別"},{key:"status",label:"ステータス"},
+    {key:"area_label",label:"面積"},{key:"rent_label",label:"賃料"},
+    {key:"description",label:"説明"},{key:"subsidy_info",label:"補助金情報"},
+    {key:"tags",label:"タグ"},{key:"lat",label:"緯度"},{key:"lng",label:"経度"},
+    {key:"created_at",label:"登録日時"},
+  ];
+  const INQUIRY_COLS = [
+    {key:"id",label:"ID"},{key:"name",label:"お名前"},{key:"email",label:"メール"},
+    {key:"target_type",label:"対象種別"},{key:"purpose",label:"目的"},
+    {key:"message",label:"メッセージ"},{key:"status",label:"ステータス"},
+    {key:"created_at",label:"送信日時"},
+  ];
+  const USER_COLS = [
+    {key:"id",label:"ID"},{key:"name",label:"お名前"},{key:"email",label:"メール"},
+    {key:"role",label:"ロール"},{key:"prefecture",label:"都道府県"},
+    {key:"is_premium",label:"プレミアム"},{key:"created_at",label:"登録日時"},
+  ];
+
+  const handleExport = async(format) => {
+    showToast("⏳ データ取得中...");
+    const [
+      {data:farmsAll},
+      {data:housesAll},
+      {data:inquiriesAll},
+      {data:usersAll},
+    ] = await Promise.all([
+      supabase.from("farms").select("*").order("created_at",{ascending:false}),
+      supabase.from("houses").select("*").order("created_at",{ascending:false}),
+      supabase.from("inquiries").select("*").order("created_at",{ascending:false}),
+      supabase.from("users").select("*").order("created_at",{ascending:false}),
+    ]);
+    const date = new Date().toISOString().slice(0,10);
+    if(format==="csv") {
+      downloadCSV(toCSV(farmsAll||[], FARM_COLS), `farmatch_farms_${date}.csv`);
+      setTimeout(()=>downloadCSV(toCSV(housesAll||[], HOUSE_COLS), `farmatch_houses_${date}.csv`), 300);
+      setTimeout(()=>downloadCSV(toCSV(inquiriesAll||[], INQUIRY_COLS), `farmatch_inquiries_${date}.csv`), 600);
+      setTimeout(()=>downloadCSV(toCSV(usersAll||[], USER_COLS), `farmatch_users_${date}.csv`), 900);
+      showToast("✅ CSV 4ファイルをダウンロードしました");
+    } else {
+      downloadExcel(farmsAll||[], FARM_COLS, `farmatch_farms_${date}.xls`);
+      setTimeout(()=>downloadExcel(housesAll||[], HOUSE_COLS, `farmatch_houses_${date}.xls`), 300);
+      setTimeout(()=>downloadExcel(inquiriesAll||[], INQUIRY_COLS, `farmatch_inquiries_${date}.xls`), 600);
+      setTimeout(()=>downloadExcel(usersAll||[], USER_COLS, `farmatch_users_${date}.xls`), 900);
+      showToast("✅ Excel 4ファイルをダウンロードしました");
+    }
+  };
+
   const tableItems = tab==="farms"?farms:tab==="houses"?houses:[];
 
   const stats = [
@@ -432,8 +531,20 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
           <h2 style={{ margin:0, color:C.deepGreen, fontSize:18 }}>⚙️ 管理パネル</h2>
           <p style={{ margin:"4px 0 0", color:C.muted, fontSize:12 }}>農地・物件・問い合わせを管理できます</p>
         </div>
-        <button onClick={onLogout} style={{ background:"none", border:`1px solid ${C.border}`,
-          borderRadius:8, padding:"6px 14px", fontSize:12, color:C.muted, cursor:"pointer" }}>ログアウト</button>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={()=>handleExport("csv")}
+            style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8,
+              padding:"6px 12px", fontSize:12, color:C.green, cursor:"pointer", fontWeight:600 }}>
+            📥 CSV
+          </button>
+          <button onClick={()=>handleExport("excel")}
+            style={{ background:C.paleGreen, border:`1px solid #B8D98A`, borderRadius:8,
+              padding:"6px 12px", fontSize:12, color:C.green, cursor:"pointer", fontWeight:600 }}>
+            📊 Excel
+          </button>
+          <button onClick={onLogout} style={{ background:"none", border:`1px solid ${C.border}`,
+            borderRadius:8, padding:"6px 14px", fontSize:12, color:C.muted, cursor:"pointer" }}>ログアウト</button>
+        </div>
       </div>
 
       {/* Stats */}
