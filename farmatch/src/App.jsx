@@ -887,24 +887,25 @@ export default function App() {
             {user ? (
               <>
                 {/* ログイン中の表示 */}
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
-                  <span style={{ color:"#fff", fontSize:12, fontWeight:600 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6,
+                  background:"rgba(255,255,255,0.1)", borderRadius:20, padding:"5px 12px" }}>
+                  <span style={{ color:"#fff", fontSize:13, fontWeight:700 }}>
                     {userProfile?.name || user.email}
                   </span>
                   {roleLabel && (
-                    <span style={{ background:"rgba(255,255,255,0.15)", color:C.lightGreen,
-                      borderRadius:20, padding:"2px 10px", fontSize:10, fontWeight:600 }}>
+                    <span style={{ background:"rgba(255,255,255,0.2)", color:C.lightGreen,
+                      borderRadius:20, padding:"2px 8px", fontSize:10, fontWeight:600 }}>
                       {roleLabel}
                     </span>
                   )}
                 </div>
                 {isPremium ? (
-                  <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"4px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム</span>
+                  <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム</span>
                 ) : (
                   <button onClick={()=>setIsPremium(true)} style={{ background:C.soil, color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>プレミアム登録</button>
                 )}
                 <button onClick={handleLogout}
-                  style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, cursor:"pointer" }}>
+                  style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"1px solid rgba(255,255,255,0.2)", borderRadius:20, padding:"5px 14px", fontSize:11, cursor:"pointer" }}>
                   ログアウト
                 </button>
               </>
