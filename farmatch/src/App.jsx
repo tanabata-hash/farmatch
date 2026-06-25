@@ -800,6 +800,20 @@ export default function App() {
     if(data){
       setUserProfile(data);
       setIsPremium(data.is_premium || false);
+    } else {
+      // usersテーブルにレコードがなければ作成（Auth登録直後のフォールバック）
+      const { data:{ user } } = await supabase.auth.getUser();
+      if(user) {
+        const meta = user.user_metadata || {};
+        await supabase.from("users").upsert([{
+          id: uid,
+          email: user.email,
+          name: meta.name || "",
+          role: meta.role || "seeker",
+          is_premium: false,
+        }]);
+        setUserProfile({ id: uid, email: user.email, name: meta.name || "", role: meta.role || "seeker", is_premium: false });
+      }
     }
   };
 
