@@ -13,6 +13,8 @@ const C = {
   cream:"#F5F0E8", white:"#FFFFFF", text:"#1A1A1A", muted:"#6B6B6B", border:"#E0D8CC", sky:"#4A90D9",
 };
 
+const ADMIN_PASSWORD = "farmatch2025";
+
 const SAMPLE_FARMS = [
   { id:"1", name:"南部農地 A区画", region:"鹿児島県", location:"南薩摩エリア",
     lat:31.178, lng:130.529, area_label:"約800㎡", farm_type:"畑", status:"貸出可能",
@@ -99,7 +101,7 @@ function Modal({ children, onClose }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)",
       display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16 }}>
       <div style={{ background:C.white, borderRadius:16, padding:28, width:"100%",
-        maxWidth:480, maxHeight:"90vh", overflowY:"auto", position:"relative" }}>
+        maxWidth:520, maxHeight:"90vh", overflowY:"auto", position:"relative" }}>
         <button onClick={onClose} style={{ position:"absolute", top:14, right:16,
           background:"none", border:"none", fontSize:20, cursor:"pointer", color:C.muted }}>✕</button>
         {children}
@@ -282,140 +284,427 @@ function PricingView() {
   );
 }
 
-function AdminPanel({ farms, houses, onRefresh }) {
+// ── ADMIN PASSWORD GATE ───────────────────────────────────
+function AdminLogin({ onSuccess }) {
+  const [pw, setPw] = useState("");
+  const [error, setError] = useState(false);
+  const handleLogin = () => {
+    if(pw === ADMIN_PASSWORD) { onSuccess(); }
+    else { setError(true); setTimeout(()=>setError(false), 2000); }
+  };
+  return (
+    <div style={{ maxWidth:360, margin:"60px auto", background:C.white, borderRadius:16,
+      padding:36, border:`2px solid ${C.border}`, textAlign:"center" }}>
+      <div style={{ fontSize:40, marginBottom:12 }}>🔐</div>
+      <h2 style={{ color:C.deepGreen, margin:"0 0 6px", fontSize:18 }}>管理者ログイン</h2>
+      <p style={{ color:C.muted, fontSize:13, margin:"0 0 24px" }}>パスワードを入力してください</p>
+      <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
+        onKeyDown={e=>e.key==="Enter"&&handleLogin()}
+        placeholder="パスワード"
+        style={{ width:"100%", border:`1.5px solid ${error?'#E57373':C.border}`, borderRadius:8,
+          padding:"10px 14px", fontSize:14, boxSizing:"border-box", outline:"none",
+          marginBottom:12, textAlign:"center" }}/>
+      {error && <p style={{ color:"#E57373", fontSize:12, margin:"0 0 12px" }}>パスワードが違います</p>}
+      <Btn onClick={handleLogin} style={{ width:"100%" }}>ログイン</Btn>
+    </div>
+  );
+}
+
+// ── INQUIRY LIST ──────────────────────────────────────────
+function InquiryList() {
+  const [inquiries, setInquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  useEffect(()=>{
+    const fetch = async()=>{
+      const{data}=await supabase.from("inquiries").select("*").order("created_at",{ascending:false});
+      setInquiries(data||[]);
+      setLoading(false);
+    };
+    fetch();
+  },[]);
+
+  const statusColors = { new:"#4CAF50", contacted:"#2196F3", closed:"#9E9E9E" };
+  const statusLabels = { new:"新規", contacted:"対応中", closed:"完了" };
+
+  const updateStatus = async(id, status)=>{
+    await supabase.from("inquiries").update({status}).eq("id",id);
+    setInquiries(prev=>prev.map(i=>i.id===id?{...i,status}:i));
+    if(selected?.id===id) setSelected(prev=>({...prev,status}));
+  };
+
+  if(loading) return <div style={{ textAlign:"center", padding:40, color:C.muted }}>読み込み中...</div>;
+
+  return (
+    <div>
+      {selected && (
+        <Modal onClose={()=>setSelected(null)}>
+          <h3 style={{ margin:"0 0 16px", color:C.green }}>📬 問い合わせ詳細</h3>
+          <div style={{ background:C.cream, borderRadius:8, padding:"14px 16px", marginBottom:16 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, fontSize:13 }}>
+              <div><span style={{ color:C.muted, fontSize:11 }}>お名前</span><div style={{ fontWeight:600 }}>{selected.name}</div></div>
+              <div><span style={{ color:C.muted, fontSize:11 }}>メール</span><div style={{ fontWeight:600 }}><a href={`mailto:${selected.email}`} style={{ color:C.green }}>{selected.email}</a></div></div>
+              <div><span style={{ color:C.muted, fontSize:11 }}>目的</span><div>{selected.purpose||"—"}</div></div>
+              <div><span style={{ color:C.muted, fontSize:11 }}>対象</span><div>{selected.target_type==="farm"?"農地":"住居"}</div></div>
+            </div>
+          </div>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>メッセージ</div>
+            <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:8,
+              padding:"12px 14px", fontSize:13, lineHeight:1.7 }}>{selected.message||"（メッセージなし）"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>ステータス変更</div>
+            <div style={{ display:"flex", gap:8 }}>
+              {Object.entries(statusLabels).map(([k,v])=>(
+                <button key={k} onClick={()=>updateStatus(selected.id,k)}
+                  style={{ flex:1, padding:"8px", borderRadius:8, border:`2px solid ${statusColors[k]}`,
+                    background:selected.status===k?statusColors[k]:"transparent",
+                    color:selected.status===k?"#fff":statusColors[k],
+                    cursor:"pointer", fontWeight:700, fontSize:12 }}>{v}</button>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
+      <div style={{ background:C.white, borderRadius:8, border:`2px solid ${C.border}`, overflow:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13, minWidth:500 }}>
+          <thead style={{ background:C.paleGreen }}>
+            <tr>{["日時","お名前","メール","対象","ステータス","操作"].map(h=>(
+              <th key={h} style={{ padding:"10px 12px", textAlign:"left", color:C.green,
+                fontWeight:700, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {inquiries.map((inq,i)=>(
+              <tr key={inq.id} style={{ background:i%2===0?C.white:C.cream }}>
+                <td style={{ padding:"10px 12px", fontSize:11, color:C.muted, whiteSpace:"nowrap" }}>
+                  {inq.created_at?new Date(inq.created_at).toLocaleDateString("ja-JP"):"—"}
+                </td>
+                <td style={{ padding:"10px 12px", fontWeight:600 }}>{inq.name}</td>
+                <td style={{ padding:"10px 12px", fontSize:12, color:C.muted }}>{inq.email}</td>
+                <td style={{ padding:"10px 12px", fontSize:12 }}>{inq.target_type==="farm"?"🌱 農地":"🏡 住居"}</td>
+                <td style={{ padding:"10px 12px" }}>
+                  <span style={{ background:statusColors[inq.status]||"#9E9E9E", color:"#fff",
+                    borderRadius:6, padding:"2px 10px", fontSize:11, fontWeight:600 }}>
+                    {statusLabels[inq.status]||inq.status}
+                  </span>
+                </td>
+                <td style={{ padding:"10px 12px" }}>
+                  <button onClick={()=>setSelected(inq)}
+                    style={{ background:C.paleGreen, border:`1px solid #B8D98A`, color:C.green,
+                      borderRadius:6, padding:"4px 12px", fontSize:11, cursor:"pointer", fontWeight:600 }}>詳細</button>
+                </td>
+              </tr>
+            ))}
+            {inquiries.length===0 && (
+              <tr><td colSpan={6} style={{ padding:32, textAlign:"center", color:C.muted }}>
+                問い合わせはまだありません
+              </td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── ADMIN PANEL ───────────────────────────────────────────
+function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   const [tab, setTab] = useState("farms");
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState("farm");
-  const [form, setForm] = useState({name:"",region:"",location:"",area_label:"",rent_label:"",farm_type:"畑",status:"貸出可能",description:"",crops:""});
+  const [editItem, setEditItem] = useState(null);
+  const [form, setForm] = useState({
+    name:"", region:"", location:"", area_label:"", rent_label:"",
+    farm_type:"畑", status:"貸出可能", description:"", crops:"",
+    water_source:"", access_info:"", lat:"", lng:"",
+    score_water:3, score_sun:3, score_soil:3, score_climate:3, score_access:3,
+    tags:"", is_premium:false,
+  });
   const [toast, setToast] = useState("");
   const showToast = msg=>{ setToast(msg); setTimeout(()=>setToast(""),2500); };
 
-  const handleAdd = async()=>{
+  const openAdd = (type) => {
+    setEditItem(null);
+    setFormType(type);
+    setForm({name:"",region:"",location:"",area_label:"",rent_label:"",
+      farm_type:"畑",status:"貸出可能",description:"",crops:"",
+      water_source:"",access_info:"",lat:"",lng:"",
+      score_water:3,score_sun:3,score_soil:3,score_climate:3,score_access:3,
+      tags:"",is_premium:false});
+    setShowForm(true);
+  };
+
+  const openEdit = (item, type) => {
+    setEditItem(item);
+    setFormType(type);
+    setForm({
+      name:item.name||"", region:item.region||"", location:item.location||"",
+      area_label:item.area_label||"", rent_label:item.rent_label||"",
+      farm_type:item.farm_type||item.house_type||"畑",
+      status:item.status||"貸出可能", description:item.description||"",
+      crops:(item.crops||[]).join("、"),
+      water_source:item.water_source||"", access_info:item.access_info||"",
+      lat:item.lat||"", lng:item.lng||"",
+      score_water:item.score_water||3, score_sun:item.score_sun||3,
+      score_soil:item.score_soil||3, score_climate:item.score_climate||3,
+      score_access:item.score_access||3,
+      tags:(item.tags||[]).join("、"), is_premium:item.is_premium||false,
+    });
+    setShowForm(true);
+  };
+
+  const handleSave = async()=>{
     if(!form.name||!form.region) return;
-    const payload = formType==="farm"
-      ? { name:form.name, region:form.region, location:form.location, area_label:form.area_label,
-          rent_label:form.rent_label, farm_type:form.farm_type, status:form.status,
-          description:form.description, crops:form.crops.split(/[、,]/).map(c=>c.trim()).filter(Boolean),
-          tags:[], is_premium:false, plan:"basic" }
-      : { name:form.name, region:form.region, location:form.location, area_label:form.area_label,
-          rent_label:form.rent_label, house_type:form.farm_type||"一戸建て",
-          status:"掲載中", description:form.description, tags:[], plan:"basic" };
     const table = formType==="farm"?"farms":"houses";
-    const{error}=await supabase.from(table).insert([payload]);
+    const payload = formType==="farm"
+      ? { name:form.name, region:form.region, location:form.location,
+          area_label:form.area_label, rent_label:form.rent_label,
+          farm_type:form.farm_type, status:form.status, description:form.description,
+          crops:form.crops.split(/[、,]/).map(c=>c.trim()).filter(Boolean),
+          water_source:form.water_source, access_info:form.access_info,
+          lat:parseFloat(form.lat)||null, lng:parseFloat(form.lng)||null,
+          score_water:parseInt(form.score_water), score_sun:parseInt(form.score_sun),
+          score_soil:parseInt(form.score_soil), score_climate:parseInt(form.score_climate),
+          score_access:parseInt(form.score_access),
+          tags:form.tags.split(/[、,]/).map(t=>t.trim()).filter(Boolean),
+          is_premium:form.is_premium, plan:"basic" }
+      : { name:form.name, region:form.region, location:form.location,
+          area_label:form.area_label, rent_label:form.rent_label,
+          house_type:form.farm_type||"一戸建て", status:form.status||"掲載中",
+          description:form.description,
+          lat:parseFloat(form.lat)||null, lng:parseFloat(form.lng)||null,
+          tags:form.tags.split(/[、,]/).map(t=>t.trim()).filter(Boolean),
+          plan:"basic" };
+
+    let error;
+    if(editItem) {
+      ({error}=await supabase.from(table).update(payload).eq("id",editItem.id));
+    } else {
+      ({error}=await supabase.from(table).insert([payload]));
+    }
     if(error){showToast("❌ エラー: "+error.message);return;}
-    setForm({name:"",region:"",location:"",area_label:"",rent_label:"",farm_type:"畑",status:"貸出可能",description:"",crops:""});
-    setShowForm(false); showToast("✅ 登録しました"); onRefresh();
+    setShowForm(false);
+    showToast(editItem?"✅ 更新しました":"✅ 登録しました");
+    onRefresh();
   };
 
   const handleDelete = async(type,id)=>{
+    if(!window.confirm("削除しますか？")) return;
     const table=type==="farm"?"farms":"houses";
     const{error}=await supabase.from(table).delete().eq("id",id);
     if(error){showToast("❌ エラー: "+error.message);return;}
     showToast("🗑 削除しました"); onRefresh();
   };
 
-  const tableItems = tab==="farms"?farms:houses;
+  const tableItems = tab==="farms"?farms:tab==="houses"?houses:[];
+
+  const stats = [
+    {label:"掲載農地数", value:`${farms.length}件`, color:C.green, icon:"🌱"},
+    {label:"掲載物件数", value:`${houses.length}件`, color:C.soil, icon:"🏡"},
+    {label:"プレミアム農地", value:`${farms.filter(f=>f.is_premium).length}件`, color:"#8B5CF6", icon:"⭐"},
+    {label:"貸出可能", value:`${farms.filter(f=>f.status==="貸出可能").length}件`, color:C.sky, icon:"✅"},
+  ];
+
+  const ScoreInput = ({label, field}) => (
+    <div style={{ marginBottom:8 }}>
+      <label style={{ fontSize:11, color:C.muted, display:"block", marginBottom:4 }}>{label}</label>
+      <div style={{ display:"flex", gap:6 }}>
+        {[1,2,3,4,5].map(v=>(
+          <button key={v} onClick={()=>setForm({...form,[field]:v})}
+            style={{ width:32, height:32, borderRadius:6, border:`2px solid ${form[field]>=v?C.lightGreen:C.border}`,
+              background:form[field]>=v?C.lightGreen:"transparent",
+              color:form[field]>=v?"#fff":C.muted, cursor:"pointer", fontWeight:700, fontSize:13 }}>{v}</button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
-        {[{label:"掲載農地数",value:`${farms.length}件`,color:C.green},
-          {label:"掲載物件数",value:`${houses.length}件`,color:C.soil},
-          {label:"今月収益",value:"—",color:"#8B5CF6"},
-          {label:"問い合わせ",value:"—",color:C.sky}].map(s=>(
-          <div key={s.label} style={{ background:C.white, borderRadius:10, padding:"14px 16px",
-            border:`2px solid ${C.border}`, textAlign:"center" }}>
-            <div style={{ fontSize:11, color:C.muted, marginBottom:4 }}>{s.label}</div>
-            <div style={{ fontSize:20, fontWeight:800, color:s.color }}>{s.value}</div>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+        <div>
+          <h2 style={{ margin:0, color:C.deepGreen, fontSize:18 }}>⚙️ 管理パネル</h2>
+          <p style={{ margin:"4px 0 0", color:C.muted, fontSize:12 }}>農地・物件・問い合わせを管理できます</p>
+        </div>
+        <button onClick={onLogout} style={{ background:"none", border:`1px solid ${C.border}`,
+          borderRadius:8, padding:"6px 14px", fontSize:12, color:C.muted, cursor:"pointer" }}>ログアウト</button>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
+        {stats.map(s=>(
+          <div key={s.label} style={{ background:C.white, borderRadius:12, padding:"16px 18px",
+            border:`2px solid ${C.border}`, display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ fontSize:24 }}>{s.icon}</div>
+            <div>
+              <div style={{ fontSize:11, color:C.muted, marginBottom:2 }}>{s.label}</div>
+              <div style={{ fontSize:22, fontWeight:800, color:s.color }}>{s.value}</div>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Tabs */}
       <div style={{ display:"flex", gap:2, marginBottom:0, alignItems:"flex-end" }}>
-        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"]].map(([t,l])=>(
-          <button key={t} onClick={()=>setTab(t)} style={{ padding:"8px 18px", borderRadius:"8px 8px 0 0",
+        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"],["inquiries","📬 問い合わせ"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{ padding:"10px 20px", borderRadius:"8px 8px 0 0",
             border:"none", cursor:"pointer", fontWeight:700, fontSize:13,
             background:tab===t?C.green:C.border, color:tab===t?"#fff":C.muted }}>{l}</button>
         ))}
-        <div style={{ marginLeft:"auto" }}>
-          <Btn onClick={()=>{setFormType(tab==="farms"?"farm":"house");setShowForm(true);}}
-            style={{ padding:"8px 16px", fontSize:12 }}>＋ 新規登録</Btn>
+        {tab!=="inquiries" && (
+          <div style={{ marginLeft:"auto" }}>
+            <Btn onClick={()=>openAdd(tab==="farms"?"farm":"house")}
+              style={{ padding:"8px 16px", fontSize:12 }}>＋ 新規登録</Btn>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      {tab==="inquiries" ? (
+        <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
+          <InquiryList/>
         </div>
-      </div>
-      <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13, minWidth:560 }}>
-          <thead style={{ background:C.paleGreen }}>
-            <tr>{["名称","都道府県","エリア","面積/区分","賃料","ステータス","操作"].map(h=>(
-              <th key={h} style={{ padding:"10px 12px", textAlign:"left", color:C.green,
-                fontWeight:700, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {tableItems.map((item,i)=>(
-              <tr key={item.id} style={{ background:i%2===0?C.white:C.cream }}>
-                <td style={{ padding:"10px 12px", fontWeight:600, color:C.text }}>{item.name}</td>
-                <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.region||"—"}</td>
-                <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.location||"—"}</td>
-                <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>
-                  {item.area_label}{(item.farm_type||item.house_type)?` / ${item.farm_type||item.house_type}`:""}</td>
-                <td style={{ padding:"10px 12px", color:C.text }}>{item.rent_label}</td>
-                <td style={{ padding:"10px 12px" }}>
-                  <span style={{ background:item.status==="貸出可能"||item.status==="掲載中"?C.lightGreen:C.soil,
-                    color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>
-                    {item.status||"掲載中"}</span>
-                </td>
-                <td style={{ padding:"10px 12px" }}>
-                  <button onClick={()=>handleDelete(tab==="farms"?"farm":"house",item.id)}
-                    style={{ background:"none", border:"1px solid #E57373", color:"#E57373",
-                      borderRadius:6, padding:"3px 10px", fontSize:11, cursor:"pointer" }}>削除</button>
-                </td>
-              </tr>
-            ))}
-            {tableItems.length===0 && (
-              <tr><td colSpan={7} style={{ padding:32, textAlign:"center", color:C.muted }}>
-                登録データがありません
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      ) : (
+        <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, overflow:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13, minWidth:560 }}>
+            <thead style={{ background:C.paleGreen }}>
+              <tr>{["名称","都道府県","エリア","面積/区分","賃料","ステータス","操作"].map(h=>(
+                <th key={h} style={{ padding:"10px 12px", textAlign:"left", color:C.green,
+                  fontWeight:700, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody>
+              {tableItems.map((item,i)=>(
+                <tr key={item.id} style={{ background:i%2===0?C.white:C.cream }}>
+                  <td style={{ padding:"10px 12px", fontWeight:600, color:C.text }}>
+                    {item.name}
+                    {item.is_premium && <span style={{ marginLeft:6, fontSize:10, color:C.soil }}>⭐</span>}
+                  </td>
+                  <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.region||"—"}</td>
+                  <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>{item.location||"—"}</td>
+                  <td style={{ padding:"10px 12px", color:C.muted, fontSize:12 }}>
+                    {item.area_label}{(item.farm_type||item.house_type)?` / ${item.farm_type||item.house_type}`:""}</td>
+                  <td style={{ padding:"10px 12px", color:C.text }}>{item.rent_label}</td>
+                  <td style={{ padding:"10px 12px" }}>
+                    <span style={{ background:item.status==="貸出可能"||item.status==="掲載中"?C.lightGreen:C.soil,
+                      color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>
+                      {item.status||"掲載中"}</span>
+                  </td>
+                  <td style={{ padding:"10px 12px" }}>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={()=>openEdit(item, tab==="farms"?"farm":"house")}
+                        style={{ background:C.paleGreen, border:`1px solid #B8D98A`, color:C.green,
+                          borderRadius:6, padding:"3px 10px", fontSize:11, cursor:"pointer" }}>編集</button>
+                      <button onClick={()=>handleDelete(tab==="farms"?"farm":"house", item.id)}
+                        style={{ background:"none", border:"1px solid #E57373", color:"#E57373",
+                          borderRadius:6, padding:"3px 10px", fontSize:11, cursor:"pointer" }}>削除</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {tableItems.length===0 && (
+                <tr><td colSpan={7} style={{ padding:32, textAlign:"center", color:C.muted }}>
+                  登録データがありません
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Add/Edit Form Modal */}
       {showForm && (
         <Modal onClose={()=>setShowForm(false)}>
           <h3 style={{ margin:"0 0 16px", color:C.green }}>
-            {formType==="farm"?"🌱 農地を登録":"🏡 物件を登録"}
+            {editItem ? "✏️ 編集" : (formType==="farm"?"🌱 農地を登録":"🏡 物件を登録")}
           </h3>
-          {[{key:"name",label:"名称 *",ph:"例：南部農地 D区画"},
-            {key:"region",label:"都道府県 *",ph:"例：鹿児島県"},
-            {key:"location",label:"エリア名",ph:"例：南薩摩エリア"},
-            {key:"area_label",label:"面積",ph:"例：約600㎡"},
-            {key:"rent_label",label:"賃料",ph:"例：月額 4,000円"}].map(({key,label,ph})=>(
-            <div key={key} style={{ marginBottom:12 }}>
-              <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>{label}</label>
-              <input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={ph}
-                style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
-                  padding:"9px 12px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
-            </div>
-          ))}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+            {[{key:"name",label:"名称 *",ph:"例：南部農地 D区画",full:true},
+              {key:"region",label:"都道府県 *",ph:"例：鹿児島県"},
+              {key:"location",label:"エリア名",ph:"例：南薩摩エリア"},
+              {key:"area_label",label:"面積",ph:"例：約600㎡"},
+              {key:"rent_label",label:"賃料",ph:"例：月額 4,000円"},
+              {key:"water_source",label:"水源",ph:"例：井戸・雨水"},
+              {key:"access_info",label:"アクセス",ph:"例：最寄り駅より車5分"},
+              {key:"lat",label:"緯度",ph:"例：31.178"},
+              {key:"lng",label:"経度",ph:"例：130.529"},
+            ].map(({key,label,ph,full})=>(
+              <div key={key} style={{ gridColumn:full?"1/-1":"auto" }}>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>{label}</label>
+                <input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={ph}
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom:12 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>ステータス</label>
+            <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"8px 10px", fontSize:13, outline:"none" }}>
+              <option>貸出可能</option><option>調整中</option><option>非公開</option><option>掲載中</option>
+            </select>
+          </div>
+
           {formType==="farm" && (
             <div style={{ marginBottom:12 }}>
-              <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>作れる作物（読点区切り）</label>
+              <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>作れる作物（読点区切り）</label>
               <input value={form.crops} onChange={e=>setForm({...form,crops:e.target.value})}
                 placeholder="例：さつまいも、かぼちゃ、オクラ"
                 style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
-                  padding:"9px 12px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+                  padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
             </div>
           )}
-          <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>概要説明</label>
+
+          <div style={{ marginBottom:12 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>タグ（読点区切り）</label>
+            <input value={form.tags} onChange={e=>setForm({...form,tags:e.target.value})}
+              placeholder="例：初心者向け、温暖気候"
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+          </div>
+
+          <div style={{ marginBottom:12 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>概要説明</label>
             <textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3}
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
-                padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+                padding:"8px 10px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
+
+          {formType==="farm" && (
+            <div style={{ background:C.paleGreen, borderRadius:8, padding:"12px 14px", marginBottom:12 }}>
+              <div style={{ fontSize:11, color:C.green, fontWeight:700, marginBottom:10 }}>農地適性スコア</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                <ScoreInput label="水源" field="score_water"/>
+                <ScoreInput label="日照" field="score_sun"/>
+                <ScoreInput label="土質" field="score_soil"/>
+                <ScoreInput label="気候" field="score_climate"/>
+                <ScoreInput label="アクセス" field="score_access"/>
+              </div>
+            </div>
+          )}
+
+          {formType==="farm" && (
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+              <input type="checkbox" id="is_premium" checked={form.is_premium}
+                onChange={e=>setForm({...form,is_premium:e.target.checked})}/>
+              <label htmlFor="is_premium" style={{ fontSize:13, color:C.text, cursor:"pointer" }}>
+                ⭐ プレミアム物件として登録
+              </label>
+            </div>
+          )}
+
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={()=>setShowForm(false)} style={{ flex:1 }}>キャンセル</Btn>
-            <Btn onClick={handleAdd} style={{ flex:2 }}>登録する</Btn>
+            <Btn onClick={handleSave} style={{ flex:2 }}>{editItem?"更新する":"登録する"}</Btn>
           </div>
         </Modal>
       )}
+
       {toast && (
         <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)",
           background:C.green, color:"#fff", padding:"12px 24px", borderRadius:30,
@@ -572,17 +861,18 @@ function HousingView({ houses, onContact, onMapFocus }) {
 }
 
 export default function App() {
-  const [tab, setTab]           = useState("farms");
-  const [page, setPage]         = useState("main");
-  const [farms, setFarms]       = useState([]);
-  const [houses, setHouses]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [contact, setContact]   = useState(null);
-  const [search, setSearch]     = useState("");
-  const [filter, setFilter]     = useState("すべて");
-  const [mapFocus, setMapFocus] = useState(null);
+  const [tab, setTab]             = useState("farms");
+  const [page, setPage]           = useState("main");
+  const [farms, setFarms]         = useState([]);
+  const [houses, setHouses]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [selected, setSelected]   = useState(null);
+  const [contact, setContact]     = useState(null);
+  const [search, setSearch]       = useState("");
+  const [filter, setFilter]       = useState("すべて");
+  const [mapFocus, setMapFocus]   = useState(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [adminAuth, setAdminAuth] = useState(false);
 
   const fetchData = async()=>{
     setLoading(true);
@@ -743,7 +1033,11 @@ export default function App() {
         )}
         {tab==="calendar" && <CropCalendar/>}
         {tab==="pricing" && <PricingView/>}
-        {!loading && tab==="admin" && <AdminPanel farms={farms} houses={houses} onRefresh={fetchData}/>}
+        {!loading && tab==="admin" && (
+          adminAuth
+            ? <AdminPanel farms={farms} houses={houses} onRefresh={fetchData} onLogout={()=>setAdminAuth(false)}/>
+            : <AdminLogin onSuccess={()=>setAdminAuth(true)}/>
+        )}
       </div>
 
       {/* Footer */}
