@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
-import { TermsPage, PrivacyPage } from "./pages/Legal";
+import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
@@ -612,6 +612,7 @@ export default function App() {
 
   if(page==="terms") return <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}><TermsPage onBack={()=>setPage("main")}/></div>;
   if(page==="privacy") return <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}><PrivacyPage onBack={()=>setPage("main")}/></div>;
+  if(page==="specified") return <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}><SpecifiedCommercialPage onBack={()=>setPage("main")}/></div>;
 
   return (
     <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
@@ -729,7 +730,9 @@ export default function App() {
             color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>利用規約</button>
           <button onClick={()=>setPage("privacy")} style={{ background:"none", border:"none",
             color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>プライバシーポリシー</button>
-          <a href="mailto:support@farmatch.net" style={{ color:"#7AB648", fontSize:11 }}>お問い合わせ</a>
+          <a href="mailto:support@farmatch.net" style={{ color:"#7AB648", fontSize:11 }}>お問い合わせ<button onClick={()=>setPage("specified")} style={{ background:"none", border:"none",
+  color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>特定商取引法に基づく表記</button>
+</a>
         </div>
         <div style={{ color:"rgba(255,255,255,0.35)" }}>© {BRAND.year} {BRAND.name} — 全国の遊休農地有効活用プロジェクト</div>
       </div>
