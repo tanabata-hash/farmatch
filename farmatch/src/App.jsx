@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
+import { AuthModal } from "./components/Auth";
+import { InquiryManager } from "./components/InquiryManager";
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
@@ -310,106 +312,6 @@ function AdminLogin({ onSuccess }) {
   );
 }
 
-// ── INQUIRY LIST ──────────────────────────────────────────
-function InquiryList() {
-  const [inquiries, setInquiries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-
-  useEffect(()=>{
-    const fetch = async()=>{
-      const{data}=await supabase.from("inquiries").select("*").order("created_at",{ascending:false});
-      setInquiries(data||[]);
-      setLoading(false);
-    };
-    fetch();
-  },[]);
-
-  const statusColors = { new:"#4CAF50", contacted:"#2196F3", closed:"#9E9E9E" };
-  const statusLabels = { new:"新規", contacted:"対応中", closed:"完了" };
-
-  const updateStatus = async(id, status)=>{
-    await supabase.from("inquiries").update({status}).eq("id",id);
-    setInquiries(prev=>prev.map(i=>i.id===id?{...i,status}:i));
-    if(selected?.id===id) setSelected(prev=>({...prev,status}));
-  };
-
-  if(loading) return <div style={{ textAlign:"center", padding:40, color:C.muted }}>読み込み中...</div>;
-
-  return (
-    <div>
-      {selected && (
-        <Modal onClose={()=>setSelected(null)}>
-          <h3 style={{ margin:"0 0 16px", color:C.green }}>📬 問い合わせ詳細</h3>
-          <div style={{ background:C.cream, borderRadius:8, padding:"14px 16px", marginBottom:16 }}>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, fontSize:13 }}>
-              <div><span style={{ color:C.muted, fontSize:11 }}>お名前</span><div style={{ fontWeight:600 }}>{selected.name}</div></div>
-              <div><span style={{ color:C.muted, fontSize:11 }}>メール</span><div style={{ fontWeight:600 }}><a href={`mailto:${selected.email}`} style={{ color:C.green }}>{selected.email}</a></div></div>
-              <div><span style={{ color:C.muted, fontSize:11 }}>目的</span><div>{selected.purpose||"—"}</div></div>
-              <div><span style={{ color:C.muted, fontSize:11 }}>対象</span><div>{selected.target_type==="farm"?"農地":"住居"}</div></div>
-            </div>
-          </div>
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>メッセージ</div>
-            <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:8,
-              padding:"12px 14px", fontSize:13, lineHeight:1.7 }}>{selected.message||"（メッセージなし）"}</div>
-          </div>
-          <div>
-            <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>ステータス変更</div>
-            <div style={{ display:"flex", gap:8 }}>
-              {Object.entries(statusLabels).map(([k,v])=>(
-                <button key={k} onClick={()=>updateStatus(selected.id,k)}
-                  style={{ flex:1, padding:"8px", borderRadius:8, border:`2px solid ${statusColors[k]}`,
-                    background:selected.status===k?statusColors[k]:"transparent",
-                    color:selected.status===k?"#fff":statusColors[k],
-                    cursor:"pointer", fontWeight:700, fontSize:12 }}>{v}</button>
-              ))}
-            </div>
-          </div>
-        </Modal>
-      )}
-      <div style={{ background:C.white, borderRadius:8, border:`2px solid ${C.border}`, overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13, minWidth:500 }}>
-          <thead style={{ background:C.paleGreen }}>
-            <tr>{["日時","お名前","メール","対象","ステータス","操作"].map(h=>(
-              <th key={h} style={{ padding:"10px 12px", textAlign:"left", color:C.green,
-                fontWeight:700, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {inquiries.map((inq,i)=>(
-              <tr key={inq.id} style={{ background:i%2===0?C.white:C.cream }}>
-                <td style={{ padding:"10px 12px", fontSize:11, color:C.muted, whiteSpace:"nowrap" }}>
-                  {inq.created_at?new Date(inq.created_at).toLocaleDateString("ja-JP"):"—"}
-                </td>
-                <td style={{ padding:"10px 12px", fontWeight:600 }}>{inq.name}</td>
-                <td style={{ padding:"10px 12px", fontSize:12, color:C.muted }}>{inq.email}</td>
-                <td style={{ padding:"10px 12px", fontSize:12 }}>{inq.target_type==="farm"?"🌱 農地":"🏡 住居"}</td>
-                <td style={{ padding:"10px 12px" }}>
-                  <span style={{ background:statusColors[inq.status]||"#9E9E9E", color:"#fff",
-                    borderRadius:6, padding:"2px 10px", fontSize:11, fontWeight:600 }}>
-                    {statusLabels[inq.status]||inq.status}
-                  </span>
-                </td>
-                <td style={{ padding:"10px 12px" }}>
-                  <button onClick={()=>setSelected(inq)}
-                    style={{ background:C.paleGreen, border:`1px solid #B8D98A`, color:C.green,
-                      borderRadius:6, padding:"4px 12px", fontSize:11, cursor:"pointer", fontWeight:600 }}>詳細</button>
-                </td>
-              </tr>
-            ))}
-            {inquiries.length===0 && (
-              <tr><td colSpan={6} style={{ padding:32, textAlign:"center", color:C.muted }}>
-                問い合わせはまだありません
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // ── ADMIN PANEL ───────────────────────────────────────────
 function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   const [tab, setTab] = useState("farms");
@@ -566,7 +468,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
       {/* Content */}
       {tab==="inquiries" ? (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
-          <InquiryList/>
+          <InquiryManager />
         </div>
       ) : (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, overflow:"auto" }}>
@@ -874,6 +776,40 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [adminAuth, setAdminAuth] = useState(false);
 
+  // ── Auth state ──────────────────────────────────────────
+  const [user, setUser]           = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [showAuth, setShowAuth]   = useState(false);
+
+  // セッション監視
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setUser(session?.user ?? null);
+      if(session?.user) fetchProfile(session.user.id);
+    });
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
+      setUser(session?.user ?? null);
+      if(session?.user) fetchProfile(session.user.id);
+      else { setUserProfile(null); setIsPremium(false); }
+    });
+    return ()=>subscription.unsubscribe();
+  },[]);
+
+  const fetchProfile = async(uid)=>{
+    const { data } = await supabase.from("users").select("*").eq("id", uid).single();
+    if(data){
+      setUserProfile(data);
+      setIsPremium(data.is_premium || false);
+    }
+  };
+
+  const handleLogout = async()=>{
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserProfile(null);
+    setIsPremium(false);
+  };
+
   const fetchData = async()=>{
     setLoading(true);
     const[{data:farmsData},{data:housesData}]=await Promise.all([
@@ -919,6 +855,9 @@ export default function App() {
     </div>
   );
 
+  // ロールラベル
+  const roleLabel = userProfile?.role === "owner" ? "🏡 オーナー" : userProfile?.role === "seeker" ? "🌱 就農希望者" : null;
+
   return (
     <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
 
@@ -931,13 +870,41 @@ export default function App() {
             <div style={{ color:"#fff", fontSize:20, fontWeight:800 }}>🌱 {BRAND.name}</div>
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            {isPremium ? (
-              <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"4px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム会員</span>
+            {user ? (
+              <>
+                {/* ログイン中の表示 */}
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
+                  <span style={{ color:"#fff", fontSize:12, fontWeight:600 }}>
+                    {userProfile?.name || user.email}
+                  </span>
+                  {roleLabel && (
+                    <span style={{ background:"rgba(255,255,255,0.15)", color:C.lightGreen,
+                      borderRadius:20, padding:"2px 10px", fontSize:10, fontWeight:600 }}>
+                      {roleLabel}
+                    </span>
+                  )}
+                </div>
+                {isPremium ? (
+                  <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"4px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム</span>
+                ) : (
+                  <button onClick={()=>setIsPremium(true)} style={{ background:C.soil, color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>プレミアム登録</button>
+                )}
+                <button onClick={handleLogout}
+                  style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, cursor:"pointer" }}>
+                  ログアウト
+                </button>
+              </>
             ) : (
-              <button onClick={()=>setIsPremium(true)} style={{ background:C.soil, color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>プレミアム登録</button>
+              <>
+                {/* 未ログイン */}
+                <button onClick={()=>setShowAuth(true)}
+                  style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)", borderRadius:20, padding:"6px 16px", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                  ログイン / 登録
+                </button>
+              </>
             )}
             <button onClick={()=>setTab("admin")}
-              style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, cursor:"pointer" }}>管理者</button>
+              style={{ background:"rgba(255,255,255,0.1)", color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, cursor:"pointer" }}>管理者</button>
           </div>
         </div>
       </div>
@@ -1055,6 +1022,14 @@ export default function App() {
       </div>
 
       {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
+
+      {/* Auth Modal */}
+      {showAuth && (
+        <AuthModal
+          onClose={()=>setShowAuth(false)}
+          onSuccess={()=>setShowAuth(false)}
+        />
+      )}
     </div>
   );
 }
