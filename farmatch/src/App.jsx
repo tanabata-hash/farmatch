@@ -80,10 +80,12 @@ function ScoreBar({ value }) {
     </div>
   );
 }
+
 function Tag({ children, color=C.paleGreen, border="#B8D98A", text=C.green }) {
   return <span style={{ background:color, border:`1px solid ${border}`, borderRadius:20,
     padding:"3px 10px", fontSize:11, color:text, fontWeight:500 }}>{children}</span>;
 }
+
 function Btn({ children, onClick, style={}, variant="primary" }) {
   const base = variant==="primary"
     ? { background:C.green, color:"#fff", border:"none" }
@@ -91,6 +93,7 @@ function Btn({ children, onClick, style={}, variant="primary" }) {
   return <button onClick={onClick} style={{ ...base, borderRadius:8, padding:"10px 18px",
     fontSize:13, fontWeight:700, cursor:"pointer", ...style }}>{children}</button>;
 }
+
 function Modal({ children, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)",
@@ -610,12 +613,26 @@ export default function App() {
     return mf&&ms;
   });
 
-  if(page==="terms") return <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}><TermsPage onBack={()=>setPage("main")}/></div>;
-  if(page==="privacy") return <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}><PrivacyPage onBack={()=>setPage("main")}/></div>;
-  if(page==="specified") return <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}><SpecifiedCommercialPage onBack={()=>setPage("main")}/></div>;
+  if(page==="terms") return (
+    <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
+      <TermsPage onBack={()=>setPage("main")}/>
+    </div>
+  );
+  if(page==="privacy") return (
+    <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
+      <PrivacyPage onBack={()=>setPage("main")}/>
+    </div>
+  );
+  if(page==="specified") return (
+    <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
+      <SpecifiedCommercialPage onBack={()=>setPage("main")}/>
+    </div>
+  );
 
   return (
     <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
+
+      {/* Header */}
       <div style={{ background:C.deepGreen }}>
         <div style={{ maxWidth:1100, margin:"0 auto", padding:"14px 20px",
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
@@ -635,6 +652,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* Hero */}
       {tab==="farms" && (
         <div style={{ background:`linear-gradient(135deg,${C.green},${C.deepGreen})`, padding:"28px 20px", textAlign:"center" }}>
           <div style={{ color:"#D4EDAA", fontSize:11, letterSpacing:3, marginBottom:8 }}>{BRAND.sub}</div>
@@ -647,6 +665,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Nav */}
       <div style={{ background:C.white, borderBottom:`2px solid ${C.border}`, overflowX:"auto" }}>
         <div style={{ maxWidth:1100, margin:"0 auto", display:"flex" }}>
           {TABS.map(t=>(
@@ -658,6 +677,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* Content */}
       <div style={{ maxWidth:1100, margin:"0 auto", padding:"20px 16px" }}>
         {loading && (
           <div style={{ textAlign:"center", padding:60, color:C.muted }}>
@@ -697,47 +717,50 @@ export default function App() {
                     <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>{(farm.tags||[]).map(t=><Tag key={t} color={C.soilLight} border={C.soilBorder} text={C.soil}>{t}</Tag>)}</div>
                   </div>
                 ))}
-                {filteredFarms.length===0&&<div style={{ textAlign:"center", padding:40, color:C.muted }}><div style={{ fontSize:32, marginBottom:8 }}>🔍</div><div>該当する農地が見つかりませんでした</div></div>}
+                {filteredFarms.length===0 && (
+                  <div style={{ textAlign:"center", padding:40, color:C.muted }}>
+                    <div style={{ fontSize:32, marginBottom:8 }}>🔍</div>
+                    <div>該当する農地が見つかりませんでした</div>
+                  </div>
+                )}
                 <div style={{ background:`linear-gradient(135deg,${C.soil},#8B5A1A)`, borderRadius:12, padding:"18px 20px", color:"#fff", marginTop:8 }}>
                   <div style={{ fontWeight:700, fontSize:14, marginBottom:6 }}>🏡 農地・物件オーナーの方へ</div>
                   <p style={{ fontSize:12, margin:"0 0 12px", opacity:0.9, lineHeight:1.6 }}>使われていない農地や空き物件を登録して、新しい農業の担い手とつながりましょう。</p>
                   <button onClick={()=>setTab("admin")} style={{ background:"#fff", color:C.soil, border:"none", borderRadius:8, padding:"8px 18px", fontSize:12, fontWeight:700, cursor:"pointer" }}>農地・物件を登録する（無料）</button>
                 </div>
               </div>
-              {selected&&<FarmDetail farm={selected} isPremium={isPremium} onContact={f=>setContact(f)} onClose={()=>setSelected(null)}/>}
+              {selected && <FarmDetail farm={selected} isPremium={isPremium} onContact={f=>setContact(f)} onClose={()=>setSelected(null)}/>}
             </div>
           </>
         )}
 
-        {!loading&&tab==="housing"&&<HousingView houses={houses} onContact={h=>setContact(h)} onMapFocus={id=>{ setMapFocus(id); setTab("map"); }}/>}
-        {!loading&&tab==="map"&&(
+        {!loading && tab==="housing" && <HousingView houses={houses} onContact={h=>setContact(h)} onMapFocus={id=>{ setMapFocus(id); setTab("map"); }}/>}
+        {!loading && tab==="map" && (
           <div>
             <MapView farms={farms} houses={houses} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
             <p style={{ fontSize:12, color:C.muted, marginTop:10, lineHeight:1.6 }}>OpenStreetMap による実地図表示。ピンをクリックすると概要が表示されます。</p>
           </div>
         )}
-        {tab==="calendar"&&<CropCalendar/>}
-        {tab==="pricing"&&<PricingView/>}
-        {!loading&&tab==="admin"&&<AdminPanel farms={farms} houses={houses} onRefresh={fetchData}/>}
+        {tab==="calendar" && <CropCalendar/>}
+        {tab==="pricing" && <PricingView/>}
+        {!loading && tab==="admin" && <AdminPanel farms={farms} houses={houses} onRefresh={fetchData}/>}
       </div>
 
+      {/* Footer */}
       <div style={{ background:C.deepGreen, color:"#7AB648", textAlign:"center",
         padding:"24px 20px", fontSize:11, marginTop:20, lineHeight:1.8 }}>
         <div style={{ fontWeight:700, fontSize:14, color:C.lightGreen, marginBottom:4 }}>🌱 {BRAND.name}</div>
         <div style={{ marginBottom:10 }}>{BRAND.tagline}</div>
         <div style={{ display:"flex", justifyContent:"center", gap:20, marginBottom:10, flexWrap:"wrap" }}>
-          <button onClick={()=>setPage("terms")} style={{ background:"none", border:"none",
-            color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>利用規約</button>
-          <button onClick={()=>setPage("privacy")} style={{ background:"none", border:"none",
-            color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>プライバシーポリシー</button>
-          <a href="mailto:support@farmatch.net" style={{ color:"#7AB648", fontSize:11 }}>お問い合わせ<button onClick={()=>setPage("specified")} style={{ background:"none", border:"none",
-  color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>特定商取引法に基づく表記</button>
-</a>
+          <button onClick={()=>setPage("terms")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>利用規約</button>
+          <button onClick={()=>setPage("privacy")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>プライバシーポリシー</button>
+          <button onClick={()=>setPage("specified")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>特定商取引法に基づく表記</button>
+          <a href="mailto:support@farmatch.net" style={{ color:"#7AB648", fontSize:11 }}>お問い合わせ</a>
         </div>
         <div style={{ color:"rgba(255,255,255,0.35)" }}>© {BRAND.year} {BRAND.name} — 全国の遊休農地有効活用プロジェクト</div>
       </div>
 
-      {contact&&<ContactModal item={contact} onClose={()=>setContact(null)}/>}
+      {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
     </div>
   );
 }
