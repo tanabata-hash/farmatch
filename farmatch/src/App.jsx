@@ -975,8 +975,8 @@ export default function App() {
       supabase.from("farms").select("*").neq("status","非公開").order("created_at",{ascending:false}),
       supabase.from("houses").select("*").neq("status","非公開").order("created_at",{ascending:false}),
     ]);
-    setFarms(farmsData?.length>0?farmsData:SAMPLE_FARMS);
-    setHouses(housesData?.length>0?housesData:SAMPLE_HOUSES);
+    setFarms(farmsData||[]);
+    setHouses(housesData||[]);
     setLoading(false);
   };
   useEffect(()=>{ fetchData(); },[]);
