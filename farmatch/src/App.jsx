@@ -322,6 +322,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     name:"", region:"", location:"", area_label:"", rent_label:"",
     farm_type:"畑", status:"貸出可能", description:"", crops:"",
     water_source:"", access_info:"", lat:"", lng:"",
+    chiban:"", nosin_ku:"", chimoku:"",
     score_water:3, score_sun:3, score_soil:3, score_climate:3, score_access:3,
     tags:"", is_premium:false,
   });
@@ -334,6 +335,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     setForm({name:"",region:"",location:"",area_label:"",rent_label:"",
       farm_type:"畑",status:"貸出可能",description:"",crops:"",
       water_source:"",access_info:"",lat:"",lng:"",
+      chiban:"",nosin_ku:"",chimoku:"",
       score_water:3,score_sun:3,score_soil:3,score_climate:3,score_access:3,
       tags:"",is_premium:false});
     setShowForm(true);
@@ -350,6 +352,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
       crops:(item.crops||[]).join("、"),
       water_source:item.water_source||"", access_info:item.access_info||"",
       lat:item.lat||"", lng:item.lng||"",
+      chiban:item.chiban||"", nosin_ku:item.nosin_ku||"", chimoku:item.chimoku||"",
       score_water:item.score_water||3, score_sun:item.score_sun||3,
       score_soil:item.score_soil||3, score_climate:item.score_climate||3,
       score_access:item.score_access||3,
@@ -368,6 +371,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
           crops:form.crops.split(/[、,]/).map(c=>c.trim()).filter(Boolean),
           water_source:form.water_source, access_info:form.access_info,
           lat:parseFloat(form.lat)||null, lng:parseFloat(form.lng)||null,
+          chiban:form.chiban, nosin_ku:form.nosin_ku, chimoku:form.chimoku,
           score_water:parseInt(form.score_water), score_sun:parseInt(form.score_sun),
           score_soil:parseInt(form.score_soil), score_climate:parseInt(form.score_climate),
           score_access:parseInt(form.score_access),
@@ -449,6 +453,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     {key:"score_water",label:"水源スコア"},{key:"score_sun",label:"日照スコア"},
     {key:"score_soil",label:"土質スコア"},{key:"score_climate",label:"気候スコア"},
     {key:"score_access",label:"アクセススコア"},{key:"is_premium",label:"プレミアム"},
+    {key:"chiban",label:"番地"},{key:"nosin_ku",label:"農振区域区分"},{key:"chimoku",label:"地目"},
     {key:"lat",label:"緯度"},{key:"lng",label:"経度"},{key:"created_at",label:"登録日時"},
   ];
   const HOUSE_COLS = [
@@ -643,6 +648,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
               {key:"rent_label",label:"賃料",ph:"例：月額 4,000円"},
               {key:"water_source",label:"水源",ph:"例：井戸・雨水"},
               {key:"access_info",label:"アクセス",ph:"例：最寄り駅より車5分"},
+              {key:"chiban",label:"番地",ph:"例：鹿児島県南さつま市加世田○○番地"},
               {key:"lat",label:"緯度",ph:"例：31.178"},
               {key:"lng",label:"経度",ph:"例：130.529"},
             ].map(({key,label,ph,full})=>(
@@ -662,6 +668,34 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
               <option>貸出可能</option><option>調整中</option><option>非公開</option><option>掲載中</option>
             </select>
           </div>
+
+          {formType==="farm" && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+              <div>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>農振法の区域区分</label>
+                <select value={form.nosin_ku} onChange={e=>setForm({...form,nosin_ku:e.target.value})}
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"8px 10px", fontSize:13, outline:"none" }}>
+                  <option value="">未選択</option>
+                  <option>農用地区域</option>
+                  <option>農業振興地域内農用地区域外</option>
+                  <option>農業振興地域外</option>
+                  <option>市街化区域</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>地目（登記）</label>
+                <select value={form.chimoku} onChange={e=>setForm({...form,chimoku:e.target.value})}
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"8px 10px", fontSize:13, outline:"none" }}>
+                  <option value="">未選択</option>
+                  <option>田</option>
+                  <option>畑</option>
+                  <option>山林</option>
+                  <option>原野</option>
+                  <option>雑種地</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {formType==="farm" && (
             <div style={{ marginBottom:12 }}>
