@@ -451,11 +451,57 @@ function SalesChannelPanel({ farm }) {
 }
 
 // ── マップコンポーネント ──────────────────────────────────
-function InlineMapView({ farms, onSelectFarm }) {
+function InlineMapView({ farms, onSelectFarm, selectedFarmId }) {
   const containerId = "farmatch-inline-map";
   const mapRef = React.useRef(null);
+  const farmMarkersRef = React.useRef({});
+
+  // 選択農地が変わったらピン強調＋ズーム
+  React.useEffect(() => {
+    if (!mapRef.current) return;
+    const L = window.L; if (!L) return;
+
+    // 全ピンをリセット
+    Object.entries(farmMarkersRef.current).forEach(([id, marker]) => {
+      const isSelected = String(id) === String(selectedFarmId);
+      const el = marker.getElement();
+      if (!el) return;
+      const inner = el.querySelector('div');
+      if (!inner) return;
+      if (isSelected) {
+        inner.style.width = '40px';
+        inner.style.height = '40px';
+        inner.style.fontSize = '18px';
+        inner.style.border = '3px solid #7AB648';
+        inner.style.boxShadow = '0 0 0 6px rgba(122,182,72,0.35), 0 3px 10px rgba(0,0,0,0.4)';
+        inner.style.background = '#1E3D0F';
+        inner.style.transform = 'scale(1)';
+        inner.style.transition = 'all 0.2s ease';
+        marker.setZIndexOffset(1000);
+      } else {
+        inner.style.width = '28px';
+        inner.style.height = '28px';
+        inner.style.fontSize = '13px';
+        inner.style.border = '2px solid #7AB648';
+        inner.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+        inner.style.background = '#2D5016';
+        inner.style.transform = 'scale(1)';
+        inner.style.transition = 'all 0.2s ease';
+        marker.setZIndexOffset(0);
+      }
+    });
+
+    // 選択農地にフライ
+    if (selectedFarmId) {
+      const farm = farms.find(f => String(f.id) === String(selectedFarmId));
+      if (farm?.lat && farm?.lng) {
+        mapRef.current.flyTo([farm.lat, farm.lng], 13, { duration: 0.8 });
+      }
+    }
+  }, [selectedFarmId]);
 
   React.useEffect(() => {
+    farmMarkersRef.current = {};
     function initMap() {
       setTimeout(() => {
         const el = document.getElementById(containerId);
@@ -477,11 +523,12 @@ function InlineMapView({ farms, onSelectFarm }) {
         valid.forEach(f => {
           const { pref, local } = getSubsidies(f);
           const subsidyCount = pref.length + local.length;
+          const isSelected = String(f.id) === String(selectedFarmId);
           const icon = L.divIcon({
-            html: `<div style="background:#2D5016;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #7AB648;box-shadow:0 2px 4px rgba(0,0,0,0.3)">🌱</div>`,
-            className: "", iconSize: [28, 28], iconAnchor: [14, 14]
+            html: `<div style="background:${isSelected?'#1E3D0F':'#2D5016'};color:#fff;border-radius:50%;width:${isSelected?40:28}px;height:${isSelected?40:28}px;display:flex;align-items:center;justify-content:center;font-size:${isSelected?18:13}px;border:${isSelected?3:2}px solid #7AB648;box-shadow:${isSelected?'0 0 0 6px rgba(122,182,72,0.35), 0 3px 10px rgba(0,0,0,0.4)':'0 2px 4px rgba(0,0,0,0.3)'};transition:all 0.2s ease">🌱</div>`,
+            className: "", iconSize: [isSelected?40:28, isSelected?40:28], iconAnchor: [isSelected?20:14, isSelected?20:14]
           });
-          L.marker([f.lat, f.lng], { icon }).addTo(map)
+          const marker = L.marker([f.lat, f.lng], { icon }).addTo(map)
             .bindPopup(`<div style="font-family:sans-serif;min-width:160px">
               <div style="font-weight:700;color:#2D5016;margin-bottom:4px;font-size:13px">${f.name}</div>
               <div style="font-size:11px;color:#666;margin-bottom:4px">📍 ${f.region} ${f.location}</div>
@@ -490,6 +537,8 @@ function InlineMapView({ farms, onSelectFarm }) {
               <button onclick="window._farmSelect('${f.id}')" style="margin-top:8px;background:#2D5016;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%">詳細を見る</button>
             </div>`)
             .on("click", () => onSelectFarm(f));
+          if (isSelected) marker.setZIndexOffset(1000);
+          farmMarkersRef.current[f.id] = marker;
         });
         window._farmSelect = (id) => {
           const farm = farms.find(f => f.id === id);
@@ -524,7 +573,9 @@ function InlineMapView({ farms, onSelectFarm }) {
       <div style={{ background:"#2D5016", color:"#fff", padding:"8px 14px", fontSize:12,
         fontWeight:700, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <span>🗺 フィルター中の農地マップ</span>
-        <span style={{ fontSize:11, opacity:0.8, fontWeight:400 }}>ピンをクリックで詳細表示</span>
+        <span style={{ fontSize:11, opacity:0.8, fontWeight:400 }}>
+          {selectedFarmId ? "🌱 選択中の農地を強調表示" : "ピンをクリックで詳細表示"}
+        </span>
       </div>
       <div id={containerId} style={{ height:400, width:"100%" }}/>
     </div>
@@ -1329,11 +1380,55 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
   const mapRef = React.useRef(null);
   const farmMarkersRef = React.useRef({});
 
-  // focusTarget が変わったら地図をフライ移動
+  // focusTarget が変わったら地図をフライ移動＋ルートライン描画
   React.useEffect(() => {
     if (!focusTarget || !mapRef.current) return;
+    const L = window.L; if (!L) return;
+    const map = mapRef.current;
+
+    // 既存のルートラインを削除
+    if (map._routeLine) { map.removeLayer(map._routeLine); map._routeLine = null; }
+    if (map._routeLabels) { map._routeLabels.forEach(l=>map.removeLayer(l)); map._routeLabels=[]; }
+
     if (focusTarget.lat && focusTarget.lng) {
-      mapRef.current.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
+      // 選択された住居ピンを探す（focusTargetがhouseの場合）
+      const isHouse = !!focusTarget.house_type;
+      const isFarm = !!focusTarget.farm_type;
+
+      if (isHouse) {
+        // 住まい選択：その住まい単体にズーム
+        map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
+      } else if (isFarm && focusTarget._fromHouse) {
+        // 農地選択（住まい詳細パネルから）：住まい↔農地間にルートライン
+        const h = focusTarget._fromHouse;
+        if (h.lat && h.lng) {
+          const latlngs = [[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]];
+          const line = L.polyline(latlngs, {
+            color: '#1D4ED8', weight: 3, opacity: 0.8,
+            dashArray: '8, 6'
+          }).addTo(map);
+          map._routeLine = line;
+
+          // 距離ラベル
+          const midLat = (h.lat + focusTarget.lat) / 2;
+          const midLng = (h.lng + focusTarget.lng) / 2;
+          const distMin = calcDriveMin(h.lat, h.lng, focusTarget.lat, focusTarget.lng);
+          const label = L.marker([midLat, midLng], {
+            icon: L.divIcon({
+              html: `<div style="background:#1D4ED8;color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗 ${driveLabel(distMin)}</div>`,
+              className: "", iconAnchor: [40, 10]
+            })
+          }).addTo(map);
+          map._routeLabels = [label];
+
+          // 両点がおさまるようにズーム
+          map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 14, animate: true, duration: 0.8 });
+        } else {
+          map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
+        }
+      } else {
+        map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
+      }
     }
   }, [focusTarget]);
 
@@ -1473,9 +1568,12 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
     if (h.lat && h.lng) setFocusTarget(h);
   };
 
-  // 近隣農地クリック時：農地タブへ遷移＋地図フォーカス
+  // 近隣農地クリック時：農地タブへ遷移＋ルートライン表示
   const handleSelectFarmFromHousing = (f) => {
-    if (f.lat && f.lng) setFocusTarget(f);
+    if (f.lat && f.lng) {
+      // selectedHouseの情報を_fromHouseとして付与してルートライン描画
+      setFocusTarget({ ...f, _fromHouse: selectedHouse });
+    }
     onSelectFarm(f);
   };
 
@@ -1862,7 +1960,7 @@ export default function App() {
 
             {showMap && (
               <div style={{ marginBottom:16, borderRadius:12, overflow:"hidden", border:`2px solid ${C.border}` }}>
-                <InlineMapView farms={filteredFarms} onSelectFarm={f=>setSelected(f)}/>
+                <InlineMapView farms={filteredFarms} onSelectFarm={f=>setSelected(f)} selectedFarmId={selected?.id}/>
               </div>
             )}
 
