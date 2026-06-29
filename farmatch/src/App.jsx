@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 import { AuthModal } from "./components/Auth";
