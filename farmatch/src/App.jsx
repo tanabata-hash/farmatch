@@ -1421,7 +1421,7 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
           const [midLat, midLng] = Array.isArray(latlngs[mid]) ? latlngs[mid] : [latlngs[mid].lat, latlngs[mid].lng];
           const label = L.marker([midLat, midLng], {
             icon: L.divIcon({
-              html: `<div style="background:#1E40AF;color:#fff;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.6);border:2px solid #fff;pointer-events:none;transform:translate(-50%,-50%)">🚗 ${driveLabel(distMin)}</div>`,
+              html: `<div style="background:#fff;color:#1E40AF;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.5);border:2px solid #1E40AF;pointer-events:none;transform:translate(-50%,-50%)">🚗 ${driveLabel(distMin)}</div>`,
               className: "",
               iconSize: [0, 0],
               iconAnchor: [0, 0]
