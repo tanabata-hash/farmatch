@@ -1324,9 +1324,10 @@ function driveLabel(min) {
 }
 
 // ── 住まい専用マップ（物件＋近隣農地を同時表示） ──────────
-function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarget }) {
+function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarget, hoveredFarmId, onFarmHover }) {
   const containerId = "farmatch-housing-map";
   const mapRef = React.useRef(null);
+  const farmMarkersRef = React.useRef({});
 
   // focusTarget が変わったら地図をフライ移動
   React.useEffect(() => {
@@ -1336,7 +1337,40 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
     }
   }, [focusTarget]);
 
+  // hoveredFarmId が変わったらピンのスタイルを更新
   React.useEffect(() => {
+    Object.entries(farmMarkersRef.current).forEach(([id, marker]) => {
+      const isHovered = String(id) === String(hoveredFarmId);
+      const el = marker.getElement();
+      if (!el) return;
+      const inner = el.querySelector('div');
+      if (!inner) return;
+      if (isHovered) {
+        inner.style.width = '34px';
+        inner.style.height = '34px';
+        inner.style.fontSize = '16px';
+        inner.style.border = '3px solid #7AB648';
+        inner.style.boxShadow = '0 0 0 4px rgba(122,182,72,0.4), 0 3px 8px rgba(0,0,0,0.4)';
+        inner.style.opacity = '1';
+        inner.style.zIndex = '1000';
+        inner.style.transform = 'scale(1.2)';
+        inner.style.transition = 'all 0.15s ease';
+      } else {
+        inner.style.width = '24px';
+        inner.style.height = '24px';
+        inner.style.fontSize = '11px';
+        inner.style.border = '2px solid #7AB648';
+        inner.style.boxShadow = '0 1px 4px rgba(0,0,0,0.3)';
+        inner.style.opacity = '0.85';
+        inner.style.zIndex = '';
+        inner.style.transform = 'scale(1)';
+        inner.style.transition = 'all 0.15s ease';
+      }
+    });
+  }, [hoveredFarmId]);
+
+  React.useEffect(() => {
+    farmMarkersRef.current = {};
     function initMap() {
       setTimeout(() => {
         const el = document.getElementById(containerId);
@@ -1372,13 +1406,13 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
             .on("click", ()=>onSelectHouse(h));
         });
 
-        // 農地ピン（緑・小さめ）
+        // 農地ピン（緑・hover連動）
         farms.filter(f=>f.lat&&f.lng).forEach(f => {
           const icon = L.divIcon({
-            html:`<div style="background:#2D5016;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #7AB648;box-shadow:0 1px 4px rgba(0,0,0,0.3);opacity:0.85">🌱</div>`,
+            html:`<div style="background:#2D5016;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #7AB648;box-shadow:0 1px 4px rgba(0,0,0,0.3);opacity:0.85;transition:all 0.15s ease">🌱</div>`,
             className:"", iconSize:[24,24], iconAnchor:[12,12]
           });
-          L.marker([f.lat,f.lng],{icon}).addTo(map)
+          const marker = L.marker([f.lat,f.lng],{icon}).addTo(map)
             .bindPopup(`<div style="font-family:sans-serif;min-width:160px">
               <div style="font-weight:700;color:#2D5016;margin-bottom:4px;font-size:12px">🌱 ${f.name}</div>
               <div style="font-size:11px;color:#666;margin-bottom:4px">📍 ${f.region} ${f.location}</div>
@@ -1386,7 +1420,10 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
               <div style="font-size:11px;margin-top:4px"><span style="background:${f.status==="貸出可能"?"#7AB648":"#C4883A"};color:#fff;border-radius:4px;padding:1px 7px;font-size:10px">${f.status}</span></div>
               <button onclick="window._farmSelectH('${f.id}')" style="margin-top:6px;background:#2D5016;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%">農地詳細を見る</button>
             </div>`)
-            .on("click", ()=>onSelectFarm(f));
+            .on("click", ()=>onSelectFarm(f))
+            .on("mouseover", ()=>{ if(onFarmHover) onFarmHover(f.id); })
+            .on("mouseout",  ()=>{ if(onFarmHover) onFarmHover(null); });
+          farmMarkersRef.current[f.id] = marker;
         });
 
         window._houseSelect = (id) => { const h=houses.find(h=>h.id===id); if(h) onSelectHouse(h); };
@@ -1428,6 +1465,7 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
 function HousingView({ houses, farms, onContact, onSelectFarm }) {
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [focusTarget, setFocusTarget] = useState(null);
+  const [hoveredFarmId, setHoveredFarmId] = useState(null);
 
   // 物件選択時：地図フォーカス＋詳細表示
   const handleSelectHouse = (h) => {
@@ -1461,6 +1499,8 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
         onSelectHouse={handleSelectHouse}
         onSelectFarm={handleSelectFarmFromHousing}
         focusTarget={focusTarget}
+        hoveredFarmId={hoveredFarmId}
+        onFarmHover={setHoveredFarmId}
       />
 
       {/* 選択中の物件詳細 */}
@@ -1505,12 +1545,22 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {nearby.slice(0,5).map(f=>(
-                    <button key={f.id} onClick={()=>handleSelectFarmFromHousing(f)}
-                      style={{ background:C.white, border:`1px solid #B8D98A`, borderRadius:8,
-                        padding:"6px 10px", fontSize:11, color:C.green, cursor:"pointer",
-                        display:"flex", alignItems:"center", gap:5, textAlign:"left" }}>
+                    <button key={f.id}
+                      onClick={()=>handleSelectFarmFromHousing(f)}
+                      onMouseEnter={()=>setHoveredFarmId(f.id)}
+                      onMouseLeave={()=>setHoveredFarmId(null)}
+                      style={{ background: hoveredFarmId===f.id ? C.paleGreen : C.white,
+                        border: `${hoveredFarmId===f.id?'2px':'1px'} solid ${hoveredFarmId===f.id?C.lightGreen:'#B8D98A'}`,
+                        borderRadius:8, padding:"6px 10px", fontSize:11,
+                        color: hoveredFarmId===f.id ? C.deepGreen : C.green,
+                        cursor:"pointer", display:"flex", alignItems:"center", gap:5,
+                        textAlign:"left", fontWeight: hoveredFarmId===f.id ? 700 : 400,
+                        boxShadow: hoveredFarmId===f.id ? `0 0 0 3px rgba(122,182,72,0.25)` : 'none',
+                        transform: hoveredFarmId===f.id ? 'scale(1.03)' : 'scale(1)',
+                        transition:'all 0.15s ease' }}>
                       <span>🌱 {f.name}</span>
-                      <span style={{ background:"#E8F5FF", color:"#1D4ED8", borderRadius:4,
+                      <span style={{ background: hoveredFarmId===f.id ? "#DBEAFE" : "#E8F5FF",
+                        color:"#1D4ED8", borderRadius:4,
                         padding:"1px 5px", fontSize:10, fontWeight:600, whiteSpace:"nowrap" }}>
                         🚗 {driveLabel(f._min)}
                       </span>
