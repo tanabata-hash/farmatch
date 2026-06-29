@@ -1431,7 +1431,7 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
           map._routeLine = line;
           map._routeLabels = [outline];
 
-          // 中間点に所要時間ラベル（視認性改善）
+          // 中間点に所要時間ラベル
           const mid = Math.floor(latlngs.length / 2);
           const [midLat, midLng] = Array.isArray(latlngs[mid]) ? latlngs[mid] : [latlngs[mid].lat, latlngs[mid].lng];
           const label = L.marker([midLat, midLng], {
@@ -1454,19 +1454,32 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
           }).addTo(map);
           map._routeLabels.push(houseMarker, farmMarker);
 
-          // 両点＋余白でフィット（もう少し拡大）
-          map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 13, animate: true, duration: 0.8 });
+          // 直線距離に応じて適切なズームを決定
+          const distKm = calcDistanceKm(h.lat, h.lng, focusTarget.lat, focusTarget.lng);
+          let maxZoom;
+          if (distKm < 1)       maxZoom = 15;
+          else if (distKm < 3)  maxZoom = 14;
+          else if (distKm < 8)  maxZoom = 13;
+          else if (distKm < 20) maxZoom = 12;
+          else if (distKm < 50) maxZoom = 11;
+          else                  maxZoom = 10;
+
+          map.fitBounds(L.latLngBounds(latlngs), {
+            padding: [60, 60],
+            maxZoom: maxZoom,
+            animate: true,
+            duration: 0.8
+          });
         };
 
         // OSRM APIでルート取得
         fetch(osrmUrl)
           .then(r => r.json())
           .then(data => {
-            if (data.routes?.[0]?.geometry?.coordinates) {
+            if (data.routes?.[0]?.geometry?.coordinates?.length > 1) {
               const latlngs = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
               drawRoute(latlngs);
             } else {
-              // フォールバック：直線
               drawRoute([[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]]);
             }
           })
