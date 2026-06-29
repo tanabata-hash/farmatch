@@ -1396,29 +1396,66 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
       // 住まい詳細の近隣農地ボタンからの選択：住まい↔農地間にルートライン
       const h = focusTarget._fromHouse;
       if (h.lat && h.lng) {
-        const latlngs = [[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]];
-
-        // 破線ルートライン
-        const line = L.polyline(latlngs, {
-          color: '#1D4ED8', weight: 3, opacity: 0.85,
-          dashArray: '8, 6'
-        }).addTo(map);
-        map._routeLine = line;
-
-        // 中間点に所要時間ラベル
-        const midLat = (h.lat + focusTarget.lat) / 2;
-        const midLng = (h.lng + focusTarget.lng) / 2;
         const distMin = calcDriveMin(h.lat, h.lng, focusTarget.lat, focusTarget.lng);
-        const label = L.marker([midLat, midLng], {
-          icon: L.divIcon({
-            html: `<div style="background:#1D4ED8;color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗 ${driveLabel(distMin)}</div>`,
-            className: "", iconAnchor: [50, 12]
-          })
-        }).addTo(map);
-        map._routeLabels = [label];
 
-        // 両点がおさまるようにズーム
-        map.fitBounds(L.latLngBounds(latlngs), { padding: [80, 80], maxZoom: 14, animate: true, duration: 0.8 });
+        // OSRM で道路沿いルートを取得（無料API）
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${h.lng},${h.lat};${focusTarget.lng},${focusTarget.lat}?overview=full&geometries=geojson`;
+
+        const drawRoute = (latlngs) => {
+          // ルートライン
+          const line = L.polyline(latlngs, {
+            color: '#2563EB', weight: 5, opacity: 0.9,
+            lineJoin: 'round', lineCap: 'round'
+          }).addTo(map);
+          // 白い縁取り（下に敷く）
+          const outline = L.polyline(latlngs, {
+            color: '#fff', weight: 9, opacity: 0.5,
+            lineJoin: 'round', lineCap: 'round'
+          }).addTo(map);
+          outline.bringToBack();
+          map._routeLine = line;
+          map._routeLabels = [outline];
+
+          // 中間点に所要時間ラベル（視認性改善）
+          const mid = Math.floor(latlngs.length / 2);
+          const [midLat, midLng] = Array.isArray(latlngs[mid]) ? latlngs[mid] : [latlngs[mid].lat, latlngs[mid].lng];
+          const label = L.marker([midLat, midLng], {
+            icon: L.divIcon({
+              html: `<div style="background:#2563EB;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.45);border:2px solid #fff;letter-spacing:0.3px">🚗 ${driveLabel(distMin)}</div>`,
+              className: "", iconAnchor: [55, 16]
+            }),
+            zIndexOffset: 2000
+          }).addTo(map);
+          map._routeLabels.push(label);
+
+          // 両端にピン強調マーカー
+          const houseMarker = L.circleMarker([h.lat, h.lng], {
+            radius: 10, color: '#C4883A', fillColor: '#8B5A1A', fillOpacity: 1, weight: 3
+          }).addTo(map);
+          const farmMarker = L.circleMarker([focusTarget.lat, focusTarget.lng], {
+            radius: 10, color: '#7AB648', fillColor: '#2D5016', fillOpacity: 1, weight: 3
+          }).addTo(map);
+          map._routeLabels.push(houseMarker, farmMarker);
+
+          // 両点＋余白でフィット（もう少し拡大）
+          map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 13, animate: true, duration: 0.8 });
+        };
+
+        // OSRM APIでルート取得
+        fetch(osrmUrl)
+          .then(r => r.json())
+          .then(data => {
+            if (data.routes?.[0]?.geometry?.coordinates) {
+              const latlngs = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+              drawRoute(latlngs);
+            } else {
+              // フォールバック：直線
+              drawRoute([[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]]);
+            }
+          })
+          .catch(() => {
+            drawRoute([[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]]);
+          });
       }
     } else {
       // 住まい単体の選択：その物件にフライ
