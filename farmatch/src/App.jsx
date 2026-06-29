@@ -1468,15 +1468,15 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
           }).addTo(map);
           map._routeLabels.push(houseMarker, farmMarker);
 
-          // 直線距離に応じて適切なズームを決定
+          // 直線距離に応じて適切なズームを決定（より拡大）
           const distKm = calcDistanceKm(h.lat, h.lng, focusTarget.lat, focusTarget.lng);
           let maxZoom;
-          if (distKm < 1)       maxZoom = 15;
-          else if (distKm < 3)  maxZoom = 14;
-          else if (distKm < 8)  maxZoom = 13;
-          else if (distKm < 20) maxZoom = 12;
-          else if (distKm < 50) maxZoom = 11;
-          else                  maxZoom = 10;
+          if (distKm < 1)       maxZoom = 17;
+          else if (distKm < 3)  maxZoom = 16;
+          else if (distKm < 8)  maxZoom = 15;
+          else if (distKm < 20) maxZoom = 14;
+          else if (distKm < 50) maxZoom = 13;
+          else                  maxZoom = 12;
 
           map.fitBounds(L.latLngBounds(latlngs), {
             padding: [60, 60],
@@ -1884,7 +1884,7 @@ export default function App() {
 
   const TABS=[
     {id:"farms",label:"🌱 農地"},
-    {id:"housing",label:"🏡 住まい"},
+    {id:"housing",label:"🏡 住まい＋農地"},
     {id:"map",label:"🗺 地図"},
     {id:"calendar",label:"🗓 カレンダー"},
     {id:"pricing",label:"💰 料金"},
