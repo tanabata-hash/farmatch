@@ -1300,6 +1300,29 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
 }
 
 // ── 住まいビュー ──────────────────────────────────────────
+// ── 距離・車所要時間ユーティリティ ──────────────────────────
+// ハバーサイン公式で直線距離(km)を計算
+function calcDistanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+    Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// 直線距離→車所要時間（農村道路想定: 平均40km/h、迂回係数1.4）
+function calcDriveMin(lat1, lng1, lat2, lng2) {
+  const dist = calcDistanceKm(lat1, lng1, lat2, lng2) * 1.4;
+  return Math.round(dist / 40 * 60);
+}
+
+function driveLabel(min) {
+  if (min < 1) return "車1分未満";
+  if (min < 60) return `車約${min}分`;
+  return `車約${Math.round(min/6)/10}時間`;
+}
+
 // ── 住まい専用マップ（物件＋近隣農地を同時表示） ──────────
 function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm }) {
   const containerId = "farmatch-housing-map";
@@ -1440,12 +1463,18 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
           </div>
           {/* 近隣農地 */}
           {(() => {
-            const nearby = farms.filter(f =>
-              f.region === selectedHouse.region &&
-              f.lat && f.lng && selectedHouse.lat && selectedHouse.lng &&
-              Math.abs(f.lat - selectedHouse.lat) < 0.5 &&
-              Math.abs(f.lng - selectedHouse.lng) < 0.5
-            );
+            const nearby = farms
+              .filter(f =>
+                f.region === selectedHouse.region &&
+                f.lat && f.lng && selectedHouse.lat && selectedHouse.lng &&
+                Math.abs(f.lat - selectedHouse.lat) < 0.5 &&
+                Math.abs(f.lng - selectedHouse.lng) < 0.5
+              )
+              .map(f => ({
+                ...f,
+                _min: calcDriveMin(selectedHouse.lat, selectedHouse.lng, f.lat, f.lng)
+              }))
+              .sort((a,b) => a._min - b._min);
             if (nearby.length === 0) return null;
             return (
               <div style={{ background:C.paleGreen, borderRadius:8, padding:"10px 12px", marginBottom:12 }}>
@@ -1456,9 +1485,13 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
                   {nearby.slice(0,5).map(f=>(
                     <button key={f.id} onClick={()=>onSelectFarm(f)}
                       style={{ background:C.white, border:`1px solid #B8D98A`, borderRadius:8,
-                        padding:"5px 10px", fontSize:11, color:C.green, cursor:"pointer",
-                        display:"flex", alignItems:"center", gap:4 }}>
-                      🌱 {f.name}
+                        padding:"6px 10px", fontSize:11, color:C.green, cursor:"pointer",
+                        display:"flex", alignItems:"center", gap:5, textAlign:"left" }}>
+                      <span>🌱 {f.name}</span>
+                      <span style={{ background:"#E8F5FF", color:"#1D4ED8", borderRadius:4,
+                        padding:"1px 5px", fontSize:10, fontWeight:600, whiteSpace:"nowrap" }}>
+                        🚗 {driveLabel(f._min)}
+                      </span>
                       <span style={{ background:f.status==="貸出可能"?C.lightGreen:C.soil,
                         color:"#fff", borderRadius:4, padding:"1px 5px", fontSize:10 }}>{f.status}</span>
                     </button>
@@ -1496,12 +1529,18 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
           </div>
           {/* 近隣農地バッジ */}
           {(() => {
-            const nearby = farms.filter(f =>
-              f.region === h.region &&
-              f.lat && f.lng && h.lat && h.lng &&
-              Math.abs(f.lat - h.lat) < 0.5 &&
-              Math.abs(f.lng - h.lng) < 0.5
-            );
+            const nearby = farms
+              .filter(f =>
+                f.region === h.region &&
+                f.lat && f.lng && h.lat && h.lng &&
+                Math.abs(f.lat - h.lat) < 0.5 &&
+                Math.abs(f.lng - h.lng) < 0.5
+              )
+              .map(f => ({
+                ...f,
+                _min: calcDriveMin(h.lat, h.lng, f.lat, f.lng)
+              }))
+              .sort((a,b) => a._min - b._min);
             if (nearby.length === 0) return null;
             return (
               <div style={{ display:"flex", gap:5, flexWrap:"wrap", alignItems:"center",
@@ -1509,8 +1548,10 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
                 <span style={{ fontSize:10, color:C.green, fontWeight:700 }}>🌱 近隣農地:</span>
                 {nearby.slice(0,3).map(f=>(
                   <span key={f.id} style={{ background:C.paleGreen, border:`1px solid #B8D98A`,
-                    borderRadius:20, padding:"2px 8px", fontSize:10, color:C.green, fontWeight:600 }}>
+                    borderRadius:20, padding:"2px 8px", fontSize:10, color:C.green, fontWeight:600,
+                    display:"inline-flex", alignItems:"center", gap:3 }}>
                     {f.name}
+                    <span style={{ color:"#1D4ED8", fontWeight:700 }}>🚗{driveLabel(f._min)}</span>
                   </span>
                 ))}
                 {nearby.length > 3 && <span style={{ fontSize:10, color:C.muted }}>+{nearby.length-3}件</span>}
