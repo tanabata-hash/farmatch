@@ -518,9 +518,14 @@ function InlineMapView({ farms, onSelectFarm, selectedFarmId }) {
         const valid = farms.filter(f => f.lat && f.lng);
         if (valid.length === 0) return;
 
-        // 選択農地がある場合はそこを中心に、なければ平均座標
+        // 選択農地がある場合はその農地を中心に zoom13、なければ平均座標
         let initLat, initLng, initZoom;
-        if (selectedFarmId && prevCenter) {
+        const selFarm = selectedFarmId ? valid.find(f => String(f.id) === String(selectedFarmId)) : null;
+        if (selFarm) {
+          initLat = selFarm.lat;
+          initLng = selFarm.lng;
+          initZoom = 13;
+        } else if (prevCenter) {
           initLat = prevCenter.lat;
           initLng = prevCenter.lng;
           initZoom = prevZoom || 8;
@@ -1431,10 +1436,19 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
           map._routeLine = line;
           map._routeLabels = [outline];
 
-          // 中間点に所要時間ラベル
+          // 中間点からルートと垂直方向にオフセット（被り防止）
           const mid = Math.floor(latlngs.length / 2);
           const [midLat, midLng] = Array.isArray(latlngs[mid]) ? latlngs[mid] : [latlngs[mid].lat, latlngs[mid].lng];
-          const label = L.marker([midLat, midLng], {
+          // ルートの傾きを見て上または右にずらす
+          const p1 = Array.isArray(latlngs[Math.max(0, mid-1)]) ? latlngs[Math.max(0, mid-1)] : [latlngs[Math.max(0,mid-1)].lat, latlngs[Math.max(0,mid-1)].lng];
+          const p2 = Array.isArray(latlngs[Math.min(latlngs.length-1, mid+1)]) ? latlngs[Math.min(latlngs.length-1, mid+1)] : [latlngs[Math.min(latlngs.length-1,mid+1)].lat, latlngs[Math.min(latlngs.length-1,mid+1)].lng];
+          const dLat = p2[0] - p1[0];
+          const dLng = p2[1] - p1[1];
+          const offset = 0.004;
+          // 水平に近いルート→上にずらす、縦方向→右にずらす
+          const labelLat = Math.abs(dLng) > Math.abs(dLat) ? midLat + offset : midLat;
+          const labelLng = Math.abs(dLat) >= Math.abs(dLng) ? midLng + offset * 1.5 : midLng;
+          const label = L.marker([labelLat, labelLng], {
             icon: L.divIcon({
               html: `<div style="background:#fff;color:#1E40AF;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.5);border:2px solid #1E40AF;pointer-events:none">🚗 ${driveLabel(distMin)}</div>`,
               className: "",
