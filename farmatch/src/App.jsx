@@ -1300,10 +1300,107 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
 }
 
 // ── 住まいビュー ──────────────────────────────────────────
-function HousingView({ houses, onContact, onMapFocus }) {
+// ── 住まい専用マップ（物件＋近隣農地を同時表示） ──────────
+function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm }) {
+  const containerId = "farmatch-housing-map";
+  const mapRef = React.useRef(null);
+
+  React.useEffect(() => {
+    function initMap() {
+      setTimeout(() => {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        const L = window.L; if (!L) return;
+        if (el._leaflet_id) { el._leaflet_id = null; el.innerHTML = ""; }
+
+        const allPoints = [...houses, ...farms].filter(p => p.lat && p.lng);
+        if (allPoints.length === 0) return;
+        const avgLat = allPoints.reduce((s,p)=>s+p.lat,0)/allPoints.length;
+        const avgLng = allPoints.reduce((s,p)=>s+p.lng,0)/allPoints.length;
+        const map = L.map(containerId, { scrollWheelZoom: true }).setView([avgLat, avgLng], 8);
+        mapRef.current = map;
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:"© OpenStreetMap", maxZoom:18
+        }).addTo(map);
+
+        // 住居ピン（茶色）
+        houses.filter(h=>h.lat&&h.lng).forEach(h => {
+          const icon = L.divIcon({
+            html:`<div style="background:#8B5A1A;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #C4883A;box-shadow:0 2px 6px rgba(0,0,0,0.35)">🏡</div>`,
+            className:"", iconSize:[32,32], iconAnchor:[16,16]
+          });
+          L.marker([h.lat,h.lng],{icon}).addTo(map)
+            .bindPopup(`<div style="font-family:sans-serif;min-width:180px">
+              <div style="font-weight:700;color:#8B5A1A;margin-bottom:4px;font-size:13px">🏡 ${h.name}</div>
+              <div style="font-size:11px;color:#666;margin-bottom:4px">📍 ${h.region} ${h.location}</div>
+              <div style="font-size:11px;margin-bottom:4px">📐 ${h.area_label||""}　🏠 ${h.house_type}</div>
+              <div style="font-size:12px;font-weight:700;color:#C4883A;margin-bottom:6px">💴 ${h.rent_label}</div>
+              ${h.subsidy_info?`<div style="font-size:11px;color:#2D5016;margin-bottom:6px">💰 ${h.subsidy_info}</div>`:""}
+              <button onclick="window._houseSelect('${h.id}')" style="margin-top:4px;background:#8B5A1A;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%">詳細を見る</button>
+            </div>`)
+            .on("click", ()=>onSelectHouse(h));
+        });
+
+        // 農地ピン（緑・小さめ）
+        farms.filter(f=>f.lat&&f.lng).forEach(f => {
+          const icon = L.divIcon({
+            html:`<div style="background:#2D5016;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #7AB648;box-shadow:0 1px 4px rgba(0,0,0,0.3);opacity:0.85">🌱</div>`,
+            className:"", iconSize:[24,24], iconAnchor:[12,12]
+          });
+          L.marker([f.lat,f.lng],{icon}).addTo(map)
+            .bindPopup(`<div style="font-family:sans-serif;min-width:160px">
+              <div style="font-weight:700;color:#2D5016;margin-bottom:4px;font-size:12px">🌱 ${f.name}</div>
+              <div style="font-size:11px;color:#666;margin-bottom:4px">📍 ${f.region} ${f.location}</div>
+              <div style="font-size:11px">📐 ${f.area_label}　${f.farm_type}</div>
+              <div style="font-size:11px;margin-top:4px"><span style="background:${f.status==="貸出可能"?"#7AB648":"#C4883A"};color:#fff;border-radius:4px;padding:1px 7px;font-size:10px">${f.status}</span></div>
+              <button onclick="window._farmSelectH('${f.id}')" style="margin-top:6px;background:#2D5016;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%">農地詳細を見る</button>
+            </div>`)
+            .on("click", ()=>onSelectFarm(f));
+        });
+
+        window._houseSelect = (id) => { const h=houses.find(h=>h.id===id); if(h) onSelectHouse(h); };
+        window._farmSelectH = (id) => { const f=farms.find(f=>f.id===id); if(f) onSelectFarm(f); };
+      }, 300);
+    }
+
+    if (document.getElementById("leaflet-css")) { initMap(); }
+    else {
+      const link = document.createElement("link");
+      link.id="leaflet-css"; link.rel="stylesheet";
+      link.href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+      document.head.appendChild(link);
+      const script = document.createElement("script");
+      script.src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+      script.onload=()=>initMap();
+      document.head.appendChild(script);
+    }
+    return () => { if(mapRef.current){ mapRef.current.remove(); mapRef.current=null; } };
+  }, [houses, farms]);
+
+  return (
+    <div style={{ borderRadius:12, overflow:"hidden", border:`2px solid ${C.border}`, marginBottom:20 }}>
+      <div style={{ background:`linear-gradient(135deg,#7B4F1A,${C.soil})`, color:"#fff",
+        padding:"10px 16px", fontSize:13, fontWeight:700,
+        display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span>🗺 住まいと近隣農地マップ</span>
+        <div style={{ display:"flex", gap:14, fontSize:11, fontWeight:400, opacity:0.9 }}>
+          <span>🏡 住居</span>
+          <span>🌱 近隣農地</span>
+          <span style={{ opacity:0.7 }}>ピンをクリックで詳細</span>
+        </div>
+      </div>
+      <div id={containerId} style={{ height:440, width:"100%" }}/>
+    </div>
+  );
+}
+
+function HousingView({ houses, farms, onContact, onSelectFarm }) {
+  const [selectedHouse, setSelectedHouse] = useState(null);
+
   return (
     <div>
-      <div style={{ background:`linear-gradient(135deg,#7B4F1A,${C.soil})`, borderRadius:12, padding:"18px 20px", color:"#fff", marginBottom:20 }}>
+      {/* 移住サポートバナー */}
+      <div style={{ background:`linear-gradient(135deg,#7B4F1A,${C.soil})`, borderRadius:12, padding:"18px 20px", color:"#fff", marginBottom:16 }}>
         <div style={{ fontSize:14, fontWeight:700, marginBottom:6 }}>🏡 移住サポート情報</div>
         <p style={{ fontSize:12, margin:"0 0 12px", opacity:0.92, lineHeight:1.6 }}>農地とセットで住まいを探せます。補助金情報も一括確認できます。</p>
         <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
@@ -1312,19 +1409,114 @@ function HousingView({ houses, onContact, onMapFocus }) {
           ))}
         </div>
       </div>
+
+      {/* 住まい＋農地マップ */}
+      <HousingMapView
+        houses={houses}
+        farms={farms}
+        onSelectHouse={h=>setSelectedHouse(h)}
+        onSelectFarm={f=>onSelectFarm(f)}
+      />
+
+      {/* 選択中の物件詳細 */}
+      {selectedHouse && (
+        <div style={{ background:"#FFF7ED", border:`2px solid ${C.soilBorder}`, borderRadius:12,
+          padding:"16px 18px", marginBottom:16, position:"relative" }}>
+          <button onClick={()=>setSelectedHouse(null)}
+            style={{ position:"absolute", top:12, right:14, background:"none", border:"none",
+              fontSize:18, cursor:"pointer", color:C.muted }}>✕</button>
+          <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:6 }}>🏡 {selectedHouse.name}</div>
+          <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>
+            📍 {selectedHouse.region} {selectedHouse.location}　📐 {selectedHouse.area_label}　💴 {selectedHouse.rent_label}　🏠 {selectedHouse.house_type}
+          </div>
+          <p style={{ fontSize:13, color:C.muted, margin:"0 0 10px", lineHeight:1.6 }}>{selectedHouse.description}</p>
+          {selectedHouse.subsidy_info && (
+            <div style={{ background:C.paleGreen, borderRadius:6, padding:"8px 12px", fontSize:12, color:C.green, marginBottom:10, fontWeight:500 }}>
+              💰 {selectedHouse.subsidy_info}
+            </div>
+          )}
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
+            {(selectedHouse.tags||[]).map(t=><Tag key={t}>{t}</Tag>)}
+          </div>
+          {/* 近隣農地 */}
+          {(() => {
+            const nearby = farms.filter(f =>
+              f.region === selectedHouse.region &&
+              f.lat && f.lng && selectedHouse.lat && selectedHouse.lng &&
+              Math.abs(f.lat - selectedHouse.lat) < 0.5 &&
+              Math.abs(f.lng - selectedHouse.lng) < 0.5
+            );
+            if (nearby.length === 0) return null;
+            return (
+              <div style={{ background:C.paleGreen, borderRadius:8, padding:"10px 12px", marginBottom:12 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:C.green, marginBottom:8 }}>
+                  🌱 近隣の農地（{nearby.length}件）
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {nearby.slice(0,5).map(f=>(
+                    <button key={f.id} onClick={()=>onSelectFarm(f)}
+                      style={{ background:C.white, border:`1px solid #B8D98A`, borderRadius:8,
+                        padding:"5px 10px", fontSize:11, color:C.green, cursor:"pointer",
+                        display:"flex", alignItems:"center", gap:4 }}>
+                      🌱 {f.name}
+                      <span style={{ background:f.status==="貸出可能"?C.lightGreen:C.soil,
+                        color:"#fff", borderRadius:4, padding:"1px 5px", fontSize:10 }}>{f.status}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+          <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
+        </div>
+      )}
+
+      {/* 物件一覧 */}
+      <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>{houses.length}件の物件</div>
       {houses.map(h=>(
-        <div key={h.id} style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:12, padding:"18px 20px", marginBottom:14 }}>
+        <div key={h.id} onClick={()=>setSelectedHouse(h)}
+          style={{ background:selectedHouse?.id===h.id?C.soilLight:C.white,
+            border:`2px solid ${selectedHouse?.id===h.id?C.soilBorder:C.border}`,
+            borderRadius:12, padding:"16px 18px", marginBottom:12, cursor:"pointer" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
             <div>
               <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>🏡 {h.name}</div>
-              <div style={{ fontSize:12, color:C.muted }}>📍 {h.region} {h.location}　📐 {h.area_label}　💴 {h.rent_label}　🏠 {h.house_type}</div>
+              <div style={{ fontSize:12, color:C.muted }}>
+                📍 {h.region} {h.location}　📐 {h.area_label}　💴 {h.rent_label}　🏠 {h.house_type}
+              </div>
             </div>
-            <button onClick={()=>onMapFocus(`house-${h.id}`)} style={{ background:C.paleGreen, border:`1px solid #B8D98A`, borderRadius:6, padding:"4px 10px", fontSize:11, color:C.green, cursor:"pointer", fontWeight:600, whiteSpace:"nowrap" }}>🗺 地図</button>
           </div>
-          <p style={{ fontSize:13, color:C.muted, margin:"0 0 10px", lineHeight:1.6 }}>{h.description}</p>
-          {h.subsidy_info && <div style={{ background:C.paleGreen, borderRadius:6, padding:"8px 12px", fontSize:12, color:C.green, marginBottom:10, fontWeight:500 }}>💰 {h.subsidy_info}</div>}
-          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>{(h.tags||[]).map(t=><Tag key={t}>{t}</Tag>)}</div>
-          <Btn onClick={()=>onContact(h)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
+          <p style={{ fontSize:13, color:C.muted, margin:"0 0 8px", lineHeight:1.6 }}>{h.description}</p>
+          {h.subsidy_info && (
+            <div style={{ background:C.paleGreen, borderRadius:6, padding:"6px 10px", fontSize:11,
+              color:C.green, marginBottom:8, fontWeight:500 }}>💰 {h.subsidy_info}</div>
+          )}
+          <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:8 }}>
+            {(h.tags||[]).map(t=><Tag key={t}>{t}</Tag>)}
+          </div>
+          {/* 近隣農地バッジ */}
+          {(() => {
+            const nearby = farms.filter(f =>
+              f.region === h.region &&
+              f.lat && f.lng && h.lat && h.lng &&
+              Math.abs(f.lat - h.lat) < 0.5 &&
+              Math.abs(f.lng - h.lng) < 0.5
+            );
+            if (nearby.length === 0) return null;
+            return (
+              <div style={{ display:"flex", gap:5, flexWrap:"wrap", alignItems:"center",
+                paddingTop:8, borderTop:`1px dashed ${C.border}` }}>
+                <span style={{ fontSize:10, color:C.green, fontWeight:700 }}>🌱 近隣農地:</span>
+                {nearby.slice(0,3).map(f=>(
+                  <span key={f.id} style={{ background:C.paleGreen, border:`1px solid #B8D98A`,
+                    borderRadius:20, padding:"2px 8px", fontSize:10, color:C.green, fontWeight:600 }}>
+                    {f.name}
+                  </span>
+                ))}
+                {nearby.length > 3 && <span style={{ fontSize:10, color:C.muted }}>+{nearby.length-3}件</span>}
+              </div>
+            );
+          })()}
         </div>
       ))}
       {houses.length===0 && (
@@ -1645,7 +1837,7 @@ export default function App() {
           </>
         )}
 
-        {!loading && tab==="housing" && <HousingView houses={houses} onContact={h=>setContact(h)} onMapFocus={id=>{ setMapFocus(id); setTab("map"); }}/>}
+        {!loading && tab==="housing" && <HousingView houses={houses} farms={farms} onContact={h=>setContact(h)} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }}/>}
         {!loading && tab==="map" && (
           <div>
             <MapView farms={farms} houses={houses} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
