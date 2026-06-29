@@ -1868,7 +1868,10 @@ export default function App() {
 
             <div style={{ display:"grid", gridTemplateColumns:selected?"1fr 1fr":"1fr", gap:20 }}>
               <div>
-                {filteredFarms.map(farm=>{
+                {(selected
+                  ? [selected, ...filteredFarms.filter(f=>f.id!==selected.id)]
+                  : filteredFarms
+                ).map(farm=>{
                   const { pref, local } = getSubsidies(farm);
                   const allSubsidies = [...local, ...pref];
                   const { national, pref:sPref, local:sLocal } = getSalesChannels(farm);
