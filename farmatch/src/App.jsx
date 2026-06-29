@@ -621,12 +621,16 @@ function MapView({ farms, houses, focusId, onSelectFarm, onSelectHouse }) {
       if(!el||el._leaflet_id) return;
       const L=window.L; if(!L) return;
       const all=[...farms,...houses]; if(all.length===0) return;
-      const avgLat=all.reduce((s,p)=>s+p.lat,0)/all.length;
-      const avgLng=all.reduce((s,p)=>s+p.lng,0)/all.length;
-      const map=L.map(containerId,{scrollWheelZoom:false}).setView([avgLat,avgLng],13);
+      const valid = all.filter(p => p.lat && p.lng);
+      const avgLat=valid.reduce((s,p)=>s+p.lat,0)/valid.length;
+      const avgLng=valid.reduce((s,p)=>s+p.lng,0)/valid.length;
+      const map=L.map(containerId,{scrollWheelZoom:false}).setView([avgLat,avgLng],8);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
         attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:18
       }).addTo(map);
+      // 全マーカーが収まるよう fitBounds
+      const bounds = L.latLngBounds(valid.map(p=>[p.lat,p.lng]));
+      map.fitBounds(bounds, { padding:[40,40], maxZoom:9 });
       farms.forEach(f=>{
         const icon=L.divIcon({html:`<div style="background:#2D5016;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #7AB648;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🌱</div>`,className:"",iconSize:[36,36],iconAnchor:[18,18]});
         L.marker([f.lat,f.lng],{icon}).addTo(map)
@@ -1474,9 +1478,9 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
           if (distKm < 1)       maxZoom = 17;
           else if (distKm < 3)  maxZoom = 16;
           else if (distKm < 8)  maxZoom = 15;
-          else if (distKm < 20) maxZoom = 14;
-          else if (distKm < 50) maxZoom = 13;
-          else                  maxZoom = 12;
+          else if (distKm < 20) maxZoom = 15;
+          else if (distKm < 50) maxZoom = 14;
+          else                  maxZoom = 13;
 
           map.fitBounds(L.latLngBounds(latlngs), {
             padding: [60, 60],
