@@ -917,6 +917,7 @@ export default function App() {
   const [contact, setContact]     = useState(null);
   const [search, setSearch]       = useState("");
   const [filter, setFilter]       = useState("すべて");
+  const [prefFilter, setPrefFilter] = useState("すべて");
   const [mapFocus, setMapFocus]   = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [adminAuth, setAdminAuth] = useState(false);
@@ -990,12 +991,14 @@ export default function App() {
     {id:"admin",label:"⚙️ 管理"},
   ];
 
+  const prefectures=[...new Set(farms.map(f=>f.region).filter(Boolean))].sort();
   const filteredFarms=farms.filter(f=>{
     const mf=filter==="すべて"||f.status===filter||f.farm_type===filter;
+    const mp=prefFilter==="すべて"||f.region===prefFilter;
     const ms=!search||(f.crops||[]).some(c=>c.includes(search))||
       f.name.includes(search)||(f.tags||[]).some(t=>t.includes(search))||
       f.region?.includes(search)||f.location?.includes(search);
-    return mf&&ms;
+    return mf&&mp&&ms;
   });
 
   if(page==="terms") return (
@@ -1105,12 +1108,26 @@ export default function App() {
 
         {!loading && tab==="farms" && (
           <>
-            <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
+            <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap", alignItems:"center" }}>
               {["すべて","貸出可能","畑","水田・畑"].map(f=>(
                 <button key={f} onClick={()=>setFilter(f)} style={{ background:filter===f?C.green:C.white,
                   color:filter===f?"#fff":C.green, border:`1.5px solid ${C.green}`, borderRadius:20,
                   padding:"5px 14px", fontSize:12, cursor:"pointer", fontWeight:filter===f?700:400 }}>{f}</button>
               ))}
+            </div>
+            <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
+              <select value={prefFilter} onChange={e=>{setPrefFilter(e.target.value);}}
+                style={{ border:`1.5px solid ${C.green}`, borderRadius:20, padding:"5px 14px",
+                  fontSize:12, cursor:"pointer", background:prefFilter!=="すべて"?C.green:C.white,
+                  color:prefFilter!=="すべて"?"#fff":C.green, outline:"none", fontWeight:prefFilter!=="すべて"?700:400 }}>
+                <option value="すべて">🗾 都道府県：すべて</option>
+                {prefectures.map(p=>(<option key={p} value={p}>{p}</option>))}
+              </select>
+              {(prefFilter!=="すべて"||filter!=="すべて") && (
+                <button onClick={()=>{setPrefFilter("すべて");setFilter("すべて");}}
+                  style={{ border:`1px solid ${C.muted}`, borderRadius:20, padding:"5px 12px",
+                    fontSize:11, cursor:"pointer", background:"#fff", color:C.muted }}>✕ リセット</button>
+              )}
               <span style={{ marginLeft:"auto", fontSize:12, color:C.muted }}>{filteredFarms.length}件表示中</span>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:selected?"1fr 1fr":"1fr", gap:20 }}>
