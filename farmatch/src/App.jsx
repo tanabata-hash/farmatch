@@ -1390,45 +1390,39 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
     if (map._routeLine) { map.removeLayer(map._routeLine); map._routeLine = null; }
     if (map._routeLabels) { map._routeLabels.forEach(l=>map.removeLayer(l)); map._routeLabels=[]; }
 
-    if (focusTarget.lat && focusTarget.lng) {
-      // 選択された住居ピンを探す（focusTargetがhouseの場合）
-      const isHouse = !!focusTarget.house_type;
-      const isFarm = !!focusTarget.farm_type;
+    if (!focusTarget.lat || !focusTarget.lng) return;
 
-      if (isHouse) {
-        // 住まい選択：その住まい単体にズーム
-        map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
-      } else if (isFarm && focusTarget._fromHouse) {
-        // 農地選択（住まい詳細パネルから）：住まい↔農地間にルートライン
-        const h = focusTarget._fromHouse;
-        if (h.lat && h.lng) {
-          const latlngs = [[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]];
-          const line = L.polyline(latlngs, {
-            color: '#1D4ED8', weight: 3, opacity: 0.8,
-            dashArray: '8, 6'
-          }).addTo(map);
-          map._routeLine = line;
+    if (focusTarget._fromHouse) {
+      // 住まい詳細の近隣農地ボタンからの選択：住まい↔農地間にルートライン
+      const h = focusTarget._fromHouse;
+      if (h.lat && h.lng) {
+        const latlngs = [[h.lat, h.lng], [focusTarget.lat, focusTarget.lng]];
 
-          // 距離ラベル
-          const midLat = (h.lat + focusTarget.lat) / 2;
-          const midLng = (h.lng + focusTarget.lng) / 2;
-          const distMin = calcDriveMin(h.lat, h.lng, focusTarget.lat, focusTarget.lng);
-          const label = L.marker([midLat, midLng], {
-            icon: L.divIcon({
-              html: `<div style="background:#1D4ED8;color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗 ${driveLabel(distMin)}</div>`,
-              className: "", iconAnchor: [40, 10]
-            })
-          }).addTo(map);
-          map._routeLabels = [label];
+        // 破線ルートライン
+        const line = L.polyline(latlngs, {
+          color: '#1D4ED8', weight: 3, opacity: 0.85,
+          dashArray: '8, 6'
+        }).addTo(map);
+        map._routeLine = line;
 
-          // 両点がおさまるようにズーム
-          map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 14, animate: true, duration: 0.8 });
-        } else {
-          map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
-        }
-      } else {
-        map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
+        // 中間点に所要時間ラベル
+        const midLat = (h.lat + focusTarget.lat) / 2;
+        const midLng = (h.lng + focusTarget.lng) / 2;
+        const distMin = calcDriveMin(h.lat, h.lng, focusTarget.lat, focusTarget.lng);
+        const label = L.marker([midLat, midLng], {
+          icon: L.divIcon({
+            html: `<div style="background:#1D4ED8;color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🚗 ${driveLabel(distMin)}</div>`,
+            className: "", iconAnchor: [50, 12]
+          })
+        }).addTo(map);
+        map._routeLabels = [label];
+
+        // 両点がおさまるようにズーム
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [80, 80], maxZoom: 14, animate: true, duration: 0.8 });
       }
+    } else {
+      // 住まい単体の選択：その物件にフライ
+      map.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
     }
   }, [focusTarget]);
 
@@ -1570,11 +1564,11 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
 
   // 近隣農地クリック時：農地タブへ遷移＋ルートライン表示
   const handleSelectFarmFromHousing = (f) => {
-    if (f.lat && f.lng) {
-      // selectedHouseの情報を_fromHouseとして付与してルートライン描画
+    if (f.lat && f.lng && selectedHouse) {
+      // 農地タブへ遷移せず、住まいページの地図にルートラインを表示
       setFocusTarget({ ...f, _fromHouse: selectedHouse });
     }
-    onSelectFarm(f);
+    // onSelectFarm は呼ばない → 農地タブへ遷移しない
   };
 
   return (
