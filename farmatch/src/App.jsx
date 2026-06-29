@@ -996,7 +996,7 @@ export default function App() {
   const [search, setSearch]       = useState("");
   const [filter, setFilter]       = useState("すべて");
   const [prefFilter, setPrefFilter] = useState("すべて");
-  const [showMap, setShowMap]       = useState(false);
+  const [showMap, setShowMap]       = useState(true);
   const [mapFocus, setMapFocus]   = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [adminAuth, setAdminAuth] = useState(false);
