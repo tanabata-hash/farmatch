@@ -1324,9 +1324,17 @@ function driveLabel(min) {
 }
 
 // ── 住まい専用マップ（物件＋近隣農地を同時表示） ──────────
-function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm }) {
+function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarget }) {
   const containerId = "farmatch-housing-map";
   const mapRef = React.useRef(null);
+
+  // focusTarget が変わったら地図をフライ移動
+  React.useEffect(() => {
+    if (!focusTarget || !mapRef.current) return;
+    if (focusTarget.lat && focusTarget.lng) {
+      mapRef.current.flyTo([focusTarget.lat, focusTarget.lng], 13, { duration: 0.8 });
+    }
+  }, [focusTarget]);
 
   React.useEffect(() => {
     function initMap() {
@@ -1419,6 +1427,19 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm }) {
 
 function HousingView({ houses, farms, onContact, onSelectFarm }) {
   const [selectedHouse, setSelectedHouse] = useState(null);
+  const [focusTarget, setFocusTarget] = useState(null);
+
+  // 物件選択時：地図フォーカス＋詳細表示
+  const handleSelectHouse = (h) => {
+    setSelectedHouse(h);
+    if (h.lat && h.lng) setFocusTarget(h);
+  };
+
+  // 近隣農地クリック時：農地タブへ遷移＋地図フォーカス
+  const handleSelectFarmFromHousing = (f) => {
+    if (f.lat && f.lng) setFocusTarget(f);
+    onSelectFarm(f);
+  };
 
   return (
     <div>
@@ -1437,8 +1458,9 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
       <HousingMapView
         houses={houses}
         farms={farms}
-        onSelectHouse={h=>setSelectedHouse(h)}
-        onSelectFarm={f=>onSelectFarm(f)}
+        onSelectHouse={handleSelectHouse}
+        onSelectFarm={handleSelectFarmFromHousing}
+        focusTarget={focusTarget}
       />
 
       {/* 選択中の物件詳細 */}
@@ -1483,7 +1505,7 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
                 </div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {nearby.slice(0,5).map(f=>(
-                    <button key={f.id} onClick={()=>onSelectFarm(f)}
+                    <button key={f.id} onClick={()=>handleSelectFarmFromHousing(f)}
                       style={{ background:C.white, border:`1px solid #B8D98A`, borderRadius:8,
                         padding:"6px 10px", fontSize:11, color:C.green, cursor:"pointer",
                         display:"flex", alignItems:"center", gap:5, textAlign:"left" }}>
@@ -1507,7 +1529,7 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
       {/* 物件一覧 */}
       <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>{houses.length}件の物件</div>
       {houses.map(h=>(
-        <div key={h.id} onClick={()=>setSelectedHouse(h)}
+        <div key={h.id} onClick={()=>handleSelectHouse(h)}
           style={{ background:selectedHouse?.id===h.id?C.soilLight:C.white,
             border:`2px solid ${selectedHouse?.id===h.id?C.soilBorder:C.border}`,
             borderRadius:12, padding:"16px 18px", marginBottom:12, cursor:"pointer" }}>
