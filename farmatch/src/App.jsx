@@ -502,6 +502,10 @@ function InlineMapView({ farms, onSelectFarm, selectedFarmId }) {
 
   React.useEffect(() => {
     farmMarkersRef.current = {};
+    // 現在のビューを保存（再描画時に維持）
+    const prevCenter = mapRef.current ? mapRef.current.getCenter() : null;
+    const prevZoom = mapRef.current ? mapRef.current.getZoom() : null;
+
     function initMap() {
       setTimeout(() => {
         const el = document.getElementById(containerId);
@@ -513,9 +517,20 @@ function InlineMapView({ farms, onSelectFarm, selectedFarmId }) {
         }
         const valid = farms.filter(f => f.lat && f.lng);
         if (valid.length === 0) return;
-        const avgLat = valid.reduce((s, p) => s + p.lat, 0) / valid.length;
-        const avgLng = valid.reduce((s, p) => s + p.lng, 0) / valid.length;
-        const map = L.map(containerId, { scrollWheelZoom: true }).setView([avgLat, avgLng], 8);
+
+        // 選択農地がある場合はそこを中心に、なければ平均座標
+        let initLat, initLng, initZoom;
+        if (selectedFarmId && prevCenter) {
+          initLat = prevCenter.lat;
+          initLng = prevCenter.lng;
+          initZoom = prevZoom || 8;
+        } else {
+          initLat = valid.reduce((s, p) => s + p.lat, 0) / valid.length;
+          initLng = valid.reduce((s, p) => s + p.lng, 0) / valid.length;
+          initZoom = 8;
+        }
+
+        const map = L.map(containerId, { scrollWheelZoom: true }).setView([initLat, initLng], initZoom);
         mapRef.current = map;
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: "© OpenStreetMap", maxZoom: 18
@@ -566,7 +581,7 @@ function InlineMapView({ farms, onSelectFarm, selectedFarmId }) {
         mapRef.current = null;
       }
     };
-  }, [farms]);
+  }, [farms, selectedFarmId]);
 
   return (
     <div>
