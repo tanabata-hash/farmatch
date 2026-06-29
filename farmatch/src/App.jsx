@@ -126,6 +126,82 @@ function getSubsidies(farm) {
   return { pref, local, localName: localKey || null };
 }
 
+// ── 販路情報データ ────────────────────────────────────────
+// カテゴリ: ec=産直EC, local=地域直売, restaurant=飲食店直取引, processing=加工・6次化, export=輸出
+const SALES_CHANNEL_DATA = {
+  "_national": [
+    { icon:"🛒", label:"食べチョク", category:"ec", detail:"生産者と消費者を直接つなぐ産直ECサイト。全国発送可。登録無料・販売手数料は売上の16.5%。", url:"https://www.tabechoku.com/", tag:"産直EC" },
+    { icon:"🛒", label:"ポケットマルシェ", category:"ec", detail:"農家・漁師から直接購入できるアプリ。登録・出品無料。販売手数料15%。", url:"https://poke-m.com/", tag:"産直EC" },
+    { icon:"🛒", label:"メルカリShops", category:"ec", detail:"メルカリ上で農産物が出品可能。既存ユーザーベースを活かした販路拡大に有効。", url:"https://mercari-shops.com/", tag:"産直EC" },
+    { icon:"🌾", label:"農協（JA）出荷", category:"local", detail:"安定した買取・集荷サポートあり。加入は任意。手数料が引かれるが販路の安定性が高い。", url:"https://www.ja-group.jp/", tag:"農協" },
+    { icon:"🚀", label:"JETRO農産物輸出支援", category:"export", detail:"農林水産物・食品の輸出に向けたマッチング・補助金情報を提供。海外販路開拓の入口。", url:"https://www.jetro.go.jp/agri/", tag:"輸出" },
+  ],
+  "鹿児島県": {
+    "_pref": [
+      { icon:"🏪", label:"かごしま旬彩館", category:"local", detail:"鹿児島県アンテナショップ（東京・有楽町）。県産農産物の首都圏販路として活用可能。", url:"https://www.kagoshima-kankou.com/", tag:"アンテナショップ" },
+      { icon:"🌿", label:"かごしまオーガニック産地", category:"ec", detail:"有機農産物の産地として県が認定・PR。有機栽培農家向けの販路支援あり。", url:"https://www.pref.kagoshima.jp/", tag:"有機農業" },
+    ],
+    "南さつま市": [
+      { icon:"🏬", label:"農産物直売所「めごち」", category:"local", detail:"南さつま市の地元直売所。地域住民・観光客向けに新鮮な農産物を直接販売できる。", tag:"直売所" },
+      { icon:"🍽", label:"南さつま食の駅", category:"restaurant", detail:"地元飲食店・宿泊施設への食材直取引の仲介窓口あり。地産地消推進事業。", tag:"飲食店直取引" },
+    ],
+    "南九州市": [
+      { icon:"🏪", label:"知覧茶・農産物直売センター", category:"local", detail:"知覧茶をはじめ地元農産物を扱う直売センター。観光客向け販路として有効。", tag:"直売所" },
+      { icon:"🏭", label:"南九州市農産加工センター", category:"processing", detail:"農産物の加工・6次産業化を支援する施設。加工品として付加価値をつけて販売可能。", tag:"加工・6次化" },
+    ],
+    "指宿市": [
+      { icon:"♨️", label:"指宿温泉農産物フェア", category:"local", detail:"温泉地という観光資源を活かした農産物直販イベント。観光客への直売機会あり。", tag:"直売イベント" },
+    ],
+    "鹿屋市": [
+      { icon:"✈️", label:"鹿屋産農産物輸出推進", category:"export", detail:"鹿屋基地周辺の英語圏需要や台湾・香港向け農産物輸出の支援窓口あり。", tag:"輸出" },
+    ],
+    "志布志市": [
+      { icon:"🚢", label:"志布志港輸出活用", category:"export", detail:"志布志港を活用したアジア向け農産物輸出ルートが整備されており、輸出コスト低減が可能。", tag:"輸出" },
+    ],
+  },
+  "宮崎県": {
+    "_pref": [
+      { icon:"🏪", label:"宮崎県農産物直売ネット", category:"local", detail:"県内各地の直売所ネットワーク。地元スーパー・道の駅との連携販路あり。", tag:"直売所" },
+      { icon:"🥩", label:"宮崎牛・地鶏ブランド活用", category:"local", detail:"宮崎県の畜産ブランドとの農産物セット販売など、ブランド相乗効果が狙える。", tag:"ブランド農産物" },
+    ],
+    "都城市": [
+      { icon:"🏭", label:"都城農業協同組合加工施設", category:"processing", detail:"農産物を加工して付加価値をつけた販売が可能。漬物・干し野菜などの加工支援あり。", tag:"加工・6次化" },
+    ],
+    "小林市": [
+      { icon:"🌿", label:"えびの高原農産物直売", category:"local", detail:"高原野菜の産地として観光客向け直販や百貨店バイヤーとのマッチング機会あり。", tag:"直売所" },
+    ],
+  },
+  "群馬県": {
+    "_pref": [
+      { icon:"🏪", label:"ぐんまちゃん家（東京・銀座）", category:"local", detail:"群馬県アンテナショップ。首都圏への群馬県産農産物PRと販路開拓に活用可能。", url:"https://gunma.tokyo/", tag:"アンテナショップ" },
+      { icon:"🚂", label:"首都圏直送ネットワーク", category:"ec", detail:"東京まで2時間以内という立地を活かし、鮮度を保ったまま首都圏のレストラン・消費者へ直送できる。", tag:"首都圏直送" },
+    ],
+    "前橋市": [
+      { icon:"🌿", label:"前橋有機農産物直売市", category:"local", detail:"有機農業転換農家向けの直売市。オーガニック志向消費者との直接取引の場。", tag:"有機直売" },
+      { icon:"🏭", label:"前橋農産物加工センター", category:"processing", detail:"ジャム・漬物・乾燥野菜など農産物の加工品化を支援。6次産業化補助金も活用可。", tag:"加工・6次化" },
+    ],
+    "高崎市": [
+      { icon:"🍽", label:"高崎パスタ食材直取引", category:"restaurant", detail:"「高崎パスタ」で有名な地元飲食店への野菜直取引。地産地消推進の受け皿あり。", tag:"飲食店直取引" },
+    ],
+    "沼田市": [
+      { icon:"🍎", label:"沼田果物直売所ネット", category:"local", detail:"リンゴ・なし等の果物を扱う直売所ネットワーク。観光農園との連携も可能。", tag:"直売所" },
+    ],
+  },
+};
+
+// 農地の都道府県・市区町村に対応する販路情報を取得
+function getSalesChannels(farm) {
+  const national = SALES_CHANNEL_DATA["_national"] || [];
+  const prefData = SALES_CHANNEL_DATA[farm.region];
+  if (!prefData) return { national, pref: [], local: [], localName: null };
+  const pref = prefData["_pref"] || [];
+  const localKey = Object.keys(prefData).find(k =>
+    k !== "_pref" && (farm.location?.includes(k) || farm.name?.includes(k))
+  );
+  const local = localKey ? prefData[localKey] : [];
+  return { national, pref, local, localName: localKey || null };
+}
+
 // ── サンプルデータ ────────────────────────────────────────
 const SAMPLE_FARMS = [
   { id:"1", name:"南部農地 A区画", region:"鹿児島県", location:"南さつま市",
@@ -207,6 +283,16 @@ function SubsidyBadge({ children }) {
       background:"#EEF6FF", border:"1px solid #93C5FD",
       borderRadius:20, padding:"2px 9px", fontSize:10,
       color:"#1D4ED8", fontWeight:600
+    }}>{children}</span>
+  );
+}
+
+function SalesChannelBadge({ children }) {
+  return (
+    <span style={{
+      background:"#FFF7ED", border:"1px solid #FDC06E",
+      borderRadius:20, padding:"2px 9px", fontSize:10,
+      color:"#92400E", fontWeight:600
     }}>{children}</span>
   );
 }
@@ -293,6 +379,73 @@ function SubsidyPanel({ farm }) {
           ))}
         </>
       )}
+    </div>
+  );
+}
+
+// ── 販路情報パネル（詳細表示用） ─────────────────────────
+function SalesChannelPanel({ farm }) {
+  const { national, pref, local, localName } = getSalesChannels(farm);
+  const CATEGORY_COLOR = {
+    ec:          { bg:"#EEF6FF", border:"#BFDBFE", text:"#1E40AF", tag_bg:"#DBEAFE", tag_text:"#1D4ED8" },
+    local:       { bg:"#F0FDF4", border:"#BBF7D0", text:"#166534", tag_bg:"#DCFCE7", tag_text:"#166534" },
+    restaurant:  { bg:"#FFF7ED", border:"#FED7AA", text:"#92400E", tag_bg:"#FFEDD5", tag_text:"#C2410C" },
+    processing:  { bg:"#FAF5FF", border:"#E9D5FF", text:"#6B21A8", tag_bg:"#F3E8FF", tag_text:"#7C3AED" },
+    export:      { bg:"#F0F9FF", border:"#BAE6FD", text:"#075985", tag_bg:"#E0F2FE", tag_text:"#0369A1" },
+  };
+
+  const renderChannel = (ch, i) => {
+    const col = CATEGORY_COLOR[ch.category] || CATEGORY_COLOR.local;
+    return (
+      <div key={i} style={{ background:col.bg, border:`1px solid ${col.border}`,
+        borderRadius:8, padding:"10px 12px", marginBottom:6 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
+          <span style={{ fontSize:15 }}>{ch.icon}</span>
+          <span style={{ fontWeight:700, fontSize:12, color:col.text }}>
+            {ch.url
+              ? <a href={ch.url} target="_blank" rel="noopener noreferrer"
+                  style={{ color:col.text, textDecoration:"none" }}>{ch.label} ↗</a>
+              : ch.label}
+          </span>
+          <span style={{ marginLeft:"auto", background:col.tag_bg, color:col.tag_text,
+            borderRadius:20, padding:"1px 8px", fontSize:10, fontWeight:600,
+            whiteSpace:"nowrap" }}>{ch.tag}</span>
+        </div>
+        <p style={{ fontSize:11, color:col.text, margin:0, lineHeight:1.6, opacity:0.85 }}>{ch.detail}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:"#92400E", marginBottom:8,
+        display:"flex", alignItems:"center", gap:6 }}>
+        🏪 この農地で使える販路・出荷先
+      </div>
+
+      {/* 地域限定販路 */}
+      {(local.length > 0 || pref.length > 0) && (
+        <>
+          <div style={{ fontSize:10, color:C.muted, fontWeight:700, marginBottom:6,
+            display:"flex", alignItems:"center", gap:4 }}>
+            <span style={{ background:"#FFEDD5", color:"#C2410C", borderRadius:4,
+              padding:"1px 6px", fontSize:10 }}>地域限定</span>
+            <span>{localName || farm.region}</span>
+          </div>
+          {local.map(renderChannel)}
+          {pref.map(renderChannel)}
+        </>
+      )}
+
+      {/* 全国共通販路 */}
+      <div style={{ fontSize:10, color:C.muted, fontWeight:700, marginBottom:6,
+        marginTop: (local.length > 0 || pref.length > 0) ? 10 : 0,
+        display:"flex", alignItems:"center", gap:4 }}>
+        <span style={{ background:"#E0F2FE", color:"#0369A1", borderRadius:4,
+          padding:"1px 6px", fontSize:10 }}>全国共通</span>
+        <span>どの農地でも利用可能</span>
+      </div>
+      {national.map(renderChannel)}
     </div>
   );
 }
@@ -1138,6 +1291,9 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
       {/* 支援・補助金情報（詳細） */}
       <SubsidyPanel farm={farm} />
 
+      {/* 販路情報（詳細） */}
+      <SalesChannelPanel farm={farm} />
+
       <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>この農地に問い合わせる</Btn>
     </div>
   );
@@ -1410,6 +1566,9 @@ export default function App() {
                 {filteredFarms.map(farm=>{
                   const { pref, local } = getSubsidies(farm);
                   const allSubsidies = [...local, ...pref];
+                  const { national, pref:sPref, local:sLocal } = getSalesChannels(farm);
+                  const allChannels = [...sLocal, ...sPref, ...national];
+                  const hasInfo = allSubsidies.length > 0 || allChannels.length > 0;
                   return (
                     <div key={farm.id} onClick={()=>setSelected(farm)}
                       style={{ background:selected?.id===farm.id?C.paleGreen:C.white,
@@ -1432,20 +1591,34 @@ export default function App() {
                       </div>
 
                       {/* その他タグ */}
-                      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom: allSubsidies.length > 0 ? 8 : 0 }}>
+                      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom: hasInfo ? 8 : 0 }}>
                         {(farm.tags||[]).map(t=><Tag key={t} color={C.soilLight} border={C.soilBorder} text={C.soil}>{t}</Tag>)}
                       </div>
 
-                      {/* 支援バッジ */}
-                      {allSubsidies.length > 0 && (
-                        <div style={{ display:"flex", gap:5, flexWrap:"wrap", alignItems:"center",
-                          paddingTop:8, borderTop:`1px dashed ${C.border}` }}>
-                          <span style={{ fontSize:10, color:"#1D4ED8", fontWeight:700, marginRight:2 }}>🏛 支援:</span>
-                          {allSubsidies.slice(0, 3).map((s,i) => (
-                            <SubsidyBadge key={i}>{s.icon} {s.tag}</SubsidyBadge>
-                          ))}
-                          {allSubsidies.length > 3 && (
-                            <span style={{ fontSize:10, color:C.muted }}>+{allSubsidies.length - 3}件</span>
+                      {/* 支援・販路バッジ */}
+                      {hasInfo && (
+                        <div style={{ paddingTop:8, borderTop:`1px dashed ${C.border}` }}>
+                          {allSubsidies.length > 0 && (
+                            <div style={{ display:"flex", gap:5, flexWrap:"wrap", alignItems:"center", marginBottom: allChannels.length > 0 ? 5 : 0 }}>
+                              <span style={{ fontSize:10, color:"#1D4ED8", fontWeight:700, marginRight:2 }}>🏛 支援:</span>
+                              {allSubsidies.slice(0, 2).map((s,i) => (
+                                <SubsidyBadge key={i}>{s.icon} {s.tag}</SubsidyBadge>
+                              ))}
+                              {allSubsidies.length > 2 && (
+                                <span style={{ fontSize:10, color:C.muted }}>+{allSubsidies.length - 2}件</span>
+                              )}
+                            </div>
+                          )}
+                          {allChannels.length > 0 && (
+                            <div style={{ display:"flex", gap:5, flexWrap:"wrap", alignItems:"center" }}>
+                              <span style={{ fontSize:10, color:"#92400E", fontWeight:700, marginRight:2 }}>🏪 販路:</span>
+                              {allChannels.slice(0, 2).map((ch,i) => (
+                                <SalesChannelBadge key={i}>{ch.icon} {ch.tag}</SalesChannelBadge>
+                              ))}
+                              {allChannels.length > 2 && (
+                                <span style={{ fontSize:10, color:C.muted }}>+{allChannels.length - 2}件</span>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
