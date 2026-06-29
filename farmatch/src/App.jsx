@@ -112,6 +112,84 @@ function Modal({ children, onClose }) {
   );
 }
 
+function InlineMapView({ farms, onSelectFarm }) {
+  const containerId = "farmatch-inline-map";
+  const mapRef = React.useRef(null);
+
+  React.useEffect(() => {
+    function initMap() {
+      setTimeout(() => {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        const L = window.L; if (!L) return;
+        // 既存のマップを破棄
+        if (el._leaflet_id) {
+          el._leaflet_id = null;
+          el.innerHTML = "";
+        }
+        const valid = farms.filter(f => f.lat && f.lng);
+        if (valid.length === 0) return;
+        const avgLat = valid.reduce((s, p) => s + p.lat, 0) / valid.length;
+        const avgLng = valid.reduce((s, p) => s + p.lng, 0) / valid.length;
+        const map = L.map(containerId, { scrollWheelZoom: true }).setView([avgLat, avgLng], 8);
+        mapRef.current = map;
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap", maxZoom: 18
+        }).addTo(map);
+        valid.forEach(f => {
+          const icon = L.divIcon({
+            html: `<div style="background:#2D5016;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #7AB648;box-shadow:0 2px 4px rgba(0,0,0,0.3)">🌱</div>`,
+            className: "", iconSize: [28, 28], iconAnchor: [14, 14]
+          });
+          L.marker([f.lat, f.lng], { icon }).addTo(map)
+            .bindPopup(`<div style="font-family:sans-serif;min-width:160px">
+              <div style="font-weight:700;color:#2D5016;margin-bottom:4px;font-size:13px">${f.name}</div>
+              <div style="font-size:11px;color:#666;margin-bottom:4px">📍 ${f.region} ${f.location}</div>
+              <div style="font-size:11px">📐 ${f.area_label} ／ 🌱 ${f.farm_type}</div>
+              <button onclick="window._farmSelect('${f.id}')" style="margin-top:8px;background:#2D5016;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;width:100%">詳細を見る</button>
+            </div>`)
+            .on("click", () => onSelectFarm(f));
+        });
+        window._farmSelect = (id) => {
+          const farm = farms.find(f => f.id === id);
+          if (farm) onSelectFarm(farm);
+        };
+      }, 300);
+    }
+
+    if (document.getElementById("leaflet-css")) {
+      initMap();
+    } else {
+      const link = document.createElement("link");
+      link.id = "leaflet-css"; link.rel = "stylesheet";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+      document.head.appendChild(link);
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+      script.onload = () => initMap();
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [farms]);
+
+  return (
+    <div>
+      <div style={{ background:"#2D5016", color:"#fff", padding:"8px 14px", fontSize:12,
+        fontWeight:700, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span>🗺 フィルター中の農地マップ</span>
+        <span style={{ fontSize:11, opacity:0.8, fontWeight:400 }}>ピンをクリックで詳細表示</span>
+      </div>
+      <div id={containerId} style={{ height:400, width:"100%" }}/>
+    </div>
+  );
+}
+
 function MapView({ farms, houses, focusId, onSelectFarm, onSelectHouse }) {
   const containerId = "farmatch-map";
   useState(() => {
@@ -918,6 +996,7 @@ export default function App() {
   const [search, setSearch]       = useState("");
   const [filter, setFilter]       = useState("すべて");
   const [prefFilter, setPrefFilter] = useState("すべて");
+  const [showMap, setShowMap]       = useState(false);
   const [mapFocus, setMapFocus]   = useState(null);
   const [isPremium, setIsPremium] = useState(false);
   const [adminAuth, setAdminAuth] = useState(false);
@@ -1129,7 +1208,18 @@ export default function App() {
                     fontSize:11, cursor:"pointer", background:"#fff", color:C.muted }}>✕ リセット</button>
               )}
               <span style={{ marginLeft:"auto", fontSize:12, color:C.muted }}>{filteredFarms.length}件表示中</span>
+              <button onClick={()=>setShowMap(v=>!v)}
+                style={{ border:`1.5px solid ${C.green}`, borderRadius:20, padding:"5px 14px",
+                  fontSize:12, cursor:"pointer", fontWeight:700,
+                  background:showMap?C.green:"#fff", color:showMap?"#fff":C.green }}>
+                {showMap?"📋 リスト表示":"🗺 地図表示"}
+              </button>
             </div>
+            {showMap && (
+              <div style={{ marginBottom:16, borderRadius:12, overflow:"hidden", border:`2px solid ${C.border}` }}>
+                <InlineMapView farms={filteredFarms} onSelectFarm={f=>setSelected(f)}/>
+              </div>
+            )}
             <div style={{ display:"grid", gridTemplateColumns:selected?"1fr 1fr":"1fr", gap:20 }}>
               <div>
                 {filteredFarms.map(farm=>(
