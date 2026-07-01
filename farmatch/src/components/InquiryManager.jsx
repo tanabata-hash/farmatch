@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../supabase";
 
 const C = {
   green: "#2D5016", lightGreen: "#7AB648", paleGreen: "#EDF5E1",
@@ -18,18 +17,29 @@ export function InquiryManager() {
 
   const fetchInquiries = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("inquiries")
-      .select("*")
-      .order("created_at", { ascending:false });
-    setInquiries(data || []);
+    try {
+      const res = await fetch("/api/admin/inquiries", {
+        headers: { "x-admin-password": sessionStorage.getItem("adminPw") || "" },
+      });
+      const data = await res.json();
+      setInquiries(Array.isArray(data) ? data : []);
+    } catch {
+      setInquiries([]);
+    }
     setLoading(false);
   };
 
   useEffect(() => { fetchInquiries(); }, []);
 
   const updateStatus = async (id, status) => {
-    await supabase.from("inquiries").update({ status }).eq("id", id);
+    await fetch("/api/admin/inquiries", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": sessionStorage.getItem("adminPw") || "",
+      },
+      body: JSON.stringify({ id, status }),
+    });
     setInquiries(prev => prev.map(i => i.id===id ? {...i, status} : i));
     if(selected?.id===id) setSelected(prev => ({...prev, status}));
   };
