@@ -15,7 +15,6 @@ const C = {
   cream:"#F5F0E8", white:"#FFFFFF", text:"#1A1A1A", muted:"#6B6B6B", border:"#E0D8CC", sky:"#4A90D9",
 };
 
-const ADMIN_PASSWORD = "farmatch2025";
 
 // ── 自治体支援情報データ ──────────────────────────────────
 const SUBSIDY_DATA = {
@@ -786,9 +785,25 @@ function PricingView() {
 function AdminLogin({ onSuccess }) {
   const [pw, setPw] = useState("");
   const [error, setError] = useState(false);
-  const handleLogin = () => {
-    if(pw === ADMIN_PASSWORD) { onSuccess(); }
-    else { setError(true); setTimeout(()=>setError(false), 2000); }
+  const handleLogin = async () => {
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        sessionStorage.setItem("adminPw", pw);
+        onSuccess();
+      } else {
+        setError(true);
+        setTimeout(() => setError(false), 2000);
+      }
+    } catch {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
+    }
   };
   return (
     <div style={{ maxWidth:360, margin:"60px auto", background:C.white, borderRadius:16,
@@ -2141,7 +2156,7 @@ export default function App() {
         {tab==="pricing" && <PricingView/>}
         {!loading && tab==="admin" && (
           adminAuth
-            ? <AdminPanel farms={farms} houses={houses} onRefresh={fetchData} onLogout={()=>setAdminAuth(false)}/>
+            ? <AdminPanel farms={farms} houses={houses} onRefresh={fetchData} onLogout={()=>{ sessionStorage.removeItem("adminPw"); setAdminAuth(false); }}/>
             : <AdminLogin onSuccess={()=>setAdminAuth(true)}/>
         )}
       </div>
