@@ -867,6 +867,63 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   });
   const [toast, setToast] = useState("");
   const showToast = msg=>{ setToast(msg); setTimeout(()=>setToast(""),2500); };
+  const [uploading, setUploading] = useState(false);
+
+  const uploadFarmPhoto = async(file) => {
+    const dataBase64 = await new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "x-admin-password": sessionStorage.getItem("adminPw") || "" },
+      body: JSON.stringify({ filename:file.name, contentType:file.type, dataBase64 }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || "アップロードに失敗しました");
+    return data.url;
+  };
+
+  const handleOwnerPhotoSelect = async(e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if(!file) return;
+    if(file.size > 3*1024*1024) { showToast("❌ 3MB以下の画像を選択してください"); return; }
+    setUploading(true);
+    try {
+      const url = await uploadFarmPhoto(file);
+      setForm(f=>({...f, owner_photo_url:url}));
+    } catch(err) {
+      showToast("❌ "+err.message);
+    }
+    setUploading(false);
+  };
+
+  const handleFarmPhotosSelect = async(e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if(files.length===0) return;
+    setUploading(true);
+    const currentUrls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean);
+    const newUrls = [];
+    for(const file of files) {
+      if(file.size > 3*1024*1024) { showToast(`❌ ${file.name} は3MBを超えています`); continue; }
+      try {
+        newUrls.push(await uploadFarmPhoto(file));
+      } catch(err) {
+        showToast("❌ "+err.message);
+      }
+    }
+    setForm(f=>({...f, photo_urls:[...currentUrls, ...newUrls].join("、")}));
+    setUploading(false);
+  };
+
+  const removeFarmPhoto = (urlToRemove) => {
+    const urls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).filter(u=>u!==urlToRemove);
+    setForm(f=>({...f, photo_urls:urls.join("、")}));
+  };
 
   const openAdd = (type) => {
     setEditItem(null);
@@ -911,6 +968,7 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
 
   const handleSave = async()=>{
     if(!form.name||!form.region) return;
+    if(uploading) { showToast("❌ 写真のアップロード完了までお待ちください"); return; }
     const table = formType==="farm"?"farms":"houses";
     const photoUrls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean);
     const trustFields = [
@@ -1333,18 +1391,34 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
                     padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
               </div>
               <div style={{ marginBottom:10 }}>
-                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー写真URL</label>
-                <input value={form.owner_photo_url} onChange={e=>setForm({...form,owner_photo_url:e.target.value})}
-                  placeholder="例：https://..."
-                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
-                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー写真</label>
+                {form.owner_photo_url && (
+                  <div style={{ marginBottom:6 }}>
+                    <img src={form.owner_photo_url} alt="オーナー写真"
+                      style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
+                  </div>
+                )}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleOwnerPhotoSelect} disabled={uploading}
+                  style={{ fontSize:12 }}/>
               </div>
               <div>
-                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真URL（読点区切り、複数可）</label>
-                <input value={form.photo_urls} onChange={e=>setForm({...form,photo_urls:e.target.value})}
-                  placeholder="例：https://...、https://..."
-                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
-                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真（複数可・最大3MB/枚）</label>
+                {form.photo_urls && (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:8 }}>
+                    {form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).map(url=>(
+                      <div key={url} style={{ position:"relative" }}>
+                        <img src={url} alt="現地写真"
+                          style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
+                        <button type="button" onClick={()=>removeFarmPhoto(url)}
+                          style={{ position:"absolute", top:-6, right:-6, width:18, height:18, borderRadius:"50%",
+                            background:"#E57373", color:"#fff", border:"none", fontSize:11, cursor:"pointer", lineHeight:"18px", padding:0 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFarmPhotosSelect} disabled={uploading}
+                  style={{ fontSize:12 }}/>
+                {uploading && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>アップロード中...</div>}
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:10 }}>
                 <input type="checkbox" id="owner_verified" checked={form.owner_verified}
@@ -1457,6 +1531,15 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
         </div>
         <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700 }}>{farm.status}</span>
       </div>
+
+      {farm.photo_urls?.length>0 && (
+        <div style={{ display:"flex", gap:8, overflowX:"auto", marginBottom:14, paddingBottom:2 }}>
+          {farm.photo_urls.map((url,i)=>(
+            <img key={url} src={url} alt={`${farm.name} 現地写真${i+1}`}
+              style={{ width:140, height:105, objectFit:"cover", borderRadius:10, border:`1px solid ${C.border}`, flexShrink:0 }}/>
+          ))}
+        </div>
+      )}
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px 16px", background:C.cream, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
         {[["面積",farm.area_label],["区分",farm.farm_type],["賃料",farm.rent_label],["水源",farm.water_source],["アクセス",farm.access_info]].map(([k,v])=>(
@@ -2192,12 +2275,16 @@ export default function App() {
                       style={{ background:selected?.id===farm.id?C.paleGreen:C.white,
                         border:`2px solid ${selected?.id===farm.id?C.lightGreen:C.border}`,
                         borderRadius:12, padding:"16px 18px", marginBottom:12, cursor:"pointer" }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-                        <div>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, gap:12 }}>
+                        {farm.photo_urls?.length>0 && (
+                          <img src={farm.photo_urls[0]} alt={farm.name}
+                            style={{ width:72, height:72, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}`, flexShrink:0 }}/>
+                        )}
+                        <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>{farm.name}</div>
                           <div style={{ fontSize:12, color:C.muted }}>📍 {farm.region} {farm.location}　📐 {farm.area_label}　🌱 {farm.farm_type}</div>
                         </div>
-                        <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end" }}>
+                        <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end", flexShrink:0 }}>
                           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{farm.status}</span>
                           {farm.is_premium&&<span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
                         </div>
