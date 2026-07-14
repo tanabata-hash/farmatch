@@ -321,6 +321,61 @@ function Modal({ children, onClose }) {
   );
 }
 
+// ── オーナー信頼情報パネル（詳細表示用） ─────────────────────
+function OwnerTrustPanel({ farm }) {
+  const hasInfo = farm.owner_verified || farm.owner_bio || farm.reason_for_listing ||
+    farm.response_time_estimate || farm.past_crop_history || farm.access_notes || farm.owner_photo_url;
+  if(!hasInfo) return null;
+  const score = farm.trust_score || 0;
+  return (
+    <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10, flexWrap:"wrap", gap:6 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:C.green }}>🤝 オーナー情報</div>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          {farm.owner_verified && (
+            <span style={{ background:C.green, color:"#fff", fontSize:10, fontWeight:700, borderRadius:4, padding:"2px 8px" }}>
+              ✅ 本人確認済み
+            </span>
+          )}
+          <span style={{ fontSize:10, color:C.muted }}>信頼度スコア {score}%</span>
+        </div>
+      </div>
+      <div style={{ height:6, background:C.border, borderRadius:3, marginBottom:12, overflow:"hidden" }}>
+        <div style={{ height:"100%", width:`${score}%`, background:C.lightGreen, borderRadius:3 }}/>
+      </div>
+      {(farm.owner_photo_url || farm.owner_bio || farm.reason_for_listing) && (
+        <div style={{ display:"flex", gap:12, marginBottom: (farm.response_time_estimate||farm.past_crop_history||farm.access_notes) ? 8 : 0 }}>
+          {farm.owner_photo_url && (
+            <img src={farm.owner_photo_url} alt="オーナー写真"
+              style={{ width:56, height:56, objectFit:"cover", borderRadius:"50%", border:`1px solid ${C.border}`, flexShrink:0 }}/>
+          )}
+          <div style={{ flex:1, minWidth:0 }}>
+            {farm.owner_bio && <p style={{ fontSize:12, color:C.text, margin:"0 0 6px", lineHeight:1.6 }}>{farm.owner_bio}</p>}
+            {farm.reason_for_listing && (
+              <p style={{ fontSize:11, color:C.muted, margin:0, lineHeight:1.6 }}>
+                <strong style={{ color:C.green }}>手放す理由：</strong>{farm.reason_for_listing}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      {(farm.response_time_estimate || farm.past_crop_history || farm.access_notes) && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 12px", paddingTop:8, borderTop:`1px dashed ${C.border}` }}>
+          {farm.response_time_estimate && (
+            <div><div style={{ fontSize:10, color:C.muted }}>連絡対応の目安</div><div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{farm.response_time_estimate}</div></div>
+          )}
+          {farm.past_crop_history && (
+            <div><div style={{ fontSize:10, color:C.muted }}>過去の利用実績</div><div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{farm.past_crop_history}</div></div>
+          )}
+          {farm.access_notes && (
+            <div style={{ gridColumn:"1/-1" }}><div style={{ fontSize:10, color:C.muted }}>アクセス補足</div><div style={{ fontSize:12, color:C.text, fontWeight:600 }}>{farm.access_notes}</div></div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 支援情報パネル（詳細表示用） ─────────────────────────
 function SubsidyPanel({ farm }) {
   const { pref, local, localName } = getSubsidies(farm);
@@ -1547,6 +1602,8 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
         ))}
       </div>
 
+      <OwnerTrustPanel farm={farm}/>
+
       {farm.crops?.length>0 && (
         <div style={{ marginBottom:12 }}>
           <div style={{ fontSize:12, fontWeight:700, color:C.green, marginBottom:6 }}>作れる作物</div>
@@ -2287,6 +2344,7 @@ export default function App() {
                         <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end", flexShrink:0 }}>
                           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{farm.status}</span>
                           {farm.is_premium&&<span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
+                          {farm.owner_verified&&<span style={{ background:C.green, color:"#fff", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ 本人確認済み</span>}
                         </div>
                       </div>
 
