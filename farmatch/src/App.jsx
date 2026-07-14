@@ -861,6 +861,9 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     chiban:"", nosin_ku:"", chimoku:"",
     score_water:3, score_sun:3, score_soil:3, score_climate:3, score_access:3,
     tags:"", is_premium:false,
+    owner_verified:false, owner_bio:"", reason_for_listing:"",
+    access_notes:"", response_time_estimate:"", past_crop_history:"",
+    owner_photo_url:"", photo_urls:"",
   });
   const [toast, setToast] = useState("");
   const showToast = msg=>{ setToast(msg); setTimeout(()=>setToast(""),2500); };
@@ -873,7 +876,10 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
       water_source:"",access_info:"",lat:"",lng:"",
       chiban:"",nosin_ku:"",chimoku:"",
       score_water:3,score_sun:3,score_soil:3,score_climate:3,score_access:3,
-      tags:"",is_premium:false});
+      tags:"",is_premium:false,
+      owner_verified:false,owner_bio:"",reason_for_listing:"",
+      access_notes:"",response_time_estimate:"",past_crop_history:"",
+      owner_photo_url:"",photo_urls:""});
     setShowForm(true);
   };
 
@@ -893,6 +899,12 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
       score_soil:item.score_soil||3, score_climate:item.score_climate||3,
       score_access:item.score_access||3,
       tags:(item.tags||[]).join("、"), is_premium:item.is_premium||false,
+      owner_verified:item.owner_verified||false, owner_bio:item.owner_bio||"",
+      reason_for_listing:item.reason_for_listing||"",
+      access_notes:item.access_notes||"", response_time_estimate:item.response_time_estimate||"",
+      past_crop_history:item.past_crop_history||"",
+      owner_photo_url:item.owner_photo_url||"",
+      photo_urls:(item.photo_urls||[]).join("、"),
     });
     setShowForm(true);
   };
@@ -900,6 +912,13 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   const handleSave = async()=>{
     if(!form.name||!form.region) return;
     const table = formType==="farm"?"farms":"houses";
+    const photoUrls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean);
+    const trustFields = [
+      form.owner_verified, form.owner_bio, form.reason_for_listing,
+      form.access_notes, form.response_time_estimate, form.past_crop_history,
+      form.owner_photo_url, photoUrls.length>0,
+    ];
+    const trustScore = Math.round(trustFields.filter(Boolean).length / trustFields.length * 100);
     const payload = formType==="farm"
       ? { name:form.name, region:form.region, location:form.location,
           area_label:form.area_label, rent_label:form.rent_label,
@@ -912,7 +931,13 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
           score_soil:parseInt(form.score_soil), score_climate:parseInt(form.score_climate),
           score_access:parseInt(form.score_access),
           tags:form.tags.split(/[、,]/).map(t=>t.trim()).filter(Boolean),
-          is_premium:form.is_premium, plan:"basic" }
+          is_premium:form.is_premium, plan:"basic",
+          owner_verified:form.owner_verified, owner_bio:form.owner_bio,
+          reason_for_listing:form.reason_for_listing, access_notes:form.access_notes,
+          response_time_estimate:form.response_time_estimate,
+          past_crop_history:form.past_crop_history,
+          owner_photo_url:form.owner_photo_url, photo_urls:photoUrls,
+          trust_score:trustScore }
       : { name:form.name, region:form.region, location:form.location,
           area_label:form.area_label, rent_label:form.rent_label,
           house_type:form.farm_type||"一戸建て", status:form.status||"掲載中",
@@ -1261,6 +1286,72 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
                 <ScoreInput label="土質" field="score_soil"/>
                 <ScoreInput label="気候" field="score_climate"/>
                 <ScoreInput label="アクセス" field="score_access"/>
+              </div>
+            </div>
+          )}
+
+          {formType==="farm" && (
+            <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8, padding:"12px 14px", marginBottom:12 }}>
+              <div style={{ fontSize:11, color:C.green, fontWeight:700, marginBottom:10 }}>
+                🤝 信頼構築情報（任意・借り手の安心材料になります）
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>手放す理由・想い</label>
+                <textarea value={form.reason_for_listing} onChange={e=>setForm({...form,reason_for_listing:e.target.value})} rows={2}
+                  placeholder="例：高齢のため管理が難しくなり、有効活用してもらえる方にお貸ししたいです"
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー自己紹介</label>
+                <textarea value={form.owner_bio} onChange={e=>setForm({...form,owner_bio:e.target.value})} rows={2}
+                  placeholder="例：地元で長年農業を営んできました"
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                <div>
+                  <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>連絡対応の目安</label>
+                  <input value={form.response_time_estimate} onChange={e=>setForm({...form,response_time_estimate:e.target.value})}
+                    placeholder="例：平日2日以内に返信"
+                    style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                      padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+                </div>
+                <div>
+                  <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>過去の利用実績</label>
+                  <input value={form.past_crop_history} onChange={e=>setForm({...form,past_crop_history:e.target.value})}
+                    placeholder="例：3年前まで水稲を栽培"
+                    style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                      padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+                </div>
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>アクセス補足（駐車・道路状況等）</label>
+                <input value={form.access_notes} onChange={e=>setForm({...form,access_notes:e.target.value})}
+                  placeholder="例：軽トラの乗り入れ可、駐車スペース2台分あり"
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー写真URL</label>
+                <input value={form.owner_photo_url} onChange={e=>setForm({...form,owner_photo_url:e.target.value})}
+                  placeholder="例：https://..."
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真URL（読点区切り、複数可）</label>
+                <input value={form.photo_urls} onChange={e=>setForm({...form,photo_urls:e.target.value})}
+                  placeholder="例：https://...、https://..."
+                  style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                    padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:10 }}>
+                <input type="checkbox" id="owner_verified" checked={form.owner_verified}
+                  onChange={e=>setForm({...form,owner_verified:e.target.checked})}/>
+                <label htmlFor="owner_verified" style={{ fontSize:13, color:C.text, cursor:"pointer" }}>
+                  ✅ 本人確認済み（運営側で確認済みの場合のみチェック）
+                </label>
               </div>
             </div>
           )}
