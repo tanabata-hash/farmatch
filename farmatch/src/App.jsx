@@ -9,6 +9,9 @@ const BRAND = {
   sub: "全国の遊休農地と就農希望者・移住希望者をマッチング", year: 2025,
 };
 
+// フェーズ1（登録農地数拡大期間）は有償機能を無料開放。true にするとフェーズ2の実料金表示に切り替わる。
+const PAID_FEATURES_ACTIVE = false;
+
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", midGreen:"#4A7C20", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
   soil:"#C4883A", soilLight:"#FFF4E6", soilBorder:"#E8C48A",
@@ -729,41 +732,63 @@ function PricingView() {
   const plans = [
     { id:"owner", who:"農地・物件オーナー", emoji:"🏡", color:C.soil, bg:C.soilLight, border:C.soilBorder,
       items:[
-        {name:"ベーシック掲載",price:"¥3,000/月",desc:"農地・物件の基本情報掲載。問い合わせ受付機能付き。"},
-        {name:"プレミアム掲載",price:"¥5,000/月",desc:"上位表示・詳細情報・写真10枚・問い合わせ優先通知。"},
-        {name:"成約報酬",price:"初月賃料の20%",desc:"マッチング成立時のみ発生。成約しなければ追加費用なし。"},
+        {name:"ベーシック掲載",price:"¥3,000/月",desc:"農地・物件の基本情報掲載。問い合わせ受付機能付き。",free:true},
+        {name:"プレミアム掲載",price:"¥5,000/月",desc:"上位表示・詳細情報・写真10枚・問い合わせ優先通知。",free:true},
+        {name:"成約報酬",price:"初月賃料の20%",desc:"マッチング成立時のみ発生。成約しなければ追加費用なし。今後、成約支援の充実に伴い有料化を予定しています。",free:true},
       ]},
     { id:"seeker", who:"就農希望者・移住希望者", emoji:"🌱", color:C.green, bg:C.paleGreen, border:"#B8D98A",
       items:[
-        {name:"無料プラン",price:"¥0",desc:"農地・住居の一覧閲覧。詳細情報は非表示。"},
-        {name:"プレミアム会員",price:"¥1,480/月",desc:"全情報閲覧・優先問い合わせ・補助金情報・作物相談チャット。"},
-        {name:"体験ツアー予約",price:"予約額の10%",desc:"農業体験・見学ツアーの仲介手数料。参加費は別途。"},
+        {name:"無料プラン",price:"¥0",desc:"農地・住居の一覧閲覧。詳細情報は非表示。",free:false},
+        {name:"プレミアム会員",price:"¥1,480/月",desc:"全情報閲覧・優先問い合わせ・補助金情報・作物相談チャット。",free:true},
+        {name:"体験ツアー予約",price:"予約額の10%",desc:"農業体験・見学ツアーの仲介手数料。参加費は別途。",free:true},
       ]},
   ];
   return (
     <div>
       <h3 style={{ color:C.green, marginBottom:4, fontSize:16 }}>💰 料金・収益モデル</h3>
-      <p style={{ color:C.muted, fontSize:13, marginBottom:20 }}>オーナーと就農希望者の双方から収益を得るプラットフォームモデル</p>
+      <p style={{ color:C.muted, fontSize:13, marginBottom:8 }}>オーナーと就農希望者の双方から収益を得るプラットフォームモデル</p>
+      {!PAID_FEATURES_ACTIVE && (
+        <div style={{ background:C.paleGreen, border:"1.5px solid #B8D98A", borderRadius:8,
+          padding:"10px 14px", marginBottom:20, fontSize:12.5, color:C.green, lineHeight:1.6 }}>
+          🎉 <strong>現在は登録農地数の拡大に注力する無料期間中</strong>です。掲載料・成功報酬・プレミアム会員費はすべて ¥0 でご利用いただけます。以下は将来導入予定の料金プランです。
+        </div>
+      )}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
         {plans.map(p=>(
           <div key={p.id} style={{ background:p.bg, border:`2px solid ${p.border}`, borderRadius:12, padding:20 }}>
             <div style={{ fontSize:24, marginBottom:6 }}>{p.emoji}</div>
             <div style={{ fontWeight:700, color:p.color, fontSize:15, marginBottom:14 }}>{p.who}</div>
-            {p.items.map(pl=>(
+            {p.items.map(pl=>{
+              const showFree = pl.free && !PAID_FEATURES_ACTIVE;
+              return (
               <div key={pl.name} style={{ background:C.white, borderRadius:8, padding:"12px 14px",
                 marginBottom:10, border:`1px solid ${p.border}` }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
                   <span style={{ fontWeight:700, fontSize:13, color:C.text }}>{pl.name}</span>
-                  <span style={{ fontWeight:800, color:p.color, fontSize:12, whiteSpace:"nowrap", marginLeft:8 }}>{pl.price}</span>
+                  {showFree ? (
+                    <span style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8, whiteSpace:"nowrap" }}>
+                      <span style={{ fontSize:11, color:C.muted, textDecoration:"line-through" }}>{pl.price}</span>
+                      <span style={{ fontWeight:800, color:p.color, fontSize:12 }}>¥0</span>
+                    </span>
+                  ) : (
+                    <span style={{ fontWeight:800, color:p.color, fontSize:12, whiteSpace:"nowrap", marginLeft:8 }}>{pl.price}</span>
+                  )}
                 </div>
+                {showFree && (
+                  <span style={{ display:"inline-block", background:p.color, color:"#fff", fontSize:10, fontWeight:700,
+                    borderRadius:4, padding:"1px 7px", marginBottom:6 }}>無料公開中</span>
+                )}
                 <p style={{ fontSize:12, color:C.muted, margin:0, lineHeight:1.5 }}>{pl.desc}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>
-      <div style={{ background:C.deepGreen, borderRadius:12, padding:20, marginTop:16, color:"#fff" }}>
-        <div style={{ fontWeight:700, fontSize:14, marginBottom:12, color:C.lightGreen }}>📊 収益シミュレーション（月次目安）</div>
+      <div style={{ background:C.deepGreen, borderRadius:12, padding:20, marginTop:16, color:"#fff", opacity:PAID_FEATURES_ACTIVE?1:0.55 }}>
+        <div style={{ fontWeight:700, fontSize:14, marginBottom:12, color:C.lightGreen }}>
+          📊 収益シミュレーション（月次目安）{!PAID_FEATURES_ACTIVE && <span style={{ fontSize:11, fontWeight:600, color:"#D4EDAA", marginLeft:8 }}>※将来プラン導入後の目標値（Coming soon）</span>}
+        </div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
           {[["オーナー掲載料","10件 × ¥4,000","¥40,000"],["プレミアム会員費","50人 × ¥1,480","¥74,000"],["成約報酬","月3件 × ¥10,000","¥30,000"]].map(([l,c,v])=>(
             <div key={l} style={{ background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"12px", textAlign:"center" }}>
@@ -1372,7 +1397,9 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
         <div style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, borderRadius:8, padding:"12px 14px", marginBottom:14, textAlign:"center" }}>
           <div style={{ fontSize:13, fontWeight:700, color:C.soil, marginBottom:4 }}>🔒 プレミアム限定情報</div>
           <p style={{ fontSize:12, color:C.muted, margin:"0 0 10px" }}>詳細情報はプレミアム会員のみ閲覧できます</p>
-          <Btn style={{ background:C.soil, width:"100%", textAlign:"center" }}>プレミアム会員に登録（¥1,480/月）</Btn>
+          <Btn style={{ background:C.soil, width:"100%", textAlign:"center" }}>
+            {PAID_FEATURES_ACTIVE ? "プレミアム会員に登録（¥1,480/月）" : "プレミアム会員に登録（今なら無料）"}
+          </Btn>
         </div>
       ) : (
         <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>{farm.description}</p>
