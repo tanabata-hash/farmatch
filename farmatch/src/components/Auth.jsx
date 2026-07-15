@@ -20,7 +20,7 @@ function Input({ label, type="text", value, onChange, placeholder, required }) {
   );
 }
 
-export function AuthModal({ onClose, onSuccess }) {
+export function AuthModal({ onClose, onSuccess, onNavigateTerms, onNavigatePrivacy }) {
   const [mode, setMode] = useState("login"); // login | register | reset
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,6 +29,7 @@ export function AuthModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const [agreed, setAgreed] = useState(false);
 
   // 信頼構築のための追加項目（すべて任意・後からでも追加可能）
   const [showTrust, setShowTrust] = useState(false);
@@ -50,6 +51,7 @@ export function AuthModal({ onClose, onSuccess }) {
   const handleRegister = async () => {
     if(!email || !password || !name) { setError("全ての必須項目を入力してください"); return; }
     if(password.length < 8) { setError("パスワードは8文字以上で設定してください"); return; }
+    if(!agreed) { setError("利用規約とプライバシーポリシーへの同意が必要です"); return; }
     setLoading(true); setError("");
     const { data, error } = await supabase.auth.signUp({ email, password,
       options: { data: { name, role } }
@@ -248,12 +250,27 @@ export function AuthModal({ onClose, onSuccess }) {
                   onChange={e=>setPassword(e.target.value)}
                   placeholder={mode==="register"?"8文字以上":"パスワード"} required />
 
+                {mode==="register" && (
+                  <div style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:12 }}>
+                    <input type="checkbox" id="agree" checked={agreed} onChange={e=>setAgreed(e.target.checked)}
+                      style={{ marginTop:2 }}/>
+                    <label htmlFor="agree" style={{ fontSize:11.5, color:C.muted, lineHeight:1.6, cursor:"pointer" }}>
+                      <button type="button" onClick={onNavigateTerms}
+                        style={{ background:"none", border:"none", padding:0, color:C.green, textDecoration:"underline", cursor:"pointer", fontSize:11.5 }}>利用規約</button>
+                      と
+                      <button type="button" onClick={onNavigatePrivacy}
+                        style={{ background:"none", border:"none", padding:0, color:C.green, textDecoration:"underline", cursor:"pointer", fontSize:11.5 }}>プライバシーポリシー</button>
+                      に同意します
+                    </label>
+                  </div>
+                )}
+
                 {error && <p style={{ color:"#E57373", fontSize:12, marginBottom:10 }}>{error}</p>}
 
-                <button onClick={mode==="login"?handleLogin:handleRegister} disabled={loading}
+                <button onClick={mode==="login"?handleLogin:handleRegister} disabled={loading || (mode==="register" && !agreed)}
                   style={{ width:"100%", background:C.green, color:"#fff", border:"none",
                     borderRadius:8, padding:"12px", fontSize:14, fontWeight:700,
-                    cursor:"pointer", opacity:loading?0.7:1, marginBottom:10 }}>
+                    cursor:"pointer", opacity:(loading||(mode==="register"&&!agreed))?0.6:1, marginBottom:10 }}>
                   {loading ? "処理中..." : mode==="login" ? "ログイン" : "登録する"}
                 </button>
 

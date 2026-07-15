@@ -280,6 +280,15 @@ function ScoreBar({ value }) {
   );
 }
 
+function LegalCautionNote({ compact=false }) {
+  return (
+    <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
+      padding: compact ? "8px 10px" : "10px 14px", marginBottom:14, fontSize:11.5, color:"#795548", lineHeight:1.7 }}>
+      ⚠️ 農地の賃貸借・売買には<strong>農業委員会の許可</strong>が必要です。当サービスは当事者同士が連絡を取るための場を提供するものであり、契約の仲介・あっせんは行いません。契約・交渉は当事者間の自己責任で行ってください。
+    </div>
+  );
+}
+
 function Tag({ children, color=C.paleGreen, border="#B8D98A", text=C.green }) {
   return <span style={{ background:color, border:`1px solid ${border}`, borderRadius:20,
     padding:"3px 10px", fontSize:11, color:text, fontWeight:500 }}>{children}</span>;
@@ -328,10 +337,18 @@ function Modal({ children, onClose }) {
 }
 
 // ── オーナー信頼情報パネル（詳細表示用） ─────────────────────
-function OwnerTrustPanel({ farm }) {
+function OwnerTrustPanel({ farm, isLoggedIn }) {
   const hasInfo = farm.owner_verified || farm.owner_bio || farm.reason_for_listing ||
     farm.response_time_estimate || farm.past_crop_history || farm.access_notes || farm.owner_photo_url;
   if(!hasInfo) return null;
+  if(!isLoggedIn) {
+    return (
+      <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8, padding:"12px 14px", marginBottom:14, textAlign:"center" }}>
+        <div style={{ fontSize:12, color:C.green, fontWeight:700 }}>🔒 オーナー情報はログイン後に確認できます</div>
+        <p style={{ fontSize:11, color:C.muted, margin:"6px 0 0" }}>プライバシー保護のため、自己紹介や写真などの情報は会員登録済みの方のみに表示しています。</p>
+      </div>
+    );
+  }
   const score = farm.trust_score || 0;
   return (
     <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8, padding:"14px 16px", marginBottom:14 }}>
@@ -1756,6 +1773,7 @@ function ContactModal({ item, onClose }) {
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
+          <LegalCautionNote compact/>
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
             <Btn onClick={handleSubmit} style={{ flex:2, opacity:loading?0.7:1 }}>
@@ -1768,8 +1786,59 @@ function ContactModal({ item, onClose }) {
   );
 }
 
+// ── 通報モーダル ──────────────────────────────────────────
+function ReportModal({ item, onClose }) {
+  const [reason, setReason] = useState("");
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const handleSubmit = async()=>{
+    if(!reason.trim()) return;
+    setLoading(true);
+    const isHouse=!!item.house_type;
+    const{error}=await supabase.from("inquiries").insert([{
+      target_type:isHouse?"house":"farm",
+      farm_id:isHouse?null:item.id,
+      house_id:isHouse?item.id:null,
+      name:"(通報)", email:"", purpose:"不適切な内容の通報", message:reason, status:"new",
+    }]);
+    setLoading(false);
+    if(error){alert("送信エラー: "+error.message);return;}
+    setSent(true);
+  };
+  return (
+    <Modal onClose={onClose}>
+      {sent ? (
+        <div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ fontSize:48 }}>✅</div>
+          <h3 style={{ color:C.green, margin:"12px 0 8px" }}>通報を受け付けました</h3>
+          <p style={{ color:C.muted, fontSize:13 }}>運営にて内容を確認し、必要な対応を行います。</p>
+          <Btn onClick={onClose} style={{ marginTop:12 }}>閉じる</Btn>
+        </div>
+      ) : (
+        <>
+          <h3 style={{ margin:"0 0 4px", color:C.text }}>🚩 不適切な内容を通報</h3>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 18px" }}>{item.name}</p>
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>通報理由 *</label>
+            <textarea value={reason} onChange={e=>setReason(e.target.value)} rows={4}
+              placeholder="例：情報が虚偽である、不適切な画像が含まれている、など"
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+          </div>
+          <div style={{ display:"flex", gap:10 }}>
+            <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
+            <Btn onClick={handleSubmit} style={{ flex:2, opacity:(loading||!reason.trim())?0.6:1 }}>
+              {loading?"送信中...":"通報する"}
+            </Btn>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 // ── 農地詳細パネル ────────────────────────────────────────
-function FarmDetail({ farm, onContact, onClose, isPremium, isEarlyRegistrant }) {
+function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegistrant, isLoggedIn }) {
   const suitability={water:farm.score_water,sun:farm.score_sun,soil:farm.score_soil,climate:farm.score_climate,access:farm.score_access};
   return (
     <div style={{ background:C.white, borderRadius:12, border:`2px solid ${C.border}`, padding:22, position:"sticky", top:16 }}>
@@ -1800,7 +1869,7 @@ function FarmDetail({ farm, onContact, onClose, isPremium, isEarlyRegistrant }) 
         ))}
       </div>
 
-      <OwnerTrustPanel farm={farm}/>
+      <OwnerTrustPanel farm={farm} isLoggedIn={isLoggedIn}/>
 
       {farm.crops?.length>0 && (
         <div style={{ marginBottom:12 }}>
@@ -1840,7 +1909,14 @@ function FarmDetail({ farm, onContact, onClose, isPremium, isEarlyRegistrant }) 
       {/* 販路情報（詳細） */}
       <SalesChannelPanel farm={farm} />
 
+      <LegalCautionNote compact/>
+
       <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>この農地に問い合わせる</Btn>
+      <button type="button" onClick={()=>onReport(farm)}
+        style={{ display:"block", width:"100%", background:"none", border:"none", color:C.muted,
+          fontSize:11, cursor:"pointer", marginTop:10, padding:"4px", textDecoration:"underline" }}>
+        🚩 不適切な内容を通報する
+      </button>
     </div>
   );
 }
@@ -2303,6 +2379,7 @@ export default function App() {
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
   const [contact, setContact]     = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
   const [search, setSearch]       = useState("");
   const [filter, setFilter]       = useState("すべて");
   const [prefFilter, setPrefFilter] = useState("すべて");
@@ -2614,7 +2691,7 @@ export default function App() {
                 </div>
               </div>
 
-              {selected && <FarmDetail farm={selected} isPremium={isPremium} isEarlyRegistrant={earlyFarmIds.has(selected.id)} onContact={f=>setContact(f)} onClose={()=>setSelected(null)}/>}
+              {selected && <FarmDetail farm={selected} isPremium={isPremium} isEarlyRegistrant={earlyFarmIds.has(selected.id)} isLoggedIn={!!user} onContact={f=>setContact(f)} onReport={f=>setReportTarget(f)} onClose={()=>setSelected(null)}/>}
             </div>
           </>
         )}
@@ -2650,11 +2727,14 @@ export default function App() {
       </div>
 
       {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
+      {reportTarget && <ReportModal item={reportTarget} onClose={()=>setReportTarget(null)}/>}
 
       {showAuth && (
         <AuthModal
           onClose={()=>setShowAuth(false)}
           onSuccess={()=>setShowAuth(false)}
+          onNavigateTerms={()=>{ setShowAuth(false); setPage("terms"); }}
+          onNavigatePrivacy={()=>{ setShowAuth(false); setPage("privacy"); }}
         />
       )}
     </div>
