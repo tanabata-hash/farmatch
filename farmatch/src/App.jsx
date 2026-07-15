@@ -280,11 +280,14 @@ function ScoreBar({ value }) {
   );
 }
 
-function LegalCautionNote({ compact=false }) {
+function LegalCautionNote({ compact=false, isHouse=false }) {
   return (
     <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
       padding: compact ? "8px 10px" : "10px 14px", marginBottom:14, fontSize:11.5, color:"#795548", lineHeight:1.7 }}>
-      ⚠️ 農地の賃貸借・売買には<strong>農業委員会の許可</strong>が必要です。当サービスは当事者同士が連絡を取るための場を提供するものであり、契約の仲介・あっせんは行いません。契約・交渉は当事者間の自己責任で行ってください。
+      {isHouse
+        ? <>⚠️ 当サービスは当事者同士が連絡を取るための場を提供するものであり、契約の仲介・あっせんは行いません。契約内容・条件の交渉は当事者間の自己責任で行ってください。</>
+        : <>⚠️ 農地の賃貸借・売買には<strong>農業委員会の許可</strong>が必要です。当サービスは当事者同士が連絡を取るための場を提供するものであり、契約の仲介・あっせんは行いません。契約・交渉は当事者間の自己責任で行ってください。</>
+      }
     </div>
   );
 }
@@ -1773,7 +1776,7 @@ function ContactModal({ item, onClose }) {
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
-          <LegalCautionNote compact/>
+          <LegalCautionNote compact isHouse={!!item.house_type}/>
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
             <Btn onClick={handleSubmit} style={{ flex:2, opacity:loading?0.7:1 }}>
@@ -2721,7 +2724,7 @@ export default function App() {
           <button onClick={()=>setPage("terms")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>利用規約</button>
           <button onClick={()=>setPage("privacy")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>プライバシーポリシー</button>
           <button onClick={()=>setPage("specified")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>特定商取引法に基づく表記</button>
-          <a href="mailto:support@farmatch.net" style={{ color:"#7AB648", fontSize:11 }}>お問い合わせ</a>
+          <a href="mailto:contact@farmatch.net" style={{ color:"#7AB648", fontSize:11 }}>お問い合わせ</a>
         </div>
         <div style={{ color:"rgba(255,255,255,0.35)" }}>© {BRAND.year} {BRAND.name} — 全国の遊休農地有効活用プロジェクト</div>
       </div>

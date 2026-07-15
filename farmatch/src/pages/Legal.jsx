@@ -63,10 +63,9 @@ export function TermsPage({ onBack }) {
 
       <Section title="第2条（運営者情報）">
         <InfoBox>
-          運営者：準備中<br/>
-          所在地：準備中<br/>
-          連絡先：support@farmatch.net<br/>
-          ※法人化準備中につき、詳細は順次更新いたします。
+          運営者：七夕光明（個人事業主）<br/>
+          所在地：ご請求があれば遅滞なく開示いたします<br/>
+          連絡先：contact@farmatch.net
         </InfoBox>
       </Section>
 
@@ -200,7 +199,7 @@ export function PrivacyPage({ onBack }) {
       </Section>
 
       <Section title="第7条（開示・訂正・削除）">
-        ユーザーは、当サービスが保有する自己の個人情報について、開示・訂正・削除を請求できます。請求はsupport@farmatch.netまでご連絡ください。本人確認の上、合理的な期間内に対応します。
+        ユーザーは、当サービスが保有する自己の個人情報について、開示・訂正・削除を請求できます。請求はcontact@farmatch.netまでご連絡ください。本人確認の上、合理的な期間内に対応します。
       </Section>
 
       <Section title="第8条（Cookieおよびアクセス解析）">
@@ -214,8 +213,8 @@ export function PrivacyPage({ onBack }) {
       <Section title="第10条（お問い合わせ窓口）">
         個人情報の取り扱いに関するお問い合わせは以下までご連絡ください。
         <InfoBox>
-          運営者：準備中<br/>
-          メールアドレス：support@farmatch.net<br/>
+          運営者：七夕光明<br/>
+          メールアドレス：contact@farmatch.net<br/>
           対応時間：平日10:00〜18:00（土日祝除く）
         </InfoBox>
       </Section>
@@ -232,16 +231,16 @@ export function SpecifiedCommercialPage({ onBack }) {
     <LegalPage title="特定商取引法に基づく表記" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        ※有料サービス開始に伴い整備予定。現在準備中です。
+        ※現在は無料期間中のため、有料サービスは提供しておりません。有料化を開始する際に本ページの内容を改めて見直します。
       </div>
 
       <Section title="販売事業者">
         <InfoBox>
-          事業者名：準備中<br/>
-          代表者名：準備中<br/>
-          所在地：準備中<br/>
-          電話番号：準備中（メールにて対応）<br/>
-          メールアドレス：support@farmatch.net
+          事業者名：七夕光明<br/>
+          代表者名：七夕光明<br/>
+          所在地：ご請求があれば遅滞なく開示いたします<br/>
+          電話番号：ご請求があれば遅滞なく開示いたします。お問い合わせはメールにて承ります<br/>
+          メールアドレス：contact@farmatch.net
         </InfoBox>
       </Section>
 
