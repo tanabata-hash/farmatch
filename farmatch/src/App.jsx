@@ -1305,9 +1305,15 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
 
       {showForm && (
         <Modal onClose={()=>setShowForm(false)}>
-          <h3 style={{ margin:"0 0 16px", color:C.green }}>
+          <h3 style={{ margin:"0 0 6px", color:C.green }}>
             {editItem ? "✏️ 編集" : (formType==="farm"?"🌱 農地を登録":"🏡 物件を登録")}
           </h3>
+          {!editItem && !PAID_FEATURES_ACTIVE && (
+            <p style={{ fontSize:12, color:C.green, background:C.paleGreen, border:"1px solid #B8D98A",
+              borderRadius:8, padding:"6px 10px", margin:"0 0 14px" }}>
+              🎉 掲載料は当面無料です。安心してご登録ください。
+            </p>
+          )}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
             {[{key:"name",label:"名称 *",ph:"例：南部農地 D区画",full:true},
               {key:"region",label:"都道府県 *",ph:"例：鹿児島県"},
@@ -2254,6 +2260,13 @@ export default function App() {
             <input placeholder="都道府県・作物・キーワードで検索" value={search} onChange={e=>setSearch(e.target.value)}
               style={{ width:"100%", padding:"12px 20px", borderRadius:30, border:"none", fontSize:14, boxSizing:"border-box", outline:"none" }}/>
           </div>
+          {!PAID_FEATURES_ACTIVE && (
+            <div style={{ display:"inline-block", marginTop:14, background:"rgba(255,255,255,0.15)",
+              border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, padding:"5px 16px",
+              color:"#fff", fontSize:12, fontWeight:700 }}>
+              🎉 掲載料は当面無料です
+            </div>
+          )}
         </div>
       )}
 
