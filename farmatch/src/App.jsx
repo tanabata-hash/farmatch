@@ -906,6 +906,65 @@ function AdminLogin({ onSuccess }) {
   );
 }
 
+// ── CSV一括登録用ユーティリティ ──────────────────────────
+const FARM_CSV_HEADER_MAP = {
+  "名称":"name", "都道府県":"region", "エリア名":"location", "面積":"area_label",
+  "賃料":"rent_label", "区分":"farm_type", "ステータス":"status",
+  "水源":"water_source", "アクセス":"access_info", "作物":"crops",
+  "タグ":"tags", "概要説明":"description",
+};
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  const s = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  for(let i=0; i<s.length; i++) {
+    const c = s[i];
+    if(inQuotes) {
+      if(c==='"') { if(s[i+1]==='"') { field+='"'; i++; } else inQuotes=false; }
+      else field += c;
+    } else {
+      if(c==='"') inQuotes = true;
+      else if(c===',') { row.push(field); field=""; }
+      else if(c==='\n') { row.push(field); rows.push(row); row=[]; field=""; }
+      else field += c;
+    }
+  }
+  if(field.length>0 || row.length>0) { row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length===1 && r[0]===""));
+}
+
+function parseFarmCSV(text) {
+  const rows = parseCSV(text);
+  if(rows.length===0) return { records:[], errors:[] };
+  const headers = rows[0].map(h=>h.trim());
+  const records = [];
+  const errors = [];
+  rows.slice(1).forEach((cells,i)=>{
+    const rowNum = i+2;
+    const raw = {};
+    headers.forEach((h,idx)=>{
+      const key = FARM_CSV_HEADER_MAP[h];
+      if(key) raw[key] = (cells[idx]||"").trim();
+    });
+    if(!raw.name || !raw.region) {
+      errors.push(`${rowNum}行目: 「名称」と「都道府県」は必須です`);
+      return;
+    }
+    records.push({
+      name: raw.name, region: raw.region, location: raw.location||"",
+      area_label: raw.area_label||"", rent_label: raw.rent_label||"",
+      farm_type: raw.farm_type||"畑", status: raw.status||"貸出可能",
+      description: raw.description||"",
+      crops: (raw.crops||"").split(/[、,]/).map(c=>c.trim()).filter(Boolean),
+      water_source: raw.water_source||"", access_info: raw.access_info||"",
+      tags: (raw.tags||"").split(/[、,]/).map(t=>t.trim()).filter(Boolean),
+      is_premium: false, plan:"basic", trust_score:0,
+    });
+  });
+  return { records, errors };
+}
+
 // ── 管理パネル ────────────────────────────────────────────
 function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   const [tab, setTab] = useState("farms");
@@ -981,6 +1040,45 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   const removeFarmPhoto = (urlToRemove) => {
     const urls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).filter(u=>u!==urlToRemove);
     setForm(f=>({...f, photo_urls:urls.join("、")}));
+  };
+
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvResult, setCsvResult] = useState(null); // {records, errors}
+  const [csvImporting, setCsvImporting] = useState(false);
+
+  const CSV_TEMPLATE_HEADERS = Object.keys(FARM_CSV_HEADER_MAP);
+  const downloadCsvTemplate = () => {
+    const header = CSV_TEMPLATE_HEADERS.join(",");
+    const example = ["南部農地 D区画","鹿児島県","南さつま市","約600㎡","月額 4,000円","畑","貸出可能","井戸・雨水","最寄り駅より車5分","さつまいも、かぼちゃ","初心者向け","日当たり良好な農地です"]
+      .map(v=>`"${v.replace(/"/g,'""')}"`).join(",");
+    downloadCSV(header+"\n"+example, "farmatch_farms_template.csv");
+  };
+
+  const handleCsvFileSelect = async(e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if(!file) return;
+    const text = await file.text();
+    setCsvText(text);
+    setCsvResult(parseFarmCSV(text));
+  };
+
+  const handleCsvTextChange = (text) => {
+    setCsvText(text);
+    setCsvResult(text.trim() ? parseFarmCSV(text) : null);
+  };
+
+  const handleCsvImport = async() => {
+    if(!csvResult || csvResult.records.length===0 || csvImporting) return;
+    setCsvImporting(true);
+    const { error } = await supabase.from("farms").insert(csvResult.records);
+    setCsvImporting(false);
+    if(error) { showToast("❌ 一括登録エラー: "+error.message); return; }
+    showToast(`✅ ${csvResult.records.length}件の農地を一括登録しました`);
+    setShowCsvImport(false);
+    setCsvText(""); setCsvResult(null);
+    onRefresh();
   };
 
   const openAdd = (type) => {
@@ -1255,7 +1353,11 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
             background:tab===t?C.green:C.border, color:tab===t?"#fff":C.muted }}>{l}</button>
         ))}
         {tab!=="inquiries" && (
-          <div style={{ marginLeft:"auto" }}>
+          <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+            {tab==="farms" && (
+              <Btn variant="outline" onClick={()=>setShowCsvImport(true)}
+                style={{ padding:"8px 16px", fontSize:12 }}>📄 CSV一括登録</Btn>
+            )}
             <Btn onClick={()=>openAdd(tab==="farms"?"farm":"house")}
               style={{ padding:"8px 16px", fontSize:12 }}>＋ 新規登録</Btn>
           </div>
@@ -1528,6 +1630,66 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={()=>setShowForm(false)} style={{ flex:1 }}>キャンセル</Btn>
             <Btn onClick={handleSave} style={{ flex:2 }}>{editItem?"更新する":"登録する"}</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {showCsvImport && (
+        <Modal onClose={()=>{ setShowCsvImport(false); setCsvText(""); setCsvResult(null); }}>
+          <h3 style={{ margin:"0 0 6px", color:C.green }}>📄 CSV一括登録</h3>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 14px", lineHeight:1.6 }}>
+            自治体担当者などが複数の農地をまとめて登録できます。テンプレートをダウンロードして入力するか、CSVを直接貼り付けてください。
+          </p>
+          <button type="button" onClick={downloadCsvTemplate}
+            style={{ background:"none", border:`1.5px solid ${C.green}`, color:C.green, borderRadius:8,
+              padding:"6px 14px", fontSize:12, cursor:"pointer", fontWeight:700, marginBottom:14 }}>
+            ⬇ テンプレートをダウンロード
+          </button>
+
+          <div style={{ marginBottom:10 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>CSVファイルを選択</label>
+            <input type="file" accept=".csv,text/csv" onChange={handleCsvFileSelect} style={{ fontSize:12 }}/>
+          </div>
+
+          <div style={{ marginBottom:12 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>またはCSVを直接貼り付け</label>
+            <textarea value={csvText} onChange={e=>handleCsvTextChange(e.target.value)} rows={6}
+              placeholder={CSV_TEMPLATE_HEADERS.join(",")}
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"8px 10px", fontSize:12, fontFamily:"monospace", boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+          </div>
+
+          {csvResult && (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:12, color:C.green, fontWeight:700, marginBottom:6 }}>
+                ✅ {csvResult.records.length}件を登録可能
+                {csvResult.errors.length>0 && <span style={{ color:"#E57373" }}>　⚠️ {csvResult.errors.length}件エラー</span>}
+              </div>
+              {csvResult.errors.length>0 && (
+                <div style={{ background:"#FFF0F0", border:"1px solid #F5C6C6", borderRadius:8, padding:"8px 10px", marginBottom:8 }}>
+                  {csvResult.errors.map((e,i)=>(
+                    <div key={i} style={{ fontSize:11, color:"#C0392B" }}>{e}</div>
+                  ))}
+                </div>
+              )}
+              {csvResult.records.length>0 && (
+                <div style={{ maxHeight:160, overflowY:"auto", border:`1px solid ${C.border}`, borderRadius:8 }}>
+                  {csvResult.records.map((r,i)=>(
+                    <div key={i} style={{ padding:"6px 10px", fontSize:11, color:C.text,
+                      borderBottom:i<csvResult.records.length-1?`1px solid ${C.border}`:"none" }}>
+                      {r.name}　<span style={{ color:C.muted }}>{r.region} {r.location}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ display:"flex", gap:10 }}>
+            <Btn variant="outline" onClick={()=>{ setShowCsvImport(false); setCsvText(""); setCsvResult(null); }} style={{ flex:1 }}>キャンセル</Btn>
+            <Btn onClick={handleCsvImport} style={{ flex:2, opacity:(csvImporting||!csvResult?.records?.length)?0.6:1 }}>
+              {csvImporting ? "登録中..." : `この内容で${csvResult?.records?.length||0}件登録する`}
+            </Btn>
           </div>
         </Modal>
       )}
