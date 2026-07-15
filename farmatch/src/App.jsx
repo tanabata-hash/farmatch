@@ -12,6 +12,9 @@ const BRAND = {
 // フェーズ1（登録農地数拡大期間）は有償機能を無料開放。true にするとフェーズ2の実料金表示に切り替わる。
 const PAID_FEATURES_ACTIVE = false;
 
+// 都道府県ごとにこの件数登録されると「地域ページ公開」の目安を達成した表示にする（進捗表示のみ・実際のページ公開機能は未実装）
+const REGION_PAGE_THRESHOLD = 5;
+
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", midGreen:"#4A7C20", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
   soil:"#C4883A", soilLight:"#FFF4E6", soilBorder:"#E8C48A",
@@ -1067,7 +1070,15 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     }
     if(error){showToast("❌ エラー: "+error.message);return;}
     setShowForm(false);
-    showToast(editItem?"✅ 更新しました":"✅ 登録しました");
+    if(formType==="farm" && !editItem && form.region) {
+      const count = farms.filter(f=>f.region===form.region).length + 1;
+      const remaining = Math.max(REGION_PAGE_THRESHOLD - count, 0);
+      showToast(remaining>0
+        ? `✅ 登録しました（${form.region}: あと${remaining}件で地域ページ公開の目安達成）`
+        : `✅ 登録しました（🎉 ${form.region}は地域ページ公開の目安を達成！）`);
+    } else {
+      showToast(editItem?"✅ 更新しました":"✅ 登録しました");
+    }
     onRefresh();
   };
 
@@ -1334,6 +1345,19 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
               </div>
             ))}
           </div>
+
+          {formType==="farm" && form.region && (() => {
+            const count = farms.filter(f=>f.region===form.region).length + (editItem ? 0 : 1);
+            const remaining = Math.max(REGION_PAGE_THRESHOLD - count, 0);
+            return (
+              <div style={{ background:C.paleGreen, border:"1px solid #B8D98A", borderRadius:8,
+                padding:"8px 12px", marginBottom:12, fontSize:12, color:C.green }}>
+                {remaining>0
+                  ? `📈 ${form.region}は現在${count}件登録予定。あと${remaining}件で「${form.region}ページ」公開の目安を達成します。`
+                  : `🎉 ${form.region}は${count}件登録予定。地域ページ公開の目安を達成しています！`}
+              </div>
+            );
+          })()}
 
           <div style={{ marginBottom:12 }}>
             <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>ステータス</label>
