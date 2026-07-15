@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabase";
 import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 import { AuthModal } from "./components/Auth";
@@ -14,6 +14,9 @@ const PAID_FEATURES_ACTIVE = false;
 
 // 都道府県ごとにこの件数登録されると「地域ページ公開」の目安を達成した表示にする（進捗表示のみ・実際のページ公開機能は未実装）
 const REGION_PAGE_THRESHOLD = 5;
+
+// 登録が古い順にこの件数までを「初期登録オーナー」として非金銭的に優遇表示する（金銭的インセンティブは避ける）
+const EARLY_REGISTRANT_LIMIT = 30;
 
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", midGreen:"#4A7C20", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
@@ -1604,7 +1607,7 @@ function ContactModal({ item, onClose }) {
 }
 
 // ── 農地詳細パネル ────────────────────────────────────────
-function FarmDetail({ farm, onContact, onClose, isPremium }) {
+function FarmDetail({ farm, onContact, onClose, isPremium, isEarlyRegistrant }) {
   const suitability={water:farm.score_water,sun:farm.score_sun,soil:farm.score_soil,climate:farm.score_climate,access:farm.score_access};
   return (
     <div style={{ background:C.white, borderRadius:12, border:`2px solid ${C.border}`, padding:22, position:"sticky", top:16 }}>
@@ -1614,7 +1617,10 @@ function FarmDetail({ farm, onContact, onClose, isPremium }) {
           <h3 style={{ margin:"0 0 4px", fontSize:16, color:C.text }}>{farm.name}</h3>
           <div style={{ fontSize:12, color:C.muted }}>📍 {farm.region}　{farm.location}</div>
         </div>
-        <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700 }}>{farm.status}</span>
+        <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end" }}>
+          <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700 }}>{farm.status}</span>
+          {isEarlyRegistrant && <span style={{ background:"#FFF4CC", border:"1px solid #E8C34A", color:"#8A6D00", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🌟 初期登録オーナー</span>}
+        </div>
       </div>
 
       {farm.photo_urls?.length>0 && (
@@ -2126,6 +2132,11 @@ export default function App() {
   const [tab, setTab]             = useState("farms");
   const [page, setPage]           = useState("main");
   const [farms, setFarms]         = useState([]);
+  const earlyFarmIds = useMemo(() => {
+    const sorted = [...farms].filter(f=>f.created_at)
+      .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    return new Set(sorted.slice(0, EARLY_REGISTRANT_LIMIT).map(f=>f.id));
+  }, [farms]);
   const [houses, setHouses]       = useState([]);
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
@@ -2382,6 +2393,7 @@ export default function App() {
                           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{farm.status}</span>
                           {farm.is_premium&&<span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
                           {farm.owner_verified&&<span style={{ background:C.green, color:"#fff", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ 本人確認済み</span>}
+                          {earlyFarmIds.has(farm.id)&&<span style={{ background:"#FFF4CC", border:"1px solid #E8C34A", color:"#8A6D00", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🌟 初期登録オーナー</span>}
                         </div>
                       </div>
 
@@ -2440,7 +2452,7 @@ export default function App() {
                 </div>
               </div>
 
-              {selected && <FarmDetail farm={selected} isPremium={isPremium} onContact={f=>setContact(f)} onClose={()=>setSelected(null)}/>}
+              {selected && <FarmDetail farm={selected} isPremium={isPremium} isEarlyRegistrant={earlyFarmIds.has(selected.id)} onContact={f=>setContact(f)} onClose={()=>setSelected(null)}/>}
             </div>
           </>
         )}
