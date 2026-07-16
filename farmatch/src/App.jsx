@@ -2532,11 +2532,8 @@ export default function App() {
         <div style={{ background:`linear-gradient(135deg,${C.green},${C.deepGreen})`, padding:"28px 20px", textAlign:"center" }}>
           <div style={{ color:"#D4EDAA", fontSize:11, letterSpacing:3, marginBottom:8 }}>{BRAND.sub}</div>
           <h1 style={{ color:"#fff", fontSize:26, margin:"0 0 6px", fontWeight:800, lineHeight:1.3 }}>{BRAND.tagline}</h1>
-          <p style={{ color:"#B8D98A", fontSize:13, margin:"0 0 20px" }}>遊休農地を活かし、新しい農業の担い手へつなぐ</p>
-          <div style={{ maxWidth:420, margin:"0 auto" }}>
-            <input placeholder="都道府県・作物・キーワードで検索" value={search} onChange={e=>setSearch(e.target.value)}
-              style={{ width:"100%", padding:"12px 20px", borderRadius:30, border:"none", fontSize:14, boxSizing:"border-box", outline:"none" }}/>
-          </div>
+          <p style={{ color:"#B8D98A", fontSize:13, margin:"0 0 10px" }}>遊休農地を活かし、新しい農業の担い手へつなぐ</p>
+          <p style={{ color:"#fff", fontSize:15, fontWeight:800, margin:"0 0 20px" }}>🌾 農業で日本を豊かにしたい！</p>
           {!PAID_FEATURES_ACTIVE && (
             <div style={{ display:"inline-block", marginTop:14, background:"rgba(255,255,255,0.15)",
               border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, padding:"5px 16px",
@@ -2610,6 +2607,16 @@ export default function App() {
           ))}
         </div>
       </div>
+
+      {/* 検索バー */}
+      {tab==="farms" && (
+        <div style={{ background:C.white, borderBottom:`2px solid ${C.border}`, padding:"14px 16px" }}>
+          <div style={{ maxWidth:420, margin:"0 auto" }}>
+            <input placeholder="都道府県・作物・キーワードで検索" value={search} onChange={e=>setSearch(e.target.value)}
+              style={{ width:"100%", padding:"12px 20px", borderRadius:30, border:`1.5px solid ${C.border}`, fontSize:14, boxSizing:"border-box", outline:"none" }}/>
+          </div>
+        </div>
+      )}
 
       {/* コンテンツ */}
       <div style={{ maxWidth:1100, margin:"0 auto", padding:"20px 16px" }}>
