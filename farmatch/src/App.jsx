@@ -2370,7 +2370,9 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
 
 // ── メインApp ─────────────────────────────────────────────
 export default function App() {
-  const [tab, setTab]             = useState("farms");
+  const [tab, setTab]             = useState(() =>
+    new URLSearchParams(window.location.search).has("admin") ? "admin" : "farms"
+  );
   const [page, setPage]           = useState("main");
   const [farms, setFarms]         = useState([]);
   const earlyFarmIds = useMemo(() => {
@@ -2521,8 +2523,6 @@ export default function App() {
                 ログイン / 登録
               </button>
             )}
-            <button onClick={()=>setTab("admin")}
-              style={{ background:"rgba(255,255,255,0.1)", color:"#fff", border:"none", borderRadius:20, padding:"6px 14px", fontSize:11, cursor:"pointer" }}>管理者</button>
           </div>
         </div>
       </div>
@@ -2687,11 +2687,6 @@ export default function App() {
                   </div>
                 )}
 
-                <div style={{ background:`linear-gradient(135deg,${C.soil},#8B5A1A)`, borderRadius:12, padding:"18px 20px", color:"#fff", marginTop:8 }}>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:6 }}>🏡 農地・物件オーナーの方へ</div>
-                  <p style={{ fontSize:12, margin:"0 0 12px", opacity:0.9, lineHeight:1.6 }}>使われていない農地や空き物件を登録して、新しい農業の担い手とつながりましょう。</p>
-                  <button onClick={()=>setTab("admin")} style={{ background:"#fff", color:C.soil, border:"none", borderRadius:8, padding:"8px 18px", fontSize:12, fontWeight:700, cursor:"pointer" }}>農地・物件を登録する（無料）</button>
-                </div>
               </div>
 
               {selected && <FarmDetail farm={selected} isPremium={isPremium} isEarlyRegistrant={earlyFarmIds.has(selected.id)} isLoggedIn={!!user} onContact={f=>setContact(f)} onReport={f=>setReportTarget(f)} onClose={()=>setSelected(null)}/>}
