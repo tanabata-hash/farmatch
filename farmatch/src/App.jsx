@@ -2450,7 +2450,6 @@ export default function App() {
     {id:"map",label:"🗺 地図"},
     {id:"calendar",label:"🗓 カレンダー"},
     {id:"pricing",label:"💰 料金"},
-    {id:"admin",label:"⚙️ 管理"},
   ];
 
   const prefectures=[...new Set(farms.map(f=>f.region).filter(Boolean))].sort();
@@ -2605,18 +2604,14 @@ export default function App() {
               fontSize:13, cursor:"pointer", whiteSpace:"nowrap",
               borderBottom:tab===t.id?`3px solid ${C.green}`:"3px solid transparent" }}>{t.label}</button>
           ))}
+          {tab==="farms" && (
+            <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", padding:"8px 0" }}>
+              <input placeholder="都道府県・作物・キーワードで検索" value={search} onChange={e=>setSearch(e.target.value)}
+                style={{ width:240, padding:"8px 16px", borderRadius:30, border:`1.5px solid ${C.border}`, fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* 検索バー */}
-      {tab==="farms" && (
-        <div style={{ background:C.white, borderBottom:`2px solid ${C.border}`, padding:"14px 16px" }}>
-          <div style={{ maxWidth:420, margin:"0 auto" }}>
-            <input placeholder="都道府県・作物・キーワードで検索" value={search} onChange={e=>setSearch(e.target.value)}
-              style={{ width:"100%", padding:"12px 20px", borderRadius:30, border:`1.5px solid ${C.border}`, fontSize:14, boxSizing:"border-box", outline:"none" }}/>
-          </div>
-        </div>
-      )}
 
       {/* コンテンツ */}
       <div style={{ maxWidth:1100, margin:"0 auto", padding:"20px 16px" }}>
