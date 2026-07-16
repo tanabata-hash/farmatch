@@ -8,6 +8,7 @@ const C = {
 
 const STATUS_LABELS = { new:"新着", replied:"返信済", closed:"クローズ" };
 const STATUS_COLORS = { new:C.soil, replied:C.lightGreen, closed:C.muted };
+const isReport = (inq) => inq.purpose === "不適切な内容の通報";
 
 export function InquiryManager() {
   const [inquiries, setInquiries] = useState([]);
@@ -44,13 +45,16 @@ export function InquiryManager() {
     if(selected?.id===id) setSelected(prev => ({...prev, status}));
   };
 
-  const filtered = filter==="all" ? inquiries : inquiries.filter(i=>i.status===filter);
+  const filtered = filter==="all" ? inquiries
+    : filter==="report" ? inquiries.filter(isReport)
+    : inquiries.filter(i=>i.status===filter && !isReport(i));
 
   const stats = [
     { label:"全件", value:inquiries.length, color:C.green },
-    { label:"新着", value:inquiries.filter(i=>i.status==="new").length, color:C.soil },
-    { label:"返信済", value:inquiries.filter(i=>i.status==="replied").length, color:C.lightGreen },
-    { label:"クローズ", value:inquiries.filter(i=>i.status==="closed").length, color:C.muted },
+    { label:"新着", value:inquiries.filter(i=>i.status==="new"&&!isReport(i)).length, color:C.soil },
+    { label:"返信済", value:inquiries.filter(i=>i.status==="replied"&&!isReport(i)).length, color:C.lightGreen },
+    { label:"クローズ", value:inquiries.filter(i=>i.status==="closed"&&!isReport(i)).length, color:C.muted },
+    { label:"🚩 通報", value:inquiries.filter(isReport).length, color:"#C0392B" },
   ];
 
   return (
@@ -58,7 +62,7 @@ export function InquiryManager() {
       <h3 style={{ color:C.green, fontSize:16, marginBottom:16 }}>📬 問い合わせ管理</h3>
 
       {/* Stats */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:10, marginBottom:20 }}>
         {stats.map(s=>(
           <div key={s.label} style={{ background:C.white, borderRadius:10,
             padding:"12px 14px", border:`2px solid ${C.border}`, textAlign:"center" }}>
@@ -70,11 +74,11 @@ export function InquiryManager() {
 
       {/* Filter */}
       <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-        {[["all","すべて"],["new","新着"],["replied","返信済"],["closed","クローズ"]].map(([v,l])=>(
+        {[["all","すべて"],["new","新着"],["replied","返信済"],["closed","クローズ"],["report","🚩 通報"]].map(([v,l])=>(
           <button key={v} onClick={()=>setFilter(v)}
-            style={{ background: filter===v ? C.green : C.white,
+            style={{ background: filter===v ? (v==="report"?"#C0392B":C.green) : C.white,
               color: filter===v ? "#fff" : C.muted,
-              border:`1.5px solid ${filter===v?C.green:C.border}`,
+              border:`1.5px solid ${filter===v?(v==="report"?"#C0392B":C.green):C.border}`,
               borderRadius:20, padding:"5px 14px", fontSize:12, cursor:"pointer",
               fontWeight: filter===v?700:400 }}>{l}</button>
         ))}
@@ -93,14 +97,21 @@ export function InquiryManager() {
           <div>
             {filtered.map(inq=>(
               <div key={inq.id} onClick={()=>setSelected(inq)}
-                style={{ background: selected?.id===inq.id ? C.paleGreen : C.white,
-                  border:`2px solid ${selected?.id===inq.id?C.lightGreen:C.border}`,
+                style={{ background: selected?.id===inq.id ? C.paleGreen : (isReport(inq) ? "#FFF0F0" : C.white),
+                  border:`2px solid ${selected?.id===inq.id?C.lightGreen:(isReport(inq)?"#F5C6C6":C.border)}`,
                   borderRadius:10, padding:"14px 16px", marginBottom:10, cursor:"pointer" }}>
                 <div style={{ display:"flex", justifyContent:"space-between",
                   alignItems:"flex-start", marginBottom:6 }}>
                   <div>
-                    <span style={{ fontWeight:700, fontSize:14, color:C.text }}>{inq.name}</span>
-                    <span style={{ fontSize:12, color:C.muted, marginLeft:8 }}>{inq.email}</span>
+                    {isReport(inq) ? (
+                      <span style={{ background:"#C0392B", color:"#fff", borderRadius:6,
+                        padding:"2px 8px", fontSize:11, fontWeight:700 }}>🚩 通報</span>
+                    ) : (
+                      <>
+                        <span style={{ fontWeight:700, fontSize:14, color:C.text }}>{inq.name}</span>
+                        <span style={{ fontSize:12, color:C.muted, marginLeft:8 }}>{inq.email}</span>
+                      </>
+                    )}
                   </div>
                   <span style={{ background:STATUS_COLORS[inq.status]||C.muted,
                     color:"#fff", borderRadius:6, padding:"2px 8px", fontSize:11, fontWeight:600 }}>
@@ -108,8 +119,8 @@ export function InquiryManager() {
                   </span>
                 </div>
                 <div style={{ fontSize:12, color:C.muted, marginBottom:4 }}>
-                  {inq.target_type==="farm"?"🌱 農地":"🏡 住居"} への問い合わせ
-                  {inq.purpose && <span style={{ marginLeft:8 }}>・{inq.purpose}</span>}
+                  {inq.target_type==="farm"?"🌱 農地":"🏡 住居"}{isReport(inq)?"の通報":"への問い合わせ"}
+                  {inq.purpose && !isReport(inq) && <span style={{ marginLeft:8 }}>・{inq.purpose}</span>}
                 </div>
                 <div style={{ fontSize:12, color:C.muted }}>
                   {new Date(inq.created_at).toLocaleDateString("ja-JP", {
@@ -131,10 +142,17 @@ export function InquiryManager() {
               </button>
 
               <div style={{ marginBottom:14 }}>
-                <div style={{ fontWeight:700, fontSize:16, color:C.text, marginBottom:4 }}>
-                  {selected.name}
-                </div>
-                <div style={{ fontSize:13, color:C.muted }}>{selected.email}</div>
+                {isReport(selected) ? (
+                  <span style={{ background:"#C0392B", color:"#fff", borderRadius:6,
+                    padding:"3px 10px", fontSize:12, fontWeight:700 }}>🚩 不適切な内容の通報</span>
+                ) : (
+                  <>
+                    <div style={{ fontWeight:700, fontSize:16, color:C.text, marginBottom:4 }}>
+                      {selected.name}
+                    </div>
+                    <div style={{ fontSize:13, color:C.muted }}>{selected.email}</div>
+                  </>
+                )}
               </div>
 
               <div style={{ background:C.cream, borderRadius:8,
@@ -180,13 +198,15 @@ export function InquiryManager() {
                 </div>
               </div>
 
-              {/* Reply link */}
-              <a href={`mailto:${selected.email}?subject=【Farmatch】お問い合わせへのご回答`}
-                style={{ display:"block", marginTop:14, background:C.green, color:"#fff",
-                  borderRadius:8, padding:"10px", textAlign:"center", fontSize:13,
-                  fontWeight:700, textDecoration:"none" }}>
-                メールで返信する
-              </a>
+              {/* Reply link（通報には送信先メールアドレスがないため非表示） */}
+              {!isReport(selected) && selected.email && (
+                <a href={`mailto:${selected.email}?subject=【Farmatch】お問い合わせへのご回答`}
+                  style={{ display:"block", marginTop:14, background:C.green, color:"#fff",
+                    borderRadius:8, padding:"10px", textAlign:"center", fontSize:13,
+                    fontWeight:700, textDecoration:"none" }}>
+                  メールで返信する
+                </a>
+              )}
             </div>
           )}
         </div>

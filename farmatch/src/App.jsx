@@ -18,6 +18,10 @@ const REGION_PAGE_THRESHOLD = 5;
 // 登録が古い順にこの件数までを「初期登録オーナー」として非金銭的に優遇表示する（金銭的インセンティブは避ける）
 const EARLY_REGISTRANT_LIMIT = 30;
 
+// 公開画面で取得する列（正確な座標・地番等の機微情報は含めず、ぼかし座標を lat/lng としてエイリアス）
+const PUBLIC_FARM_COLUMNS = "id,owner_id,name,region,location,area_sqm,area_label,farm_type,status,rent_label,rent_amount,water_source,access_info,crops,tags,description,score_water,score_sun,score_soil,score_climate,score_access,is_premium,plan,published_at,created_at,updated_at,owner_verified,owner_bio,reason_for_listing,response_time_estimate,past_crop_history,owner_photo_url,photo_urls,access_notes,trust_score,lat:public_lat,lng:public_lng";
+const PUBLIC_HOUSE_COLUMNS = "id,owner_id,name,region,location,house_type,status,area_label,rent_label,rent_amount,subsidy_info,tags,near_farm_ids,description,plan,created_at,updated_at,lat:public_lat,lng:public_lng";
+
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", midGreen:"#4A7C20", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
   soil:"#C4883A", soilLight:"#FFF4E6", soilBorder:"#E8C48A",
@@ -989,7 +993,33 @@ function parseFarmCSV(text) {
 }
 
 // ── 管理パネル ────────────────────────────────────────────
-function AdminPanel({ farms, houses, onRefresh, onLogout }) {
+function AdminPanel({ onLogout }) {
+  const adminFetch = async(path, options={}) => {
+    const res = await fetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": sessionStorage.getItem("adminPw") || "",
+        ...(options.headers||{}),
+      },
+    });
+    const data = await res.json().catch(()=>null);
+    if(!res.ok) throw new Error(data?.error || "リクエストに失敗しました");
+    return data;
+  };
+
+  const [farms, setFarms] = useState([]);
+  const [houses, setHouses] = useState([]);
+  const fetchAdminData = async()=>{
+    const [farmsData, housesData] = await Promise.all([
+      adminFetch("/api/admin/farms").catch(()=>[]),
+      adminFetch("/api/admin/houses").catch(()=>[]),
+    ]);
+    setFarms(farmsData||[]);
+    setHouses(housesData||[]);
+  };
+  useEffect(()=>{ fetchAdminData(); },[]);
+
   const [tab, setTab] = useState("farms");
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState("farm");
@@ -1095,13 +1125,16 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
   const handleCsvImport = async() => {
     if(!csvResult || csvResult.records.length===0 || csvImporting) return;
     setCsvImporting(true);
-    const { error } = await supabase.from("farms").insert(csvResult.records);
+    try {
+      await adminFetch("/api/admin/farms", { method:"POST", body: JSON.stringify(csvResult.records) });
+      showToast(`✅ ${csvResult.records.length}件の農地を一括登録しました`);
+      setShowCsvImport(false);
+      setCsvText(""); setCsvResult(null);
+      fetchAdminData();
+    } catch(err) {
+      showToast("❌ 一括登録エラー: "+err.message);
+    }
     setCsvImporting(false);
-    if(error) { showToast("❌ 一括登録エラー: "+error.message); return; }
-    showToast(`✅ ${csvResult.records.length}件の農地を一括登録しました`);
-    setShowCsvImport(false);
-    setCsvText(""); setCsvResult(null);
-    onRefresh();
   };
 
   const openAdd = (type) => {
@@ -1183,13 +1216,15 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
           tags:form.tags.split(/[、,]/).map(t=>t.trim()).filter(Boolean),
           plan:"basic" };
 
-    let error;
-    if(editItem) {
-      ({error}=await supabase.from(table).update(payload).eq("id",editItem.id));
-    } else {
-      ({error}=await supabase.from(table).insert([payload]));
+    try {
+      if(editItem) {
+        await adminFetch(`/api/admin/${table}`, { method:"PATCH", body: JSON.stringify({ id: editItem.id, ...payload }) });
+      } else {
+        await adminFetch(`/api/admin/${table}`, { method:"POST", body: JSON.stringify(payload) });
+      }
+    } catch(err) {
+      showToast("❌ エラー: "+err.message); return;
     }
-    if(error){showToast("❌ エラー: "+error.message);return;}
     setShowForm(false);
     if(formType==="farm" && !editItem && form.region) {
       const count = farms.filter(f=>f.region===form.region).length + 1;
@@ -1200,15 +1235,18 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
     } else {
       showToast(editItem?"✅ 更新しました":"✅ 登録しました");
     }
-    onRefresh();
+    fetchAdminData();
   };
 
   const handleDelete = async(type,id)=>{
     if(!window.confirm("削除しますか？")) return;
     const table=type==="farm"?"farms":"houses";
-    const{error}=await supabase.from(table).delete().eq("id",id);
-    if(error){showToast("❌ エラー: "+error.message);return;}
-    showToast("🗑 削除しました"); onRefresh();
+    try {
+      await adminFetch(`/api/admin/${table}?id=${encodeURIComponent(id)}`, { method:"DELETE" });
+    } catch(err) {
+      showToast("❌ エラー: "+err.message); return;
+    }
+    showToast("🗑 削除しました"); fetchAdminData();
   };
 
   const toCSV = (rows, cols) => {
@@ -1283,17 +1321,17 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
 
   const handleExport = async(format) => {
     showToast("⏳ データ取得中...");
-    const [
-      {data:farmsAll},
-      {data:housesAll},
-      {data:inquiriesAll},
-      {data:usersAll},
-    ] = await Promise.all([
-      supabase.from("farms").select("*").order("created_at",{ascending:false}),
-      supabase.from("houses").select("*").order("created_at",{ascending:false}),
-      supabase.from("inquiries").select("*").order("created_at",{ascending:false}),
-      supabase.from("users").select("*").order("created_at",{ascending:false}),
-    ]);
+    let farmsAll, housesAll, inquiriesAll, usersAll;
+    try {
+      [farmsAll, housesAll, inquiriesAll, usersAll] = await Promise.all([
+        adminFetch("/api/admin/farms"),
+        adminFetch("/api/admin/houses"),
+        adminFetch("/api/admin/inquiries"),
+        adminFetch("/api/admin/users"),
+      ]);
+    } catch(err) {
+      showToast("❌ エクスポートエラー: "+err.message); return;
+    }
     const date = new Date().toISOString().slice(0,10);
     if(format==="csv") {
       downloadCSV(toCSV(farmsAll||[], FARM_COLS), `farmatch_farms_${date}.csv`);
@@ -1731,10 +1769,12 @@ function AdminPanel({ farms, houses, onRefresh, onLogout }) {
 // ── 問い合わせモーダル ────────────────────────────────────
 function ContactModal({ item, onClose }) {
   const [form, setForm] = useState({name:"",email:"",purpose:"",msg:""});
+  const [website, setWebsite] = useState(""); // ハニーポット（人間には見えない。入力があればbot扱い）
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const handleSubmit = async()=>{
     if(!form.name||!form.email) return;
+    if(website) { setSent(true); return; } // botはここで無言で弾く
     setLoading(true);
     const isHouse=!!item.house_type;
     const{error}=await supabase.from("inquiries").insert([{
@@ -1760,6 +1800,10 @@ function ContactModal({ item, onClose }) {
         <>
           <h3 style={{ margin:"0 0 4px", color:C.text }}>問い合わせフォーム</h3>
           <p style={{ fontSize:12, color:C.muted, margin:"0 0 18px" }}>{item.name}</p>
+          <input type="text" name="website" value={website} onChange={e=>setWebsite(e.target.value)}
+            tabIndex={-1} autoComplete="off"
+            style={{ position:"absolute", left:"-9999px", width:1, height:1, opacity:0 }}
+            aria-hidden="true"/>
           {[{key:"name",label:"お名前 *",ph:"山田 太郎",type:"text"},
             {key:"email",label:"メールアドレス *",ph:"example@mail.com",type:"email"},
             {key:"purpose",label:"ご利用目的",ph:"本格就農 / 週末農業 / 移住 など",type:"text"}].map(({key,label,ph,type})=>(
@@ -1792,10 +1836,12 @@ function ContactModal({ item, onClose }) {
 // ── 通報モーダル ──────────────────────────────────────────
 function ReportModal({ item, onClose }) {
   const [reason, setReason] = useState("");
+  const [website, setWebsite] = useState(""); // ハニーポット
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const handleSubmit = async()=>{
     if(!reason.trim()) return;
+    if(website) { setSent(true); return; }
     setLoading(true);
     const isHouse=!!item.house_type;
     const{error}=await supabase.from("inquiries").insert([{
@@ -1821,6 +1867,10 @@ function ReportModal({ item, onClose }) {
         <>
           <h3 style={{ margin:"0 0 4px", color:C.text }}>🚩 不適切な内容を通報</h3>
           <p style={{ fontSize:12, color:C.muted, margin:"0 0 18px" }}>{item.name}</p>
+          <input type="text" name="website" value={website} onChange={e=>setWebsite(e.target.value)}
+            tabIndex={-1} autoComplete="off"
+            style={{ position:"absolute", left:"-9999px", width:1, height:1, opacity:0 }}
+            aria-hidden="true"/>
           <div style={{ marginBottom:16 }}>
             <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>通報理由 *</label>
             <textarea value={reason} onChange={e=>setReason(e.target.value)} rows={4}
@@ -1946,30 +1996,6 @@ function driveLabel(min) {
   if (min < 1) return "車1分未満";
   if (min < 60) return `車約${min}分`;
   return `車約${Math.round(min/6)/10}時間`;
-}
-
-// プライバシー保護のため、公開画面の地図ピン位置をIDベースで決定的にぼかす(±400m程度)
-function hashSeed(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-function fuzzLatLng(lat, lng, id) {
-  if (lat == null || lng == null) return { lat, lng };
-  const h = hashSeed(String(id));
-  const hLat = h % 10000;
-  const hLng = Math.floor(h / 10000) % 10000;
-  const offsetLat = ((hLat / 10000) - 0.5) * 0.008; // 約±440m
-  const offsetLng = ((hLng / 10000) - 0.5) * 0.008;
-  return { lat: lat + offsetLat, lng: lng + offsetLng };
-}
-function withFuzzedCoords(item) {
-  if (item.lat == null || item.lng == null) return item;
-  const { lat, lng } = fuzzLatLng(item.lat, item.lng, item.id);
-  return { ...item, lat, lng };
 }
 
 // ── 住まい専用マップ（物件＋近隣農地を同時表示） ──────────
@@ -2411,9 +2437,6 @@ export default function App() {
     return new Set(sorted.slice(0, EARLY_REGISTRANT_LIMIT).map(f=>f.id));
   }, [farms]);
   const [houses, setHouses]       = useState([]);
-  // 公開画面（一覧・地図）専用のぼかし座標版。管理画面は正確な座標(farms/houses)をそのまま使用する
-  const farmsFuzzed = useMemo(() => farms.map(withFuzzedCoords), [farms]);
-  const housesFuzzed = useMemo(() => houses.map(withFuzzedCoords), [houses]);
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
   const [contact, setContact]     = useState(null);
@@ -2468,8 +2491,8 @@ export default function App() {
   const fetchData = async()=>{
     setLoading(true);
     const[{data:farmsData},{data:housesData}]=await Promise.all([
-      supabase.from("farms").select("*").neq("status","非公開").order("created_at",{ascending:false}),
-      supabase.from("houses").select("*").neq("status","非公開").order("created_at",{ascending:false}),
+      supabase.from("farms").select(PUBLIC_FARM_COLUMNS).neq("status","非公開").order("created_at",{ascending:false}),
+      supabase.from("houses").select(PUBLIC_HOUSE_COLUMNS).neq("status","非公開").order("created_at",{ascending:false}),
     ]);
     setFarms(farmsData||[]);
     setHouses(housesData||[]);
@@ -2486,7 +2509,7 @@ export default function App() {
   ];
 
   const prefectures=[...new Set(farms.map(f=>f.region).filter(Boolean))].sort();
-  const filteredFarms=farmsFuzzed.filter(f=>{
+  const filteredFarms=farms.filter(f=>{
     const mf=filter==="すべて"||f.status===filter||f.farm_type===filter;
     const mp=prefFilter==="すべて"||f.region===prefFilter;
     const ms=!search||(f.crops||[]).some(c=>c.includes(search))||
@@ -2861,10 +2884,10 @@ export default function App() {
           </>
         )}
 
-        {!loading && tab==="housing" && <HousingView houses={housesFuzzed} farms={farmsFuzzed} onContact={h=>setContact(h)} onReport={h=>setReportTarget(h)} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }}/>}
+        {!loading && tab==="housing" && <HousingView houses={houses} farms={farms} onContact={h=>setContact(h)} onReport={h=>setReportTarget(h)} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }}/>}
         {!loading && tab==="map" && (
           <div>
-            <MapView farms={farmsFuzzed} houses={housesFuzzed} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
+            <MapView farms={farms} houses={houses} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
             <p style={{ fontSize:12, color:C.muted, marginTop:10, lineHeight:1.6 }}>OpenStreetMap による実地図表示。ピンをクリックすると概要が表示されます。</p>
           </div>
         )}
@@ -2872,7 +2895,7 @@ export default function App() {
         {tab==="pricing" && <PricingView/>}
         {!loading && tab==="admin" && (
           adminAuth
-            ? <AdminPanel farms={farms} houses={houses} onRefresh={fetchData} onLogout={()=>{ sessionStorage.removeItem("adminPw"); setAdminAuth(false); }}/>
+            ? <AdminPanel onLogout={()=>{ sessionStorage.removeItem("adminPw"); setAdminAuth(false); }}/>
             : <AdminLogin onSuccess={()=>setAdminAuth(true)}/>
         )}
       </div>
