@@ -2529,8 +2529,8 @@ export default function App() {
       {/* ヒーロー */}
       {tab==="farms" && (
         <div style={{ background:`linear-gradient(135deg,${C.green},${C.deepGreen})`, padding:"28px 20px", textAlign:"center" }}>
-          <div style={{ color:"#D4EDAA", fontSize:11, letterSpacing:3, marginBottom:8 }}>{BRAND.sub}</div>
-          <h1 style={{ color:"#fff", fontSize:26, margin:"0 0 6px", fontWeight:800, lineHeight:1.3 }}>{BRAND.tagline}</h1>
+          <div className="fm-hero-sub" style={{ color:"#D4EDAA", fontSize:11, letterSpacing:3, marginBottom:8 }}>{BRAND.sub}</div>
+          <h1 className="fm-hero-title" style={{ color:"#fff", fontSize:26, margin:"0 0 6px", fontWeight:800, lineHeight:1.3 }}>{BRAND.tagline}</h1>
           <p style={{ color:"#B8D98A", fontSize:13, margin:"0 0 10px" }}>遊休農地を活かし、新しい農業の担い手へつなぐ</p>
           <p style={{ color:"#fff", fontSize:15, fontWeight:800, margin:"0 0 20px" }}>🌾 農業で日本を豊かにしたい！</p>
           {!PAID_FEATURES_ACTIVE && (
@@ -2546,6 +2546,20 @@ export default function App() {
       {/* サービス概要（ハブ＆スポーク 繋がりデザイン） */}
       {tab==="farms" && (
         <div style={{ background:`linear-gradient(180deg, ${C.cream} 0%, #EAE4D8 100%)`, padding:"36px 20px 32px" }}>
+          <style>{`
+            .fm-hub-mobile { display: none; }
+            @media (max-width: 640px) {
+              .fm-hub-desktop { display: none !important; }
+              .fm-hub-mobile { display: flex !important; }
+              .fm-steps { flex-direction: column; }
+              .fm-step-item { flex-direction: column; }
+              .fm-step-arrow-wrap { width: 100% !important; height: 22px; }
+              .fm-step-arrow-triangle { transform: rotate(90deg); }
+              .fm-hero-sub { font-size: 10px !important; letter-spacing: 1px !important; }
+              .fm-hero-title { font-size: 21px !important; }
+              .fm-explainer-title { font-size: 17px !important; }
+            }
+          `}</style>
           <div style={{ maxWidth:860, margin:"0 auto" }}>
 
             {/* タイトル */}
@@ -2554,14 +2568,14 @@ export default function App() {
                 fontSize:11, fontWeight:700, color:C.midGreen, letterSpacing:"0.05em", marginBottom:8 }}>
                 Farmatchってどんなサービス？
               </div>
-              <div style={{ fontSize:20, fontWeight:800, color:C.deepGreen, lineHeight:1.4, marginBottom:6 }}>
-                バラバラだった農地と人を、<br/>ひとつにつなぐ
+              <div className="fm-explainer-title" style={{ fontSize:20, fontWeight:800, color:C.deepGreen, lineHeight:1.4, marginBottom:6 }}>
+                バラバラだった農地と人を<br/>ひとつにつなぐ
               </div>
               <p style={{ fontSize:12, color:C.muted, margin:0 }}>使われていない農地と、農業をやってみたい人をつなげます</p>
             </div>
 
-            {/* ハブ＆スポーク ダイアグラム（正三角形配置） */}
-            <div style={{ position:"relative", width:"100%", maxWidth:560, margin:"0 auto 32px" }}>
+            {/* ハブ＆スポーク ダイアグラム（正三角形配置・デスクトップ用） */}
+            <div className="fm-hub-desktop" style={{ position:"relative", width:"100%", maxWidth:560, margin:"0 auto 32px" }}>
               <svg viewBox="0 0 640 460" style={{ width:"100%", height:"auto", display:"block" }}>
                 {/* ハブ→各ノードの直線 */}
                 <line x1="320" y1="278" x2="320" y2="75" stroke="#B9C4AA" strokeWidth="2"/>
@@ -2614,6 +2628,34 @@ export default function App() {
               </div>
             </div>
 
+            {/* ハブ＆スポーク（モバイル用・縦積みレイアウト） */}
+            <div className="fm-hub-mobile" style={{ flexDirection:"column", gap:10, maxWidth:400, margin:"0 auto 32px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, background:C.green, borderRadius:16,
+                padding:"14px 16px", boxShadow:"0 4px 14px rgba(45,80,22,0.25)" }}>
+                <div style={{ width:56, height:56, borderRadius:"50%", background:"rgba(255,255,255,0.15)",
+                  display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, flexShrink:0 }}>🌱</div>
+                <div>
+                  <div style={{ fontWeight:800, fontSize:15, color:"#fff" }}>Farmatch</div>
+                  <div style={{ fontSize:11, color:"#D4EDAA" }}>農地と人をつなぐ</div>
+                </div>
+              </div>
+              {[
+                ["🌾","遊休農地","全国に点在","#5C9484"],
+                ["🧑‍🌾","農業をしたい人","新規就農希望者","#8A6423"],
+                ["🛒","作物の売り先","販路を紹介","#C97A4F"],
+              ].map(([icon,title,sub,bg])=>(
+                <div key={title} style={{ display:"flex", alignItems:"center", gap:12, background:C.white,
+                  border:`2px solid ${C.border}`, borderRadius:16, padding:"12px 16px" }}>
+                  <div style={{ width:52, height:52, borderRadius:"50%", background:bg,
+                    display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{icon}</div>
+                  <div>
+                    <div style={{ fontWeight:800, fontSize:13, color:C.text }}>{title}</div>
+                    <div style={{ fontSize:11, color:C.muted }}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             {/* 区切り */}
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
               <div style={{ flex:1, height:1, background:C.border }}/>
@@ -2622,15 +2664,15 @@ export default function App() {
             </div>
 
             {/* フロー：登録する → さがす → れんらくする → はなしあう */}
-            <div style={{ display:"flex", alignItems:"stretch", gap:6, justifyContent:"center" }}>
+            <div className="fm-steps" style={{ display:"flex", alignItems:"stretch", gap:6, justifyContent:"center" }}>
               {[
                 ["📝","登録する","農地オーナーが空いている農地を登録します","#FFF4E6",C.soilBorder],
                 ["🔍","さがす","気になる地域や作物で農地を探せます","#EDF5E1",C.lightGreen],
                 ["💬","れんらくする","気に入った農地のオーナーに問い合わせ","#EAF3FC",C.sky],
                 ["🤝","はなしあう","直接会って条件を相談（契約はご自身で）","#F5EDFA","#B98FD1"],
               ].map(([icon,title,desc,bg,accent],i,arr)=>(
-                <div key={title} style={{ display:"flex", alignItems:"stretch", flex:1 }}>
-                  <div style={{ flex:1, background:bg, border:`2px solid ${accent}`, borderRadius:12,
+                <div key={title} className="fm-step-item" style={{ display:"flex", alignItems:"stretch", flex:1, minWidth:0 }}>
+                  <div style={{ flex:1, minWidth:0, background:bg, border:`2px solid ${accent}`, borderRadius:12,
                     padding:"16px 12px", textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start" }}>
                     <div style={{ width:44, height:44, borderRadius:"50%", background:C.white, border:`2px solid ${accent}`,
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, marginBottom:8,
@@ -2644,11 +2686,9 @@ export default function App() {
                     <div style={{ fontSize:10, color:C.muted, lineHeight:1.7 }}>{desc}</div>
                   </div>
                   {i < arr.length-1 && (
-                    <div style={{ display:"flex", alignItems:"center", zIndex:1 }}>
-                      <div style={{ width:20, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                        <div style={{ width:0, height:0, borderTop:"7px solid transparent", borderBottom:"7px solid transparent",
-                          borderLeft:`9px solid ${C.muted}` }}/>
-                      </div>
+                    <div className="fm-step-arrow-wrap" style={{ display:"flex", alignItems:"center", justifyContent:"center", zIndex:1, width:20, flexShrink:0 }}>
+                      <div className="fm-step-arrow-triangle" style={{ width:0, height:0, borderTop:"7px solid transparent", borderBottom:"7px solid transparent",
+                        borderLeft:`9px solid ${C.muted}` }}/>
                     </div>
                   )}
                 </div>
