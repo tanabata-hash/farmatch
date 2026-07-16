@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
+import { ReportManager } from "./components/ReportManager";
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
@@ -1318,16 +1319,22 @@ function AdminPanel({ onLogout }) {
     {key:"role",label:"ロール"},{key:"prefecture",label:"都道府県"},
     {key:"is_premium",label:"プレミアム"},{key:"created_at",label:"登録日時"},
   ];
+  const REPORT_COLS = [
+    {key:"id",label:"ID"},{key:"target_type",label:"対象種別"},
+    {key:"message",label:"通報理由"},{key:"status",label:"ステータス"},
+    {key:"created_at",label:"送信日時"},
+  ];
 
   const handleExport = async(format) => {
     showToast("⏳ データ取得中...");
-    let farmsAll, housesAll, inquiriesAll, usersAll;
+    let farmsAll, housesAll, inquiriesAll, usersAll, reportsAll;
     try {
-      [farmsAll, housesAll, inquiriesAll, usersAll] = await Promise.all([
+      [farmsAll, housesAll, inquiriesAll, usersAll, reportsAll] = await Promise.all([
         adminFetch("/api/admin/farms"),
         adminFetch("/api/admin/houses"),
         adminFetch("/api/admin/inquiries"),
         adminFetch("/api/admin/users"),
+        adminFetch("/api/admin/reports"),
       ]);
     } catch(err) {
       showToast("❌ エクスポートエラー: "+err.message); return;
@@ -1338,13 +1345,15 @@ function AdminPanel({ onLogout }) {
       setTimeout(()=>downloadCSV(toCSV(housesAll||[], HOUSE_COLS), `farmatch_houses_${date}.csv`), 300);
       setTimeout(()=>downloadCSV(toCSV(inquiriesAll||[], INQUIRY_COLS), `farmatch_inquiries_${date}.csv`), 600);
       setTimeout(()=>downloadCSV(toCSV(usersAll||[], USER_COLS), `farmatch_users_${date}.csv`), 900);
-      showToast("✅ CSV 4ファイルをダウンロードしました");
+      setTimeout(()=>downloadCSV(toCSV(reportsAll||[], REPORT_COLS), `farmatch_reports_${date}.csv`), 1200);
+      showToast("✅ CSV 5ファイルをダウンロードしました");
     } else {
       downloadExcel(farmsAll||[], FARM_COLS, `farmatch_farms_${date}.xls`);
       setTimeout(()=>downloadExcel(housesAll||[], HOUSE_COLS, `farmatch_houses_${date}.xls`), 300);
       setTimeout(()=>downloadExcel(inquiriesAll||[], INQUIRY_COLS, `farmatch_inquiries_${date}.xls`), 600);
       setTimeout(()=>downloadExcel(usersAll||[], USER_COLS, `farmatch_users_${date}.xls`), 900);
-      showToast("✅ Excel 4ファイルをダウンロードしました");
+      setTimeout(()=>downloadExcel(reportsAll||[], REPORT_COLS, `farmatch_reports_${date}.xls`), 1200);
+      showToast("✅ Excel 5ファイルをダウンロードしました");
     }
   };
 
@@ -1408,12 +1417,12 @@ function AdminPanel({ onLogout }) {
       </div>
 
       <div style={{ display:"flex", gap:2, marginBottom:0, alignItems:"flex-end" }}>
-        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"],["inquiries","📬 問い合わせ"]].map(([t,l])=>(
+        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"],["inquiries","📬 問い合わせ"],["reports","🚩 通報"]].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{ padding:"10px 20px", borderRadius:"8px 8px 0 0",
             border:"none", cursor:"pointer", fontWeight:700, fontSize:13,
             background:tab===t?C.green:C.border, color:tab===t?"#fff":C.muted }}>{l}</button>
         ))}
-        {tab!=="inquiries" && (
+        {tab!=="inquiries" && tab!=="reports" && (
           <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
             {tab==="farms" && (
               <Btn variant="outline" onClick={()=>setShowCsvImport(true)}
@@ -1428,6 +1437,10 @@ function AdminPanel({ onLogout }) {
       {tab==="inquiries" ? (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
           <InquiryManager />
+        </div>
+      ) : tab==="reports" ? (
+        <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
+          <ReportManager />
         </div>
       ) : (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, overflow:"auto" }}>
@@ -1844,11 +1857,11 @@ function ReportModal({ item, onClose }) {
     if(website) { setSent(true); return; }
     setLoading(true);
     const isHouse=!!item.house_type;
-    const{error}=await supabase.from("inquiries").insert([{
+    const{error}=await supabase.from("reports").insert([{
       target_type:isHouse?"house":"farm",
       farm_id:isHouse?null:item.id,
       house_id:isHouse?item.id:null,
-      name:"(通報)", email:"", purpose:"不適切な内容の通報", message:reason, status:"new",
+      message:reason,
     }]);
     setLoading(false);
     if(error){alert("送信エラー: "+error.message);return;}
