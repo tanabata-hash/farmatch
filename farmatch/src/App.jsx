@@ -2588,7 +2588,7 @@ export default function App() {
                 width:120, height:120, borderRadius:"50%", background:C.green,
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
-                <div style={{ fontSize:26, marginBottom:2 }}>🌱</div>
+                <div style={{ fontSize:26, marginTop:6, marginBottom:2 }}>🌱</div>
                 <div style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:3 }}>Farmatch</div>
                 <div style={{ fontSize:10, color:"#D4EDAA" }}>農地と人をつなぐ</div>
               </div>
