@@ -2564,9 +2564,9 @@ export default function App() {
             <div style={{ position:"relative", width:"100%", maxWidth:560, margin:"0 auto 32px" }}>
               <svg viewBox="0 0 640 460" style={{ width:"100%", height:"auto", display:"block" }}>
                 {/* ハブ→各ノードの直線 */}
-                <line x1="320" y1="240" x2="320" y2="75" stroke="#B9C4AA" strokeWidth="2"/>
-                <line x1="320" y1="240" x2="150" y2="390" stroke="#B9C4AA" strokeWidth="2"/>
-                <line x1="320" y1="240" x2="490" y2="390" stroke="#B9C4AA" strokeWidth="2"/>
+                <line x1="320" y1="278" x2="320" y2="75" stroke="#B9C4AA" strokeWidth="2"/>
+                <line x1="320" y1="278" x2="150" y2="390" stroke="#B9C4AA" strokeWidth="2"/>
+                <line x1="320" y1="278" x2="490" y2="390" stroke="#B9C4AA" strokeWidth="2"/>
                 {/* ノード同士をつなぐ外周の弧（循環を示唆） */}
                 <path d="M320,75 Q130,220 150,390" fill="none" stroke="#B9C4AA" strokeWidth="2"/>
                 <path d="M150,390 Q320,470 490,390" fill="none" stroke="#B9C4AA" strokeWidth="2"/>
@@ -2584,7 +2584,7 @@ export default function App() {
               </div>
 
               {/* Farmatch（中央ハブ） */}
-              <div style={{ position:"absolute", left:"50%", top:"52.2%", transform:"translate(-50%,-50%)",
+              <div style={{ position:"absolute", left:"50%", top:"60.5%", transform:"translate(-50%,-50%)",
                 width:120, height:120, borderRadius:"50%", background:C.green,
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
