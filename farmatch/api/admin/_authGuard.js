@@ -39,7 +39,8 @@ export async function requireAdminPassword(req, res) {
     return true;
   }
 
-  await supabase.from("admin_login_attempts").insert([{ ip }]);
+  const { error: insertError } = await supabase.from("admin_login_attempts").insert([{ ip }]);
+  if (insertError) console.error("admin_login_attempts insert failed:", insertError.message);
   if (Math.random() < 0.1) {
     const cleanupBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     await supabase.from("admin_login_attempts").delete().lt("created_at", cleanupBefore);

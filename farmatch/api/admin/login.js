@@ -41,7 +41,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  await supabase.from("admin_login_attempts").insert([{ ip }]);
+  const { error: insertError } = await supabase.from("admin_login_attempts").insert([{ ip }]);
+  if (insertError) console.error("admin_login_attempts insert failed:", insertError.message);
   // 古い記録の掃除（毎回ではなく確率的に実行）
   if (Math.random() < 0.1) {
     const cleanupBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
