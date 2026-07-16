@@ -2622,15 +2622,15 @@ export default function App() {
             </div>
 
             {/* フロー：登録する → さがす → れんらくする → はなしあう */}
-            <div style={{ display:"flex", alignItems:"stretch", gap:0, justifyContent:"center" }}>
+            <div style={{ display:"flex", alignItems:"stretch", gap:6, justifyContent:"center" }}>
               {[
-                ["📝","登録する","農地オーナーが空いている農地を登録します","#EDF5E1",C.lightGreen],
+                ["📝","登録する","農地オーナーが空いている農地を登録します","#FFF4E6",C.soilBorder],
                 ["🔍","さがす","気になる地域や作物で農地を探せます","#EDF5E1",C.lightGreen],
-                ["💬","れんらくする","気に入った農地のオーナーに問い合わせ","#FFF4E6",C.soilBorder],
-                ["🤝","はなしあう","直接会って条件を相談（契約はご自身で）","#EDF5E1",C.lightGreen],
+                ["💬","れんらくする","気に入った農地のオーナーに問い合わせ","#EAF3FC",C.sky],
+                ["🤝","はなしあう","直接会って条件を相談（契約はご自身で）","#F5EDFA","#B98FD1"],
               ].map(([icon,title,desc,bg,accent],i,arr)=>(
                 <div key={title} style={{ display:"flex", alignItems:"stretch", flex:1 }}>
-                  <div style={{ flex:1, background:bg, border:`1.5px solid ${accent}`, borderRadius: i===0?"12px 0 0 12px": i===arr.length-1?"0 12px 12px 0":"0",
+                  <div style={{ flex:1, background:bg, border:`2px solid ${accent}`, borderRadius:12,
                     padding:"16px 12px", textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start" }}>
                     <div style={{ width:44, height:44, borderRadius:"50%", background:C.white, border:`2px solid ${accent}`,
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, marginBottom:8,
@@ -2644,10 +2644,10 @@ export default function App() {
                     <div style={{ fontSize:10, color:C.muted, lineHeight:1.7 }}>{desc}</div>
                   </div>
                   {i < arr.length-1 && (
-                    <div style={{ display:"flex", alignItems:"center", background:C.cream, zIndex:1, margin:"0 -1px" }}>
-                      <div style={{ width:28, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:2 }}>
-                        <div style={{ width:0, height:0, borderTop:"8px solid transparent", borderBottom:"8px solid transparent",
-                          borderLeft:`10px solid ${C.lightGreen}` }}/>
+                    <div style={{ display:"flex", alignItems:"center", zIndex:1 }}>
+                      <div style={{ width:20, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <div style={{ width:0, height:0, borderTop:"7px solid transparent", borderBottom:"7px solid transparent",
+                          borderLeft:`9px solid ${C.muted}` }}/>
                       </div>
                     </div>
                   )}
