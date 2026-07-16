@@ -2547,10 +2547,14 @@ export default function App() {
       {tab==="farms" && (
         <div style={{ background:`linear-gradient(180deg, ${C.cream} 0%, #EAE4D8 100%)`, padding:"36px 20px 32px" }}>
           <style>{`
-            .fm-hub-mobile { display: none; }
             @media (max-width: 640px) {
-              .fm-hub-desktop { display: none !important; }
-              .fm-hub-mobile { display: flex !important; }
+              .fm-hub-node { width: 72px !important; height: 72px !important; padding: 5px !important; }
+              .fm-hub-center { width: 92px !important; height: 92px !important; padding: 5px !important; }
+              .fm-hub-icon { font-size: 16px !important; margin-top: 0 !important; }
+              .fm-hub-center .fm-hub-icon { font-size: 19px !important; margin-top: 3px !important; }
+              .fm-hub-title { font-size: 9.5px !important; }
+              .fm-hub-center .fm-hub-title { font-size: 11.5px !important; }
+              .fm-hub-sub { font-size: 7.5px !important; }
               .fm-steps { flex-direction: column; }
               .fm-step-item { flex-direction: column; }
               .fm-step-arrow-wrap { width: 100% !important; height: 22px; }
@@ -2574,8 +2578,8 @@ export default function App() {
               <p style={{ fontSize:12, color:C.muted, margin:0 }}>使われていない農地と、農業をやってみたい人をつなげます</p>
             </div>
 
-            {/* ハブ＆スポーク ダイアグラム（正三角形配置・デスクトップ用） */}
-            <div className="fm-hub-desktop" style={{ position:"relative", width:"100%", maxWidth:560, margin:"0 auto 32px" }}>
+            {/* ハブ＆スポーク ダイアグラム（正三角形配置） */}
+            <div className="fm-hub" style={{ position:"relative", width:"100%", maxWidth:560, margin:"0 auto 32px" }}>
               <svg viewBox="0 0 640 460" style={{ width:"100%", height:"auto", display:"block" }}>
                 {/* ハブ→各ノードの直線 */}
                 <line x1="320" y1="278" x2="320" y2="75" stroke="#B9C4AA" strokeWidth="2"/>
@@ -2588,72 +2592,44 @@ export default function App() {
               </svg>
 
               {/* 遊休農地（上） */}
-              <div style={{ position:"absolute", left:"50%", top:"16.3%", transform:"translate(-50%,-50%)",
+              <div className="fm-hub-node" style={{ position:"absolute", left:"50%", top:"16.3%", transform:"translate(-50%,-50%)",
                 width:100, height:100, borderRadius:"50%", background:"#5C9484",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                <div style={{ fontSize:22, marginBottom:2 }}>🌾</div>
-                <div style={{ fontWeight:800, fontSize:13, color:"#fff", marginBottom:3 }}>遊休農地</div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>全国に点在</div>
+                <div className="fm-hub-icon" style={{ fontSize:22, marginBottom:2 }}>🌾</div>
+                <div className="fm-hub-title" style={{ fontWeight:800, fontSize:13, color:"#fff", marginBottom:3 }}>遊休農地</div>
+                <div className="fm-hub-sub" style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>全国に点在</div>
               </div>
 
               {/* Farmatch（中央ハブ） */}
-              <div style={{ position:"absolute", left:"50%", top:"60.5%", transform:"translate(-50%,-50%)",
+              <div className="fm-hub-center" style={{ position:"absolute", left:"50%", top:"60.5%", transform:"translate(-50%,-50%)",
                 width:120, height:120, borderRadius:"50%", background:C.green,
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
-                <div style={{ fontSize:26, marginTop:6, marginBottom:2 }}>🌱</div>
-                <div style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:3 }}>Farmatch</div>
-                <div style={{ fontSize:10, color:"#D4EDAA" }}>農地と人をつなぐ</div>
+                <div className="fm-hub-icon" style={{ fontSize:26, marginTop:6, marginBottom:2 }}>🌱</div>
+                <div className="fm-hub-title" style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:3 }}>Farmatch</div>
+                <div className="fm-hub-sub" style={{ fontSize:10, color:"#D4EDAA" }}>農地と人をつなぐ</div>
               </div>
 
               {/* 農業をしたい人（左下） */}
-              <div style={{ position:"absolute", left:"23.4%", top:"84.8%", transform:"translate(-50%,-50%)",
+              <div className="fm-hub-node" style={{ position:"absolute", left:"23.4%", top:"84.8%", transform:"translate(-50%,-50%)",
                 width:100, height:100, borderRadius:"50%", background:"#8A6423",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                <div style={{ fontSize:22, marginBottom:2 }}>🧑‍🌾</div>
-                <div style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>農業をしたい人</div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>新規就農希望者</div>
+                <div className="fm-hub-icon" style={{ fontSize:22, marginBottom:2 }}>🧑‍🌾</div>
+                <div className="fm-hub-title" style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>農業をしたい人</div>
+                <div className="fm-hub-sub" style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>新規就農希望者</div>
               </div>
 
               {/* 作物の売り先（右下） */}
-              <div style={{ position:"absolute", left:"76.6%", top:"84.8%", transform:"translate(-50%,-50%)",
+              <div className="fm-hub-node" style={{ position:"absolute", left:"76.6%", top:"84.8%", transform:"translate(-50%,-50%)",
                 width:100, height:100, borderRadius:"50%", background:"#C97A4F",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                <div style={{ fontSize:22, marginBottom:2 }}>🛒</div>
-                <div style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>作物の売り先</div>
-                <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>販路を紹介</div>
+                <div className="fm-hub-icon" style={{ fontSize:22, marginBottom:2 }}>🛒</div>
+                <div className="fm-hub-title" style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>作物の売り先</div>
+                <div className="fm-hub-sub" style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>販路を紹介</div>
               </div>
-            </div>
-
-            {/* ハブ＆スポーク（モバイル用・縦積みレイアウト） */}
-            <div className="fm-hub-mobile" style={{ flexDirection:"column", gap:10, maxWidth:400, margin:"0 auto 32px" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12, background:C.green, borderRadius:16,
-                padding:"14px 16px", boxShadow:"0 4px 14px rgba(45,80,22,0.25)" }}>
-                <div style={{ width:56, height:56, borderRadius:"50%", background:"rgba(255,255,255,0.15)",
-                  display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, flexShrink:0 }}>🌱</div>
-                <div>
-                  <div style={{ fontWeight:800, fontSize:15, color:"#fff" }}>Farmatch</div>
-                  <div style={{ fontSize:11, color:"#D4EDAA" }}>農地と人をつなぐ</div>
-                </div>
-              </div>
-              {[
-                ["🌾","遊休農地","全国に点在","#5C9484"],
-                ["🧑‍🌾","農業をしたい人","新規就農希望者","#8A6423"],
-                ["🛒","作物の売り先","販路を紹介","#C97A4F"],
-              ].map(([icon,title,sub,bg])=>(
-                <div key={title} style={{ display:"flex", alignItems:"center", gap:12, background:C.white,
-                  border:`2px solid ${C.border}`, borderRadius:16, padding:"12px 16px" }}>
-                  <div style={{ width:52, height:52, borderRadius:"50%", background:bg,
-                    display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{icon}</div>
-                  <div>
-                    <div style={{ fontWeight:800, fontSize:13, color:C.text }}>{title}</div>
-                    <div style={{ fontSize:11, color:C.muted }}>{sub}</div>
-                  </div>
-                </div>
-              ))}
             </div>
 
             {/* 区切り */}
