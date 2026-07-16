@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { requireAdminPassword } from "./_authGuard.js";
 
 function getServiceClient() {
   return createClient(
@@ -8,10 +9,7 @@ function getServiceClient() {
 }
 
 export default async function handler(req, res) {
-  const adminPw = req.headers["x-admin-password"];
-  if (!adminPw || adminPw !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (!(await requireAdminPassword(req, res))) return;
 
   const supabase = getServiceClient();
 

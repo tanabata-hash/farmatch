@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { requireAdminPassword } from "./_authGuard.js";
 
 function getServiceClient() {
   return createClient(
@@ -11,10 +12,7 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 3 * 1024 * 1024;
 
 export default async function handler(req, res) {
-  const adminPw = req.headers["x-admin-password"];
-  if (!adminPw || adminPw !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (!(await requireAdminPassword(req, res))) return;
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }

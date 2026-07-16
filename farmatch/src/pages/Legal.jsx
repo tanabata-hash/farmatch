@@ -54,7 +54,7 @@ export function TermsPage({ onBack }) {
     <LegalPage title="利用規約" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2025年1月1日
+        制定日：2025年1月1日　最終更新日：2026年7月16日
       </div>
 
       <Section title="第1条（適用）">
@@ -104,7 +104,10 @@ export function TermsPage({ onBack }) {
           <li>農地・物件オーナー向けプレミアム掲載：¥5,000/月</li>
           <li>就農希望者向けプレミアム会員：¥1,480/月</li>
         </ul>
-        料金は月額制とし、登録した翌月から発生します。決済はStripeを通じて行われます。
+        料金は月額制とし、有料プランへの登録を行った翌月から発生します。決済はStripeを通じて行われます。
+        無料期間中に無料登録いただいたアカウントが、通知なく自動的に有料プランへ移行し課金されることはありません。
+        有料プランは、ユーザー自身が有料プランへの登録手続き（決済情報の登録を含む）を行った場合にのみ適用されます。
+        将来、無料期間の終了に伴い課金体系を変更する場合は、変更内容と適用開始日を事前にメール等でお知らせします。
       </Section>
 
       <Section title="第7条（解約・返金）">
@@ -144,7 +147,7 @@ export function PrivacyPage({ onBack }) {
     <LegalPage title="プライバシーポリシー" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2025年1月1日
+        制定日：2025年1月1日　最終更新日：2026年7月16日
       </div>
 
       <Section title="第1条（個人情報の定義）">

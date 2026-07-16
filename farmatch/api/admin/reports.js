@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const { data, error } = await supabase
-      .from("inquiries")
+      .from("reports")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
@@ -26,9 +26,17 @@ export default async function handler(req, res) {
     const { id, status } = req.body || {};
     if (!id || !status) return res.status(400).json({ error: "id and status required" });
     const { error } = await supabase
-      .from("inquiries")
+      .from("reports")
       .update({ status })
       .eq("id", id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (req.method === "DELETE") {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: "id required" });
+    const { error } = await supabase.from("reports").delete().eq("id", id);
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ ok: true });
   }
