@@ -2560,89 +2560,53 @@ export default function App() {
               <p style={{ fontSize:12, color:C.muted, margin:0 }}>使われていない農地と、農業をやってみたい人をつなげます</p>
             </div>
 
-            {/* ハブ＆スポーク ダイアグラム */}
-            <div style={{ position:"relative", width:"100%", maxWidth:700, margin:"0 auto 32px" }}>
-              {/* SVG接続線 */}
-              <svg viewBox="0 0 700 260" style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", pointerEvents:"none" }}>
-                <defs>
-                  <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L8,3 z" fill="#7AB648"/>
-                  </marker>
-                  <marker id="arr-soil" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                    <path d="M0,0 L0,6 L8,3 z" fill="#C4883A"/>
-                  </marker>
-                  {/* グロー用フィルタ */}
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-                {/* 農地 → Farmatch（左上から中央へ） */}
-                <path d="M 170,80 C 260,80 300,130 350,130" stroke="#7AB648" strokeWidth="2.5" fill="none"
-                  strokeDasharray="6 4" markerEnd="url(#arr-green)" opacity="0.8"/>
-                {/* 農業したい人 → Farmatch（右上から中央へ） */}
-                <path d="M 530,80 C 440,80 400,130 350,130" stroke="#7AB648" strokeWidth="2.5" fill="none"
-                  strokeDasharray="6 4" markerEnd="url(#arr-green)" opacity="0.8"/>
-                {/* Farmatch → 売り先（中央から左下へ） */}
-                <path d="M 350,130 C 300,130 240,185 170,195" stroke="#C4883A" strokeWidth="2" fill="none"
-                  strokeDasharray="5 4" markerEnd="url(#arr-soil)" opacity="0.7"/>
-                {/* マッチング成立ライン（農地↔農業者 弧） */}
-                <path d="M 185,100 C 350,40 510,100 525,100" stroke="#2D5016" strokeWidth="1.5" fill="none"
-                  strokeDasharray="3 5" opacity="0.3"/>
-                {/* 中央ハブ 光輪 */}
-                <circle cx="350" cy="130" r="68" fill="rgba(45,80,22,0.06)" />
-                <circle cx="350" cy="130" r="52" fill="rgba(45,80,22,0.08)" />
+            {/* ハブ＆スポーク ダイアグラム（正三角形配置） */}
+            <div style={{ position:"relative", width:"100%", maxWidth:560, margin:"0 auto 32px" }}>
+              <svg viewBox="0 0 640 460" style={{ width:"100%", height:"auto", display:"block" }}>
+                {/* ハブ→各ノードの直線 */}
+                <line x1="320" y1="240" x2="320" y2="75" stroke="#B9C4AA" strokeWidth="2"/>
+                <line x1="320" y1="240" x2="150" y2="390" stroke="#B9C4AA" strokeWidth="2"/>
+                <line x1="320" y1="240" x2="490" y2="390" stroke="#B9C4AA" strokeWidth="2"/>
+                {/* ノード同士をつなぐ外周の弧（循環を示唆） */}
+                <path d="M320,75 Q130,220 150,390" fill="none" stroke="#B9C4AA" strokeWidth="2"/>
+                <path d="M150,390 Q320,470 490,390" fill="none" stroke="#B9C4AA" strokeWidth="2"/>
+                <path d="M490,390 Q510,220 320,75" fill="none" stroke="#B9C4AA" strokeWidth="2"/>
               </svg>
 
-              {/* ノード配置（CSS Grid + absolute 混在を避けflexで） */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gridTemplateRows:"auto auto auto", gap:0,
-                alignItems:"center", justifyItems:"center", minHeight:260 }}>
+              {/* 遊休農地（上） */}
+              <div style={{ position:"absolute", left:"50%", top:"16.3%", transform:"translate(-50%,-50%)",
+                width:150, height:150, borderRadius:"50%", background:"#3F6B5C",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
+                <div style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:4 }}>遊休農地</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>全国に点在</div>
+              </div>
 
-                {/* 左上：農地オーナー */}
-                <div style={{ gridColumn:1, gridRow:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  width:140, paddingBottom:16 }}>
-                  <div style={{ width:90, height:90, borderRadius:"50%", background:C.white,
-                    border:`3px solid ${C.lightGreen}`, display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:36, marginBottom:8, boxShadow:"0 2px 12px rgba(122,182,72,0.2)" }}>🌾</div>
-                  <div style={{ fontWeight:700, fontSize:12, color:C.deepGreen, textAlign:"center", marginBottom:3 }}>農地オーナー</div>
-                  <div style={{ fontSize:10, color:C.muted, lineHeight:1.6, textAlign:"center" }}>使われていない<br/>畑や田んぼを登録</div>
-                </div>
+              {/* Farmatch（中央ハブ） */}
+              <div style={{ position:"absolute", left:"50%", top:"52.2%", transform:"translate(-50%,-50%)",
+                width:170, height:170, borderRadius:"50%", background:C.green,
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
+                <div style={{ fontWeight:800, fontSize:17, color:"#fff", marginBottom:4 }}>Farmatch</div>
+                <div style={{ fontSize:11, color:"#D4EDAA" }}>農地と人をつなぐ</div>
+              </div>
 
-                {/* 上中央：空白スペーサー */}
-                <div style={{ gridColumn:2, gridRow:1 }}/>
+              {/* 農業をしたい人（左下） */}
+              <div style={{ position:"absolute", left:"23.4%", top:"84.8%", transform:"translate(-50%,-50%)",
+                width:150, height:150, borderRadius:"50%", background:"#8A6423",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
+                <div style={{ fontWeight:800, fontSize:14, color:"#fff", marginBottom:4 }}>農業をしたい人</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>新規就農希望者</div>
+              </div>
 
-                {/* 右上：農業をしたい人 */}
-                <div style={{ gridColumn:3, gridRow:1, display:"flex", flexDirection:"column", alignItems:"center",
-                  width:140, paddingBottom:16 }}>
-                  <div style={{ width:90, height:90, borderRadius:"50%", background:C.white,
-                    border:`3px solid ${C.lightGreen}`, display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:36, marginBottom:8, boxShadow:"0 2px 12px rgba(122,182,72,0.2)" }}>🧑‍🌾</div>
-                  <div style={{ fontWeight:700, fontSize:12, color:C.deepGreen, textAlign:"center", marginBottom:3 }}>就農希望者</div>
-                  <div style={{ fontSize:10, color:C.muted, lineHeight:1.6, textAlign:"center" }}>農業を始めたい人<br/>田舎に住みたい人</div>
-                </div>
-
-                {/* 左下：売り先 */}
-                <div style={{ gridColumn:1, gridRow:3, display:"flex", flexDirection:"column", alignItems:"center",
-                  width:140, paddingTop:16 }}>
-                  <div style={{ width:80, height:80, borderRadius:"50%", background:C.soilLight,
-                    border:`2.5px solid ${C.soilBorder}`, display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:30, marginBottom:8, boxShadow:"0 2px 10px rgba(196,136,58,0.15)" }}>🛒</div>
-                  <div style={{ fontWeight:700, fontSize:11, color:C.soil, textAlign:"center", marginBottom:3 }}>販売先も紹介</div>
-                  <div style={{ fontSize:10, color:C.muted, lineHeight:1.6, textAlign:"center" }}>産直EC・直売所など<br/>売り先もサポート</div>
-                </div>
-
-                {/* 中央：Farmatchハブ */}
-                <div style={{ gridColumn:2, gridRow:"2/4", display:"flex", flexDirection:"column", alignItems:"center" }}>
-                  <div style={{ width:120, height:120, borderRadius:"50%", background:`linear-gradient(135deg, ${C.midGreen}, ${C.deepGreen})`,
-                    display:"flex", alignItems:"center", justifyContent:"center", fontSize:48,
-                    boxShadow:"0 6px 24px rgba(45,80,22,0.35), 0 0 0 6px rgba(122,182,72,0.15)",
-                    marginBottom:10, position:"relative", zIndex:2 }}>🌱</div>
-                  <div style={{ fontWeight:800, fontSize:15, color:C.deepGreen, marginBottom:4, textAlign:"center" }}>Farmatch</div>
-                  <div style={{ fontSize:10, color:C.muted, textAlign:"center", lineHeight:1.6, maxWidth:120 }}>ぴったりの相手を<br/>見つけるハブ</div>
-                </div>
-
-                {/* 右下：空白（バランス用） */}
-                <div style={{ gridColumn:3, gridRow:3 }}/>
+              {/* 作物の売り先（右下） */}
+              <div style={{ position:"absolute", left:"76.6%", top:"84.8%", transform:"translate(-50%,-50%)",
+                width:150, height:150, borderRadius:"50%", background:"#A8552F",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
+                <div style={{ fontWeight:800, fontSize:14, color:"#fff", marginBottom:4 }}>作物の売り先</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>販路を紹介</div>
               </div>
             </div>
 
