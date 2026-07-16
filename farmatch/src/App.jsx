@@ -2575,38 +2575,38 @@ export default function App() {
 
               {/* 遊休農地（上） */}
               <div style={{ position:"absolute", left:"50%", top:"16.3%", transform:"translate(-50%,-50%)",
-                width:150, height:150, borderRadius:"50%", background:"#3F6B5C",
-                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                width:100, height:100, borderRadius:"50%", background:"#3F6B5C",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                <div style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:4 }}>遊休農地</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>全国に点在</div>
+                <div style={{ fontWeight:800, fontSize:13, color:"#fff", marginBottom:3 }}>遊休農地</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>全国に点在</div>
               </div>
 
               {/* Farmatch（中央ハブ） */}
               <div style={{ position:"absolute", left:"50%", top:"52.2%", transform:"translate(-50%,-50%)",
-                width:170, height:170, borderRadius:"50%", background:C.green,
-                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                width:120, height:120, borderRadius:"50%", background:C.green,
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
-                <div style={{ fontWeight:800, fontSize:17, color:"#fff", marginBottom:4 }}>Farmatch</div>
-                <div style={{ fontSize:11, color:"#D4EDAA" }}>農地と人をつなぐ</div>
+                <div style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:3 }}>Farmatch</div>
+                <div style={{ fontSize:10, color:"#D4EDAA" }}>農地と人をつなぐ</div>
               </div>
 
               {/* 農業をしたい人（左下） */}
               <div style={{ position:"absolute", left:"23.4%", top:"84.8%", transform:"translate(-50%,-50%)",
-                width:150, height:150, borderRadius:"50%", background:"#8A6423",
-                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                width:100, height:100, borderRadius:"50%", background:"#8A6423",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                <div style={{ fontWeight:800, fontSize:14, color:"#fff", marginBottom:4 }}>農業をしたい人</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>新規就農希望者</div>
+                <div style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>農業をしたい人</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>新規就農希望者</div>
               </div>
 
               {/* 作物の売り先（右下） */}
               <div style={{ position:"absolute", left:"76.6%", top:"84.8%", transform:"translate(-50%,-50%)",
-                width:150, height:150, borderRadius:"50%", background:"#A8552F",
-                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:12,
+                width:100, height:100, borderRadius:"50%", background:"#A8552F",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                <div style={{ fontWeight:800, fontSize:14, color:"#fff", marginBottom:4 }}>作物の売り先</div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)" }}>販路を紹介</div>
+                <div style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>作物の売り先</div>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>販路を紹介</div>
               </div>
             </div>
 
@@ -2617,15 +2617,16 @@ export default function App() {
               <div style={{ flex:1, height:1, background:C.border }}/>
             </div>
 
-            {/* フロー：さがす → れんらくする → はなしあう */}
+            {/* フロー：登録する → さがす → れんらくする → はなしあう */}
             <div style={{ display:"flex", alignItems:"stretch", gap:0, justifyContent:"center" }}>
               {[
+                ["📝","登録する","農地オーナーが空いている農地を登録します","#EDF5E1",C.lightGreen],
                 ["🔍","さがす","気になる地域や作物で農地を探せます","#EDF5E1",C.lightGreen],
                 ["💬","れんらくする","気に入った農地のオーナーに問い合わせ","#FFF4E6",C.soilBorder],
                 ["🤝","はなしあう","直接会って条件を相談（契約はご自身で）","#EDF5E1",C.lightGreen],
-              ].map(([icon,title,desc,bg,accent],i)=>(
+              ].map(([icon,title,desc,bg,accent],i,arr)=>(
                 <div key={title} style={{ display:"flex", alignItems:"stretch", flex:1 }}>
-                  <div style={{ flex:1, background:bg, border:`1.5px solid ${accent}`, borderRadius: i===0?"12px 0 0 12px": i===2?"0 12px 12px 0":"0",
+                  <div style={{ flex:1, background:bg, border:`1.5px solid ${accent}`, borderRadius: i===0?"12px 0 0 12px": i===arr.length-1?"0 12px 12px 0":"0",
                     padding:"16px 12px", textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start" }}>
                     <div style={{ width:44, height:44, borderRadius:"50%", background:C.white, border:`2px solid ${accent}`,
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, marginBottom:8,
@@ -2638,7 +2639,7 @@ export default function App() {
                     </div>
                     <div style={{ fontSize:10, color:C.muted, lineHeight:1.7 }}>{desc}</div>
                   </div>
-                  {i < 2 && (
+                  {i < arr.length-1 && (
                     <div style={{ display:"flex", alignItems:"center", background:C.cream, zIndex:1, margin:"0 -1px" }}>
                       <div style={{ width:28, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:2 }}>
                         <div style={{ width:0, height:0, borderTop:"8px solid transparent", borderBottom:"8px solid transparent",
