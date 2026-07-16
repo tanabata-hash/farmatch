@@ -2575,7 +2575,7 @@ export default function App() {
 
               {/* 遊休農地（上） */}
               <div style={{ position:"absolute", left:"50%", top:"16.3%", transform:"translate(-50%,-50%)",
-                width:100, height:100, borderRadius:"50%", background:"#3F6B5C",
+                width:100, height:100, borderRadius:"50%", background:"#5C9484",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
                 <div style={{ fontSize:22, marginBottom:2 }}>🌾</div>
@@ -2605,7 +2605,7 @@ export default function App() {
 
               {/* 作物の売り先（右下） */}
               <div style={{ position:"absolute", left:"76.6%", top:"84.8%", transform:"translate(-50%,-50%)",
-                width:100, height:100, borderRadius:"50%", background:"#A8552F",
+                width:100, height:100, borderRadius:"50%", background:"#C97A4F",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
                 <div style={{ fontSize:22, marginBottom:2 }}>🛒</div>
