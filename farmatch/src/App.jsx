@@ -2555,7 +2555,7 @@ export default function App() {
               <div style={{ fontSize:14, fontWeight:800, color:C.green, marginBottom:4 }}>Farmatchってどんなサービス？</div>
               <p style={{ fontSize:12, color:C.muted, margin:0 }}>使われていない農地と、農業をやってみたい人をつなげます</p>
             </div>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, flexWrap:"wrap", marginBottom:24 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, flexWrap:"wrap" }}>
               <div style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:16, padding:"18px 16px", width:180, textAlign:"center" }}>
                 <div style={{ fontSize:40, marginBottom:8 }}>🌾</div>
                 <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:4 }}>使われていない農地</div>
@@ -2567,11 +2567,19 @@ export default function App() {
                 <div style={{ fontWeight:700, fontSize:13, color:"#fff", marginBottom:4 }}>Farmatch</div>
                 <div style={{ fontSize:11, color:"#D4EDAA", lineHeight:1.6 }}>ぴったりの相手を見つけるお手伝いをします</div>
               </div>
-              <div style={{ fontSize:26, color:C.lightGreen }}>➡️</div>
+              <div style={{ fontSize:26, color:C.lightGreen }}>⬅️</div>
               <div style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:16, padding:"18px 16px", width:180, textAlign:"center" }}>
                 <div style={{ fontSize:40, marginBottom:8 }}>🧑‍🌾</div>
                 <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:4 }}>農業をしたい人</div>
                 <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>新しく畑を始めたい人、田舎に住みたい人</div>
+              </div>
+            </div>
+            <div style={{ textAlign:"center", fontSize:26, color:C.lightGreen, margin:"4px 0" }}>⬇️</div>
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:24 }}>
+              <div style={{ background:C.soilLight, border:`2px solid ${C.soilBorder}`, borderRadius:16, padding:"18px 16px", width:260, textAlign:"center" }}>
+                <div style={{ fontSize:40, marginBottom:8 }}>🛒</div>
+                <div style={{ fontWeight:700, fontSize:13, color:C.soil, marginBottom:4 }}>育てた作物の売り先も紹介</div>
+                <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>できた野菜やお米を売れるお店やサイト（産直EC・直売所など）もあわせて紹介します</div>
               </div>
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
