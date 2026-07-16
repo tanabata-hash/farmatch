@@ -2578,6 +2578,7 @@ export default function App() {
                 width:100, height:100, borderRadius:"50%", background:"#3F6B5C",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
+                <div style={{ fontSize:22, marginBottom:2 }}>🌾</div>
                 <div style={{ fontWeight:800, fontSize:13, color:"#fff", marginBottom:3 }}>遊休農地</div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>全国に点在</div>
               </div>
@@ -2587,6 +2588,7 @@ export default function App() {
                 width:120, height:120, borderRadius:"50%", background:C.green,
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
+                <div style={{ fontSize:26, marginBottom:2 }}>🌱</div>
                 <div style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:3 }}>Farmatch</div>
                 <div style={{ fontSize:10, color:"#D4EDAA" }}>農地と人をつなぐ</div>
               </div>
@@ -2596,6 +2598,7 @@ export default function App() {
                 width:100, height:100, borderRadius:"50%", background:"#8A6423",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
+                <div style={{ fontSize:22, marginBottom:2 }}>🧑‍🌾</div>
                 <div style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>農業をしたい人</div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>新規就農希望者</div>
               </div>
@@ -2605,6 +2608,7 @@ export default function App() {
                 width:100, height:100, borderRadius:"50%", background:"#A8552F",
                 display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
                 boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
+                <div style={{ fontSize:22, marginBottom:2 }}>🛒</div>
                 <div style={{ fontWeight:800, fontSize:12, color:"#fff", marginBottom:3 }}>作物の売り先</div>
                 <div style={{ fontSize:10, color:"rgba(255,255,255,0.75)" }}>販路を紹介</div>
               </div>
