@@ -1948,6 +1948,30 @@ function driveLabel(min) {
   return `車約${Math.round(min/6)/10}時間`;
 }
 
+// プライバシー保護のため、公開画面の地図ピン位置をIDベースで決定的にぼかす(±400m程度)
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function fuzzLatLng(lat, lng, id) {
+  if (lat == null || lng == null) return { lat, lng };
+  const h = hashSeed(String(id));
+  const hLat = h % 10000;
+  const hLng = Math.floor(h / 10000) % 10000;
+  const offsetLat = ((hLat / 10000) - 0.5) * 0.008; // 約±440m
+  const offsetLng = ((hLng / 10000) - 0.5) * 0.008;
+  return { lat: lat + offsetLat, lng: lng + offsetLng };
+}
+function withFuzzedCoords(item) {
+  if (item.lat == null || item.lng == null) return item;
+  const { lat, lng } = fuzzLatLng(item.lat, item.lng, item.id);
+  return { ...item, lat, lng };
+}
+
 // ── 住まい専用マップ（物件＋近隣農地を同時表示） ──────────
 function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarget, hoveredFarmId, onFarmHover }) {
   const containerId = "farmatch-housing-map";
@@ -2186,7 +2210,7 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
   );
 }
 
-function HousingView({ houses, farms, onContact, onSelectFarm }) {
+function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [focusTarget, setFocusTarget] = useState(null);
   const [hoveredFarmId, setHoveredFarmId] = useState(null);
@@ -2299,7 +2323,13 @@ function HousingView({ houses, farms, onContact, onSelectFarm }) {
               </div>
             );
           })()}
+          <LegalCautionNote compact isHouse/>
           <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
+          <button type="button" onClick={()=>onReport(selectedHouse)}
+            style={{ display:"block", width:"100%", background:"none", border:"none", color:C.muted,
+              fontSize:11, cursor:"pointer", marginTop:10, padding:"4px", textDecoration:"underline" }}>
+            🚩 不適切な内容を通報する
+          </button>
         </div>
       )}
 
@@ -2381,6 +2411,9 @@ export default function App() {
     return new Set(sorted.slice(0, EARLY_REGISTRANT_LIMIT).map(f=>f.id));
   }, [farms]);
   const [houses, setHouses]       = useState([]);
+  // 公開画面（一覧・地図）専用のぼかし座標版。管理画面は正確な座標(farms/houses)をそのまま使用する
+  const farmsFuzzed = useMemo(() => farms.map(withFuzzedCoords), [farms]);
+  const housesFuzzed = useMemo(() => houses.map(withFuzzedCoords), [houses]);
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
   const [contact, setContact]     = useState(null);
@@ -2453,7 +2486,7 @@ export default function App() {
   ];
 
   const prefectures=[...new Set(farms.map(f=>f.region).filter(Boolean))].sort();
-  const filteredFarms=farms.filter(f=>{
+  const filteredFarms=farmsFuzzed.filter(f=>{
     const mf=filter==="すべて"||f.status===filter||f.farm_type===filter;
     const mp=prefFilter==="すべて"||f.region===prefFilter;
     const ms=!search||(f.crops||[]).some(c=>c.includes(search))||
@@ -2828,10 +2861,10 @@ export default function App() {
           </>
         )}
 
-        {!loading && tab==="housing" && <HousingView houses={houses} farms={farms} onContact={h=>setContact(h)} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }}/>}
+        {!loading && tab==="housing" && <HousingView houses={housesFuzzed} farms={farmsFuzzed} onContact={h=>setContact(h)} onReport={h=>setReportTarget(h)} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }}/>}
         {!loading && tab==="map" && (
           <div>
-            <MapView farms={farms} houses={houses} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
+            <MapView farms={farmsFuzzed} houses={housesFuzzed} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
             <p style={{ fontSize:12, color:C.muted, marginTop:10, lineHeight:1.6 }}>OpenStreetMap による実地図表示。ピンをクリックすると概要が表示されます。</p>
           </div>
         )}
