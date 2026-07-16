@@ -2547,6 +2547,50 @@ export default function App() {
         </div>
       )}
 
+      {/* サービス概要（子供でもわかる説明エリア） */}
+      {tab==="farms" && (
+        <div style={{ background:C.cream, padding:"28px 20px" }}>
+          <div style={{ maxWidth:900, margin:"0 auto" }}>
+            <div style={{ textAlign:"center", marginBottom:20 }}>
+              <div style={{ fontSize:14, fontWeight:800, color:C.green, marginBottom:4 }}>Farmatchってどんなサービス？</div>
+              <p style={{ fontSize:12, color:C.muted, margin:0 }}>使われていない農地と、農業をやってみたい人をつなげます</p>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, flexWrap:"wrap", marginBottom:24 }}>
+              <div style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:16, padding:"18px 16px", width:180, textAlign:"center" }}>
+                <div style={{ fontSize:40, marginBottom:8 }}>🌾</div>
+                <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:4 }}>使われていない農地</div>
+                <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>誰も使っていない畑や田んぼが全国にたくさんあります</div>
+              </div>
+              <div style={{ fontSize:26, color:C.lightGreen }}>➡️</div>
+              <div style={{ background:C.green, borderRadius:16, padding:"18px 16px", width:180, textAlign:"center" }}>
+                <div style={{ fontSize:40, marginBottom:8 }}>🌱</div>
+                <div style={{ fontWeight:700, fontSize:13, color:"#fff", marginBottom:4 }}>Farmatch</div>
+                <div style={{ fontSize:11, color:"#D4EDAA", lineHeight:1.6 }}>ぴったりの相手を見つけるお手伝いをします</div>
+              </div>
+              <div style={{ fontSize:26, color:C.lightGreen }}>➡️</div>
+              <div style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:16, padding:"18px 16px", width:180, textAlign:"center" }}>
+                <div style={{ fontSize:40, marginBottom:8 }}>🧑‍🌾</div>
+                <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:4 }}>農業をしたい人</div>
+                <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>新しく畑を始めたい人、田舎に住みたい人</div>
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+              {[
+                ["🔍","さがす","気になる地域や作物で農地をさがせます"],
+                ["💬","れんらくする","気に入った農地のオーナーに問い合わせできます"],
+                ["🤝","はなしあう","直接会って条件を相談します（契約はご自身で行います）"],
+              ].map(([icon,title,desc])=>(
+                <div key={title} style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:28, marginBottom:6 }}>{icon}</div>
+                  <div style={{ fontWeight:700, fontSize:12, color:C.green, marginBottom:4 }}>{title}</div>
+                  <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ナビ */}
       <div style={{ background:C.white, borderBottom:`2px solid ${C.border}`, overflowX:"auto" }}>
         <div style={{ maxWidth:1100, margin:"0 auto", display:"flex" }}>
