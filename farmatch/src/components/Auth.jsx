@@ -60,7 +60,7 @@ export function AuthModal({ onClose, onSuccess, onNavigateTerms, onNavigatePriva
     if(error) { setError("登録に失敗しました: "+error.message); return; }
     // usersテーブルにも追加（信頼構築のための任意項目を含む）
     if(data.user) {
-      const profile = { id: data.user.id, email, name, role, is_premium: false, bio };
+      const profile = { id: data.user.id, email, name, role, bio };
       if(role === "seeker") {
         profile.farming_experience = farmingExperience;
         profile.desired_area = desiredArea;
