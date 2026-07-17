@@ -23,7 +23,9 @@ grant insert (
   farming_experience, desired_area, desired_crop, household_info
 ) on users to anon, authenticated;
 
+-- upsert(ON CONFLICT DO UPDATE)はidを含む全列に対してUPDATE権限を要求するため、
+-- idもUPDATE許可リストに含める（実測で確認済み）。
 grant update (
-  email, name, role, bio,
+  id, email, name, role, bio,
   farming_experience, desired_area, desired_crop, household_info
 ) on users to anon, authenticated;
