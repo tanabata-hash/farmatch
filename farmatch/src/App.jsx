@@ -2489,7 +2489,7 @@ export default function App() {
         const meta = user.user_metadata || {};
         await supabase.from("users").upsert([{
           id: uid, email: user.email, name: meta.name || "",
-          role: meta.role || "seeker", is_premium: false,
+          role: meta.role || "seeker",
         }]);
         setUserProfile({ id: uid, email: user.email, name: meta.name || "", role: meta.role || "seeker", is_premium: false });
       }
