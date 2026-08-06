@@ -219,52 +219,6 @@ function getSalesChannels(farm) {
   return { national, pref, local, localName: localKey || null };
 }
 
-// ── サンプルデータ ────────────────────────────────────────
-const SAMPLE_FARMS = [
-  { id:"1", name:"南部農地 A区画", region:"鹿児島県", location:"南さつま市",
-    lat:31.178, lng:130.529, area_label:"約800㎡", farm_type:"畑", status:"貸出可能",
-    rent_label:"月額 5,000円", water_source:"井戸・雨水", access_info:"最寄り駅より車5分",
-    crops:["さつまいも","かぼちゃ","スイカ","オクラ","菜の花"],
-    score_water:4, score_sun:5, score_soil:4, score_climate:5, score_access:3,
-    description:"温暖な気候と黒ボク土に恵まれた畑地。根菜・果菜類に最適です。",
-    tags:["初心者向け","温暖気候","多品種"], is_premium:false },
-  { id:"2", name:"南部農地 B区画", region:"鹿児島県", location:"南さつま市",
-    lat:31.181, lng:130.531, area_label:"約1,200㎡", farm_type:"水田・畑", status:"調整中",
-    rent_label:"応相談", water_source:"農業用水路", access_info:"最寄り駅より車8分",
-    crops:["米","さつまいも","菜の花"],
-    score_water:5, score_sun:4, score_soil:5, score_climate:5, score_access:3,
-    description:"水田転換も可能な平坦地。用水路が隣接しており水管理が容易です。",
-    tags:["水田可能","大区画","平坦地"], is_premium:true },
-  { id:"3", name:"東部農地 C区画", region:"鹿児島県", location:"南九州市",
-    lat:31.183, lng:130.535, area_label:"約500㎡", farm_type:"畑", status:"貸出可能",
-    rent_label:"月額 3,000円", water_source:"雨水・近隣水源", access_info:"最寄り駅より車10分",
-    crops:["かぼちゃ","スイカ","オクラ","さつまいも"],
-    score_water:3, score_sun:5, score_soil:4, score_climate:5, score_access:2,
-    description:"日当たり抜群の南向き農地。週末農業・体験農業にも最適です。",
-    tags:["週末農業向け","南向き","コンパクト"], is_premium:false },
-];
-
-const SAMPLE_HOUSES = [
-  { id:"1", name:"古民家リノベ物件 No.1", region:"鹿児島県", location:"南薩摩エリア",
-    house_type:"古民家", rent_label:"月額 35,000円", area_label:"120㎡ / 4LDK",
-    lat:31.180, lng:130.527,
-    description:"築60年の古民家を全面リノベーション。農地まで徒歩5分圏内。",
-    subsidy_info:"市区町村移住補助金対象（最大50万円）",
-    tags:["補助金対象","農地近接","ペット可"] },
-  { id:"2", name:"移住者向け賃貸 No.2", region:"鹿児島県", location:"南薩摩エリア",
-    house_type:"アパート", rent_label:"月額 42,000円", area_label:"65㎡ / 2LDK",
-    lat:31.242, lng:130.634,
-    description:"最寄り駅徒歩10分。スーパー・病院が近く生活利便性が高い。",
-    subsidy_info:"都道府県移住支援金対象（最大100万円）",
-    tags:["駅近","生活利便","移住者コミュニティ"] },
-  { id:"3", name:"一戸建て空き家 No.3", region:"鹿児島県", location:"南薩摩エリア",
-    house_type:"一戸建て", rent_label:"月額 28,000円", area_label:"95㎡ / 3DK",
-    lat:31.176, lng:130.532,
-    description:"山並みビューの静かな立地。広い庭付きで家庭菜園も可能。",
-    subsidy_info:"空き家バンク登録物件（改修補助最大30万円）",
-    tags:["空き家バンク","庭付き","山ビュー"] },
-];
-
 const CROP_CALENDAR = [
   { crop:"さつまいも", emoji:"🍠", sow:[4,5], grow:[5,6,7,8,9], harvest:[9,10,11], color:"#E8924A" },
   { crop:"かぼちゃ",   emoji:"🎃", sow:[4,5], grow:[5,6,7],     harvest:[7,8],      color:"#F5A623" },
@@ -471,6 +425,9 @@ function SubsidyPanel({ farm }) {
           ))}
         </>
       )}
+      <p style={{ fontSize:10, color:C.muted, margin:"8px 0 0", lineHeight:1.5 }}>
+        ※支援・補助金の内容や金額は制度改廃により変更される場合があります。最新情報・申請要件は各制度の公式窓口で必ずご確認ください。
+      </p>
     </div>
   );
 }
@@ -538,6 +495,9 @@ function SalesChannelPanel({ farm }) {
         <span>どの農地でも利用可能</span>
       </div>
       {national.map(renderChannel)}
+      <p style={{ fontSize:10, color:C.muted, margin:"8px 0 0", lineHeight:1.5 }}>
+        ※販路情報（手数料率・利用条件等）は各事業者の都合により変更される場合があります。最新情報は各サービスの公式サイトで必ずご確認ください。
+      </p>
     </div>
   );
 }
@@ -630,7 +590,7 @@ function InlineMapView({ farms, onSelectFarm, selectedFarmId }) {
         const map = L.map(containerId, { scrollWheelZoom: true }).setView([initLat, initLng], initZoom);
         mapRef.current = map;
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap", maxZoom: 18
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 18
         }).addTo(map);
         valid.forEach(f => {
           const { pref, local } = getSubsidies(f);
@@ -718,7 +678,7 @@ function MapView({ farms, houses, focusId, onSelectFarm, onSelectHouse }) {
       const avgLng=valid.reduce((s,p)=>s+p.lng,0)/valid.length;
       const map=L.map(containerId,{scrollWheelZoom:false}).setView([avgLat,avgLng],8);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-        attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:18
+        attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',maxZoom:18
       }).addTo(map);
       // 全マーカーが収まるよう fitBounds
       const bounds = L.latLngBounds(valid.map(p=>[p.lat,p.lng]));
@@ -2176,7 +2136,7 @@ function HousingMapView({ houses, farms, onSelectHouse, onSelectFarm, focusTarge
         const map = L.map(containerId, { scrollWheelZoom: true }).setView([avgLat, avgLng], 8);
         mapRef.current = map;
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution:"© OpenStreetMap", maxZoom:18
+          attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom:18
         }).addTo(map);
 
         // 住居ピン（茶色）
@@ -2284,6 +2244,9 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
             <span key={s} style={{ background:"rgba(255,255,255,0.2)", borderRadius:20, padding:"4px 12px", fontSize:11 }}>{s}</span>
           ))}
         </div>
+        <p style={{ fontSize:10, margin:"10px 0 0", opacity:0.8, lineHeight:1.5 }}>
+          ※金額・条件は制度改廃により変更される場合があります。最新情報は各自治体の公式窓口でご確認ください。
+        </p>
       </div>
 
       {SUSPENDED_REGIONS.length>0 && (
