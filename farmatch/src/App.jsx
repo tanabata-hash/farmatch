@@ -19,6 +19,10 @@ const REGION_PAGE_THRESHOLD = 5;
 // 登録が古い順にこの件数までを「初期登録オーナー」として非金銭的に優遇表示する（金銭的インセンティブは避ける）
 const EARLY_REGISTRANT_LIMIT = 30;
 
+// 災害等の影響で一時的に情報提供を停止している都道府県（自治体の復旧確認後に解除する）
+const SUSPENDED_REGIONS = ["熊本県"];
+const SUSPENDED_REGION_MESSAGE = "地震の影響により、対象地域の情報は一時的に非表示にしています。自治体による復旧状況が確認でき次第、順次再掲載いたします。";
+
 // 公開画面で取得する列（正確な座標・地番等の機微情報は含めず、ぼかし座標を lat/lng としてエイリアス）
 const PUBLIC_FARM_COLUMNS = "id,owner_id,name,region,location,area_sqm,area_label,farm_type,status,rent_label,rent_amount,water_source,access_info,crops,tags,description,score_water,score_sun,score_soil,score_climate,score_access,is_premium,plan,published_at,created_at,updated_at,owner_verified,owner_bio,reason_for_listing,response_time_estimate,past_crop_history,owner_photo_url,photo_urls,access_notes,trust_score,lat:public_lat,lng:public_lng";
 const PUBLIC_HOUSE_COLUMNS = "id,owner_id,name,region,location,house_type,status,area_label,rent_label,rent_amount,subsidy_info,tags,near_farm_ids,description,plan,created_at,updated_at,lat:public_lat,lng:public_lng";
@@ -2282,10 +2286,17 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
         </div>
       </div>
 
+      {SUSPENDED_REGIONS.length>0 && (
+        <div style={{ background:"#FFF3E0", border:"1px solid #FFB74D", borderRadius:8,
+          padding:"10px 14px", marginBottom:16, fontSize:12, color:"#8A5300", lineHeight:1.6 }}>
+          ⚠️ {SUSPENDED_REGION_MESSAGE}
+        </div>
+      )}
+
       {/* 住まい＋農地マップ */}
       <HousingMapView
-        houses={houses}
-        farms={farms}
+        houses={houses.filter(h=>!SUSPENDED_REGIONS.includes(h.region))}
+        farms={farms.filter(f=>!SUSPENDED_REGIONS.includes(f.region))}
         onSelectHouse={handleSelectHouse}
         onSelectFarm={handleSelectFarmFromHousing}
         focusTarget={focusTarget}
@@ -2374,11 +2385,21 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
 
       {/* 物件一覧 */}
       <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>{houses.length}件の物件</div>
-      {houses.map(h=>(
-        <div key={h.id} onClick={()=>handleSelectHouse(h)}
+      {houses.map(h=>{
+        const suspended = SUSPENDED_REGIONS.includes(h.region);
+        return (
+        <div key={h.id} onClick={suspended?undefined:()=>handleSelectHouse(h)}
           style={{ background:selectedHouse?.id===h.id?C.soilLight:C.white,
             border:`2px solid ${selectedHouse?.id===h.id?C.soilBorder:C.border}`,
-            borderRadius:12, padding:"16px 18px", marginBottom:12, cursor:"pointer" }}>
+            borderRadius:12, padding:"16px 18px", marginBottom:12,
+            cursor:suspended?"not-allowed":"pointer",
+            opacity:suspended?0.5:1, filter:suspended?"grayscale(1)":"none" }}>
+          {suspended && (
+            <div style={{ background:"#FFF3E0", border:"1px solid #FFB74D", borderRadius:6,
+              padding:"6px 10px", fontSize:11, color:"#8A5300", fontWeight:700, marginBottom:10 }}>
+              ⏸ 一時停止中：{SUSPENDED_REGION_MESSAGE}
+            </div>
+          )}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
             <div>
               <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>🏡 {h.name}</div>
@@ -2427,7 +2448,8 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
             );
           })()}
         </div>
-      ))}
+        );
+      })}
       {houses.length===0 && (
         <div style={{ textAlign:"center", padding:40, color:C.muted }}>
           <div style={{ fontSize:32, marginBottom:8 }}>🏡</div><div>物件情報を準備中です。</div>
@@ -2787,7 +2809,14 @@ export default function App() {
                   fontSize:12, cursor:"pointer", background:prefFilter!=="すべて"?C.green:C.white,
                   color:prefFilter!=="すべて"?"#fff":C.green, outline:"none", fontWeight:prefFilter!=="すべて"?700:400 }}>
                 <option value="すべて">🗾 都道府県：すべて</option>
-                {prefectures.map(p=>(<option key={p} value={p}>{p}</option>))}
+                {prefectures.map(p=>(
+                  <option key={p} value={p} disabled={SUSPENDED_REGIONS.includes(p)}>
+                    {p}{SUSPENDED_REGIONS.includes(p)?"（一時停止中）":""}
+                  </option>
+                ))}
+                {SUSPENDED_REGIONS.filter(r=>!prefectures.includes(r)).map(r=>(
+                  <option key={r} value={r} disabled>{r}（一時停止中）</option>
+                ))}
               </select>
               {(prefFilter!=="すべて"||filter!=="すべて") && (
                 <button onClick={()=>{setPrefFilter("すべて");setFilter("すべて");}}
@@ -2803,9 +2832,16 @@ export default function App() {
               </button>
             </div>
 
+            {SUSPENDED_REGIONS.length>0 && (
+              <div style={{ background:"#FFF3E0", border:"1px solid #FFB74D", borderRadius:8,
+                padding:"10px 14px", marginBottom:16, fontSize:12, color:"#8A5300", lineHeight:1.6 }}>
+                ⚠️ {SUSPENDED_REGION_MESSAGE}
+              </div>
+            )}
+
             {showMap && (
               <div style={{ marginBottom:16, borderRadius:12, overflow:"hidden", border:`2px solid ${C.border}` }}>
-                <InlineMapView farms={filteredFarms} onSelectFarm={f=>setSelected(f)} selectedFarmId={selected?.id}/>
+                <InlineMapView farms={filteredFarms.filter(f=>!SUSPENDED_REGIONS.includes(f.region))} onSelectFarm={f=>setSelected(f)} selectedFarmId={selected?.id}/>
               </div>
             )}
 
@@ -2820,11 +2856,20 @@ export default function App() {
                   const { national, pref:sPref, local:sLocal } = getSalesChannels(farm);
                   const allChannels = [...sLocal, ...sPref, ...national];
                   const hasInfo = allSubsidies.length > 0 || allChannels.length > 0;
+                  const suspended = SUSPENDED_REGIONS.includes(farm.region);
                   return (
-                    <div key={farm.id} onClick={()=>setSelected(farm)}
+                    <div key={farm.id} onClick={suspended?undefined:()=>setSelected(farm)}
                       style={{ background:selected?.id===farm.id?C.paleGreen:C.white,
                         border:`2px solid ${selected?.id===farm.id?C.lightGreen:C.border}`,
-                        borderRadius:12, padding:"16px 18px", marginBottom:12, cursor:"pointer" }}>
+                        borderRadius:12, padding:"16px 18px", marginBottom:12,
+                        cursor:suspended?"not-allowed":"pointer",
+                        opacity:suspended?0.5:1, filter:suspended?"grayscale(1)":"none" }}>
+                      {suspended && (
+                        <div style={{ background:"#FFF3E0", border:"1px solid #FFB74D", borderRadius:6,
+                          padding:"6px 10px", fontSize:11, color:"#8A5300", fontWeight:700, marginBottom:10 }}>
+                          ⏸ 一時停止中：{SUSPENDED_REGION_MESSAGE}
+                        </div>
+                      )}
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, gap:12 }}>
                         {farm.photo_urls?.length>0 && (
                           <img src={farm.photo_urls[0]} alt={farm.name}
@@ -2900,7 +2945,7 @@ export default function App() {
         {!loading && tab==="housing" && <HousingView houses={houses} farms={farms} onContact={h=>setContact(h)} onReport={h=>setReportTarget(h)} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }}/>}
         {!loading && tab==="map" && (
           <div>
-            <MapView farms={farms} houses={houses} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
+            <MapView farms={farms.filter(f=>!SUSPENDED_REGIONS.includes(f.region))} houses={houses.filter(h=>!SUSPENDED_REGIONS.includes(h.region))} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
             <p style={{ fontSize:12, color:C.muted, marginTop:10, lineHeight:1.6 }}>OpenStreetMap による実地図表示。ピンをクリックすると概要が表示されます。</p>
           </div>
         )}
