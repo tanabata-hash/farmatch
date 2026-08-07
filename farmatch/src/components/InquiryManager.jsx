@@ -181,7 +181,7 @@ export function InquiryManager() {
               </div>
 
               {selected.email && (
-                <a href={`mailto:${selected.email}?subject=【Farmatch】お問い合わせへのご回答`}
+                <a href={`mailto:${encodeURIComponent(selected.email)}?subject=${encodeURIComponent("【Farmatch】お問い合わせへのご回答")}`}
                   style={{ display:"block", marginTop:14, background:C.green, color:"#fff",
                     borderRadius:8, padding:"10px", textAlign:"center", fontSize:13,
                     fontWeight:700, textDecoration:"none" }}>
