@@ -24,8 +24,8 @@ const SUSPENDED_REGIONS = ["熊本県"];
 const SUSPENDED_REGION_MESSAGE = "地震の影響により、対象地域の情報は一時的に非表示にしています。自治体による復旧状況が確認でき次第、順次再掲載いたします。";
 
 // 公開画面で取得する列（正確な座標・地番等の機微情報は含めず、ぼかし座標を lat/lng としてエイリアス）
-const PUBLIC_FARM_COLUMNS = "id,owner_id,name,region,location,area_sqm,area_label,farm_type,status,rent_label,rent_amount,water_source,access_info,crops,tags,description,score_water,score_sun,score_soil,score_climate,score_access,is_premium,plan,published_at,created_at,updated_at,owner_verified,owner_bio,reason_for_listing,response_time_estimate,past_crop_history,owner_photo_url,photo_urls,access_notes,trust_score,lat:public_lat,lng:public_lng";
-const PUBLIC_HOUSE_COLUMNS = "id,owner_id,name,region,location,house_type,status,area_label,rent_label,rent_amount,subsidy_info,tags,near_farm_ids,description,plan,created_at,updated_at,lat:public_lat,lng:public_lng";
+const PUBLIC_FARM_COLUMNS = "id,owner_id,name,region,location,area_sqm,area_label,farm_type,status,rent_label,rent_amount,water_source,access_info,crops,tags,description,score_water,score_sun,score_soil,score_climate,score_access,is_premium,plan,published_at,created_at,updated_at,owner_verified,owner_bio,reason_for_listing,response_time_estimate,past_crop_history,owner_photo_url,photo_urls,access_notes,trust_score,preferred_contact_method,lat:public_lat,lng:public_lng";
+const PUBLIC_HOUSE_COLUMNS = "id,owner_id,name,region,location,house_type,status,area_label,rent_label,rent_amount,subsidy_info,tags,near_farm_ids,description,plan,created_at,updated_at,preferred_contact_method,lat:public_lat,lng:public_lng";
 
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", midGreen:"#4A7C20", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
@@ -251,6 +251,29 @@ function LegalCautionNote({ compact=false, isHouse=false }) {
         ? <>⚠️ 当サービスは当事者同士が連絡を取るための場を提供するものであり、契約の仲介・あっせんは行いません。契約内容・条件の交渉は当事者間の自己責任で行ってください。</>
         : <>⚠️ 農地の賃貸借・売買には<strong>農業委員会の許可</strong>が必要です。許可を得ないまま耕作を始めると契約が無効となるほか罰則の対象になる場合があります。当事者間で合意した後は、必ず現地の農業委員会または自治体の農政窓口で許可申請の手続きを行ってください。当サービスは当事者同士が連絡を取るための場を提供するものであり、契約の仲介・あっせんは行いません。契約・交渉は当事者間の自己責任で行ってください。</>
       }
+    </div>
+  );
+}
+
+// ── 掲載元の案内（オーナー本人登録 / 自治体等の参考掲載を区別） ──
+function ListingSourceNote({ item }) {
+  if(item.owner_id) {
+    return (
+      <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8,
+        padding:"10px 12px", marginBottom:14, fontSize:11.5, color:C.text, lineHeight:1.7 }}>
+        <strong style={{ color:C.green }}>✅ オーナー本人がFarmatchに直接登録した情報です。</strong>
+        　下の「問い合わせる」ボタンから送信すると、Farmatch経由でオーナーへメッセージが届きます。
+        {item.preferred_contact_method && (
+          <> オーナーが希望する連絡方法：<strong>{item.preferred_contact_method}</strong>。</>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", borderRadius:8,
+      padding:"10px 12px", marginBottom:14, fontSize:11.5, color:"#455A75", lineHeight:1.7 }}>
+      <strong>🏛 自治体等が公開しているデータを参考情報として掲載しています。</strong>
+      　オーナー本人による登録ではないため、最新の空き状況や詳細は自治体の窓口へ直接ご確認いただくことをおすすめします。Farmatch経由でも問い合わせは送信できますが、返信をお約束するものではありません。
     </div>
   );
 }
@@ -1867,6 +1890,315 @@ function ReportModal({ item, onClose }) {
   );
 }
 
+// ── オーナー自己登録フォーム ──────────────────────────────
+const CONTACT_METHOD_OPTIONS = ["Farmatch経由のメッセージのみ","メール","電話","LINE","その他（メッセージで案内）"];
+
+function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
+  const table = type==="farm" ? "farms" : "houses";
+  const isEdit = !!editItem;
+  const [form, setForm] = useState(()=>({
+    name: editItem?.name || "", region: editItem?.region || "", location: editItem?.location || "",
+    area_label: editItem?.area_label || "", rent_label: editItem?.rent_label || "",
+    status: editItem?.status || (type==="farm" ? "貸出可能" : "掲載中"),
+    description: editItem?.description || "",
+    tags: (editItem?.tags||[]).join("、"),
+    lat: "", lng: "",
+    preferred_contact_method: editItem?.preferred_contact_method || "",
+    crops: (editItem?.crops||[]).join("、"),
+    water_source: editItem?.water_source || "", access_info: editItem?.access_info || "",
+    score_water: editItem?.score_water ?? 3, score_sun: editItem?.score_sun ?? 3,
+    score_soil: editItem?.score_soil ?? 3, score_climate: editItem?.score_climate ?? 3,
+    score_access: editItem?.score_access ?? 3,
+    owner_bio: editItem?.owner_bio || "", reason_for_listing: editItem?.reason_for_listing || "",
+    access_notes: editItem?.access_notes || "", response_time_estimate: editItem?.response_time_estimate || "",
+    past_crop_history: editItem?.past_crop_history || "",
+    house_type: editItem?.house_type || "一戸建て",
+  }));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const field = (key,label,ph,extra={}) => (
+    <div style={{ gridColumn: extra.full?"1/-1":"auto" }}>
+      <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>{label}</label>
+      <input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={ph}
+        style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+          padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+    </div>
+  );
+
+  const handleSubmit = async()=>{
+    if(!form.name.trim() || !form.region.trim()) { setError("名称と都道府県は必須です"); return; }
+    setSaving(true); setError("");
+    const base = {
+      name: form.name, region: form.region, location: form.location,
+      area_label: form.area_label, rent_label: form.rent_label, status: form.status,
+      description: form.description,
+      tags: form.tags.split(/[、,]/).map(t=>t.trim()).filter(Boolean),
+      preferred_contact_method: form.preferred_contact_method,
+    };
+    if(form.lat.trim() && form.lng.trim()) {
+      const lat=parseFloat(form.lat), lng=parseFloat(form.lng);
+      if(!isNaN(lat)) base.lat=lat;
+      if(!isNaN(lng)) base.lng=lng;
+    }
+    const payload = type==="farm" ? {
+      ...base,
+      crops: form.crops.split(/[、,]/).map(c=>c.trim()).filter(Boolean),
+      water_source: form.water_source, access_info: form.access_info,
+      score_water: parseInt(form.score_water)||3, score_sun: parseInt(form.score_sun)||3,
+      score_soil: parseInt(form.score_soil)||3, score_climate: parseInt(form.score_climate)||3,
+      score_access: parseInt(form.score_access)||3,
+      owner_bio: form.owner_bio, reason_for_listing: form.reason_for_listing,
+      access_notes: form.access_notes, response_time_estimate: form.response_time_estimate,
+      past_crop_history: form.past_crop_history,
+    } : {
+      ...base, house_type: form.house_type,
+    };
+
+    const res = isEdit
+      ? await supabase.from(table).update(payload).eq("id", editItem.id)
+      : await supabase.from(table).insert([{ ...payload, owner_id: userId }]);
+    setSaving(false);
+    if(res.error) { setError(res.error.message); return; }
+    onSaved();
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <h3 style={{ margin:"0 0 4px", color:C.green }}>
+        {isEdit ? "✏️ 登録内容を編集" : (type==="farm" ? "🌱 農地を登録する" : "🏡 空き家・住まいを登録する")}
+      </h3>
+      <p style={{ fontSize:12, color:C.muted, margin:"0 0 16px" }}>
+        {isEdit ? "内容を修正して保存してください。" : "ご自身が所有・管理されている農地や空き家の情報を登録できます。掲載後は「マイ登録」からいつでも編集できます。"}
+      </p>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+        {field("name","名称 *","例：南部農地 D区画",{full:true})}
+        {field("region","都道府県 *","例：鹿児島県")}
+        {field("location","エリア名","例：南さつま市")}
+        {field("area_label","面積","例：約600㎡")}
+        {field("rent_label","賃料","例：月額 4,000円")}
+        {type==="farm" && field("water_source","水源","例：井戸・雨水")}
+        {type==="farm" && field("access_info","アクセス","例：最寄り駅より車5分")}
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:6 }}>
+        {field("lat","緯度","例：31.178")}
+        {field("lng","経度","例：130.529")}
+      </div>
+      <p style={{ fontSize:11, color:C.muted, margin:"0 0 12px" }}>
+        {isEdit ? "位置情報を変更しない場合は空欄のままにしてください。" : "地図アプリ等で調べた緯度・経度を入力してください（任意。未入力の場合は地図に表示されません）。"}
+      </p>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+        <div>
+          <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>ステータス</label>
+          <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}
+            style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"8px 10px", fontSize:13, outline:"none" }}>
+            {type==="farm"
+              ? (<><option>貸出可能</option><option>調整中</option><option>非公開</option></>)
+              : (<><option>掲載中</option><option>調整中</option><option>非公開</option></>)}
+          </select>
+        </div>
+        {type==="house" && (
+          <div>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>種別</label>
+            <select value={form.house_type} onChange={e=>setForm({...form,house_type:e.target.value})}
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"8px 10px", fontSize:13, outline:"none" }}>
+              <option>一戸建て</option><option>アパート・マンション</option><option>その他</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      {type==="farm" && (
+        <div style={{ marginBottom:12 }}>
+          <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>作れる作物（読点区切り）</label>
+          <input value={form.crops} onChange={e=>setForm({...form,crops:e.target.value})}
+            placeholder="例：さつまいも、かぼちゃ、オクラ"
+            style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+              padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+        </div>
+      )}
+
+      <div style={{ marginBottom:12 }}>
+        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>タグ（読点区切り）</label>
+        <input value={form.tags} onChange={e=>setForm({...form,tags:e.target.value})}
+          placeholder="例：初心者向け、温暖気候"
+          style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+            padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+      </div>
+
+      <div style={{ marginBottom:12 }}>
+        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>概要説明</label>
+        <textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3}
+          style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+            padding:"8px 10px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+      </div>
+
+      {type==="farm" && (
+        <div style={{ background:C.paleGreen, borderRadius:8, padding:"12px 14px", marginBottom:12 }}>
+          <div style={{ fontSize:11, color:C.green, fontWeight:700, marginBottom:10 }}>農地適性スコア（自己評価・目安で構いません）</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            {[["水源","score_water"],["日照","score_sun"],["土質","score_soil"],["気候","score_climate"],["アクセス","score_access"]].map(([label,keyName])=>(
+              <div key={keyName} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:6 }}>
+                <span style={{ fontSize:12, color:C.text }}>{label}</span>
+                <select value={form[keyName]} onChange={e=>setForm({...form,[keyName]:e.target.value})}
+                  style={{ border:`1.5px solid ${C.border}`, borderRadius:6, padding:"3px 6px", fontSize:12, outline:"none" }}>
+                  {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {type==="farm" && (
+        <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8, padding:"12px 14px", marginBottom:12 }}>
+          <div style={{ fontSize:11, color:C.green, fontWeight:700, marginBottom:10 }}>
+            🤝 信頼構築情報（任意・借り手の安心材料になります）
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>手放す理由・想い</label>
+            <textarea value={form.reason_for_listing} onChange={e=>setForm({...form,reason_for_listing:e.target.value})} rows={2}
+              placeholder="例：高齢のため管理が難しくなり、有効活用してもらえる方にお貸ししたいです"
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"8px 10px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー自己紹介</label>
+            <textarea value={form.owner_bio} onChange={e=>setForm({...form,owner_bio:e.target.value})} rows={2}
+              placeholder="例：地元で長年農業を営んできました"
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"8px 10px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+            <div>
+              <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>連絡対応の目安</label>
+              <input value={form.response_time_estimate} onChange={e=>setForm({...form,response_time_estimate:e.target.value})}
+                placeholder="例：平日2日以内に返信"
+                style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                  padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+            </div>
+            <div>
+              <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>過去の利用実績</label>
+              <input value={form.past_crop_history} onChange={e=>setForm({...form,past_crop_history:e.target.value})}
+                placeholder="例：3年前まで水稲を栽培"
+                style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                  padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>アクセス補足（駐車・道路状況等）</label>
+            <input value={form.access_notes} onChange={e=>setForm({...form,access_notes:e.target.value})}
+              placeholder="例：軽トラの乗り入れ可、駐車スペース2台分あり"
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom:16 }}>
+        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>希望する連絡方法</label>
+        <select value={form.preferred_contact_method} onChange={e=>setForm({...form,preferred_contact_method:e.target.value})}
+          style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"8px 10px", fontSize:13, outline:"none" }}>
+          <option value="">未選択（Farmatch経由のメッセージで案内）</option>
+          {CONTACT_METHOD_OPTIONS.map(m=><option key={m} value={m}>{m}</option>)}
+        </select>
+        <p style={{ fontSize:11, color:C.muted, margin:"4px 0 0" }}>問い合わせがあった際、この方法を希望する旨を利用者に表示します（連絡先そのものは公開されません）。</p>
+      </div>
+
+      {error && (
+        <p style={{ fontSize:12, color:"#C0392B", background:"#FDEDEC", border:"1px solid #F5B7B1",
+          borderRadius:8, padding:"8px 12px", margin:"0 0 12px" }}>❌ {error}</p>
+      )}
+
+      <div style={{ display:"flex", gap:10 }}>
+        <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>キャンセル</Btn>
+        <Btn onClick={handleSubmit} style={{ flex:2, opacity:saving?0.7:1 }}>
+          {saving ? "保存中..." : (isEdit ? "保存する" : "登録する")}
+        </Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ── マイ登録（オーナー自己登録の一覧管理） ────────────────
+function MyListingsPanel({ userId, onClose }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [formState, setFormState] = useState(null);
+
+  const fetchMine = async()=>{
+    setLoading(true);
+    const [{data:farmsData},{data:housesData}] = await Promise.all([
+      supabase.from("farms").select(PUBLIC_FARM_COLUMNS).eq("owner_id", userId).order("created_at",{ascending:false}),
+      supabase.from("houses").select(PUBLIC_HOUSE_COLUMNS).eq("owner_id", userId).order("created_at",{ascending:false}),
+    ]);
+    setItems([
+      ...(farmsData||[]).map(f=>({...f, _type:"farm"})),
+      ...(housesData||[]).map(h=>({...h, _type:"house"})),
+    ]);
+    setLoading(false);
+  };
+  useEffect(()=>{ fetchMine(); },[]);
+
+  const toggleVisibility = async(item)=>{
+    const table = item._type==="farm" ? "farms" : "houses";
+    const nextStatus = item.status==="非公開" ? (item._type==="farm"?"貸出可能":"掲載中") : "非公開";
+    const { error } = await supabase.from(table).update({ status: nextStatus }).eq("id", item.id);
+    if(error) { alert("更新エラー: "+error.message); return; }
+    fetchMine();
+  };
+
+  if(formState) {
+    return (
+      <OwnerListingForm type={formState.type} editItem={formState.editItem} userId={userId}
+        onClose={()=>setFormState(null)}
+        onSaved={()=>{ setFormState(null); fetchMine(); }}/>
+    );
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <h3 style={{ margin:"0 0 4px", color:C.green }}>📋 マイ登録</h3>
+      <p style={{ fontSize:12, color:C.muted, margin:"0 0 16px" }}>ご自身で登録した農地・空き家情報を管理できます。</p>
+      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+        <Btn onClick={()=>setFormState({type:"farm", editItem:null})} style={{ flex:1 }}>🌱 農地を登録する</Btn>
+        <Btn variant="outline" onClick={()=>setFormState({type:"house", editItem:null})} style={{ flex:1 }}>🏡 空き家を登録する</Btn>
+      </div>
+      {loading ? (
+        <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>読み込み中...</div>
+      ) : items.length===0 ? (
+        <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>まだ登録がありません。上のボタンから登録できます。</div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {items.map(item=>(
+            <div key={item._type+item.id} style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {item._type==="farm"?"🌱":"🏡"} {item.name}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted }}>{item.region} {item.location} ・ {item.status}</div>
+                </div>
+                <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                  <button onClick={()=>setFormState({type:item._type, editItem:item})}
+                    style={{ background:C.paleGreen, border:"1px solid #B8D98A", color:C.green, borderRadius:6, padding:"4px 10px", fontSize:11, cursor:"pointer" }}>編集</button>
+                  <button onClick={()=>toggleVisibility(item)}
+                    style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:6, padding:"4px 10px", fontSize:11, cursor:"pointer" }}>
+                    {item.status==="非公開" ? "掲載を再開" : "非公開にする"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 // ── 農地詳細パネル ────────────────────────────────────────
 function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegistrant, isLoggedIn }) {
   const suitability={water:farm.score_water,sun:farm.score_sun,soil:farm.score_soil,climate:farm.score_climate,access:farm.score_access};
@@ -1880,6 +2212,9 @@ function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegi
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end" }}>
           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700 }}>{farm.status}</span>
+          {farm.owner_id
+            ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ オーナー本人が登録</span>
+            : <span style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", color:"#455A75", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🏛 自治体公開情報（参考掲載）</span>}
           {isEarlyRegistrant && <span style={{ background:"#FFF4CC", border:"1px solid #E8C34A", color:"#8A6D00", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🌟 初期登録オーナー</span>}
         </div>
       </div>
@@ -1939,6 +2274,7 @@ function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegi
       {/* 販路情報（詳細） */}
       <SalesChannelPanel farm={farm} />
 
+      <ListingSourceNote item={farm}/>
       <LegalCautionNote compact/>
 
       <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>この農地に問い合わせる</Btn>
@@ -2336,6 +2672,7 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
               </div>
             );
           })()}
+          <ListingSourceNote item={selectedHouse}/>
           <LegalCautionNote compact isHouse/>
           <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
           <button type="button" onClick={()=>onReport(selectedHouse)}
@@ -2363,13 +2700,16 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
               ⏸ 一時停止中：{SUSPENDED_REGION_MESSAGE}
             </div>
           )}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, gap:12 }}>
             <div>
               <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>🏡 {h.name}</div>
               <div style={{ fontSize:12, color:C.muted }}>
                 📍 {h.region} {h.location}　📐 {h.area_label}　💴 {h.rent_label}　🏠 {h.house_type}
               </div>
             </div>
+            {h.owner_id
+              ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, flexShrink:0 }}>✅ オーナー本人が登録</span>
+              : <span style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", color:"#455A75", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, flexShrink:0 }}>🏛 自治体公開情報（参考掲載）</span>}
           </div>
           <p style={{ fontSize:13, color:C.muted, margin:"0 0 8px", lineHeight:1.6 }}>{h.description}</p>
           {h.subsidy_info && (
@@ -2449,6 +2789,7 @@ export default function App() {
   const [user, setUser]           = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuth, setShowAuth]   = useState(false);
+  const [showMyListings, setShowMyListings] = useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
@@ -2563,6 +2904,10 @@ export default function App() {
                 {isPremium && (
                   <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム</span>
                 )}
+                <button onClick={()=>setShowMyListings(true)}
+                  style={{ background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                  📋 マイ登録
+                </button>
                 <button onClick={handleLogout}
                   style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"1px solid rgba(255,255,255,0.2)", borderRadius:20, padding:"5px 14px", fontSize:11, cursor:"pointer" }}>
                   ログアウト
@@ -2592,6 +2937,23 @@ export default function App() {
               🎉 掲載料は当面無料です
             </div>
           )}
+          <div style={{ marginTop:18 }}>
+            {user ? (
+              <button onClick={()=>setShowMyListings(true)}
+                style={{ background:"#fff", color:C.deepGreen, border:"none", borderRadius:24,
+                  padding:"10px 24px", fontSize:13, fontWeight:800, cursor:"pointer",
+                  boxShadow:"0 2px 8px rgba(0,0,0,0.15)" }}>
+                🌱 あなたの農地・空き家を登録する
+              </button>
+            ) : (
+              <button onClick={()=>setShowAuth(true)}
+                style={{ background:"#fff", color:C.deepGreen, border:"none", borderRadius:24,
+                  padding:"10px 24px", fontSize:13, fontWeight:800, cursor:"pointer",
+                  boxShadow:"0 2px 8px rgba(0,0,0,0.15)" }}>
+                🌱 オーナー登録して掲載する（無料）
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -2842,6 +3204,9 @@ export default function App() {
                         </div>
                         <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end", flexShrink:0 }}>
                           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{farm.status}</span>
+                          {farm.owner_id
+                            ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ オーナー本人が登録</span>
+                            : <span style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", color:"#455A75", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🏛 自治体公開情報（参考掲載）</span>}
                           {farm.is_premium&&<span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
                           {farm.owner_verified&&<span style={{ background:C.green, color:"#fff", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ 本人確認済み</span>}
                           {earlyFarmIds.has(farm.id)&&<span style={{ background:"#FFF4CC", border:"1px solid #E8C34A", color:"#8A6D00", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🌟 初期登録オーナー</span>}
@@ -2935,6 +3300,10 @@ export default function App() {
 
       {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
       {reportTarget && <ReportModal item={reportTarget} onClose={()=>setReportTarget(null)}/>}
+
+      {showMyListings && user && (
+        <MyListingsPanel userId={user.id} onClose={()=>{ setShowMyListings(false); fetchData(); }}/>
+      )}
 
       {showAuth && (
         <AuthModal
