@@ -54,7 +54,7 @@ export function TermsPage({ onBack }) {
     <LegalPage title="利用規約" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2026年7月16日
+        制定日：2025年1月1日　最終更新日：2026年8月7日
       </div>
 
       <Section title="第1条（適用）">
@@ -93,6 +93,7 @@ export function TermsPage({ onBack }) {
           <li>不正アクセスをし、またはこれを試みる行為</li>
           <li>他のユーザーに成りすます行為</li>
           <li>虚偽の農地・物件情報を登録する行為</li>
+          <li>他人の肖像権・著作権その他の権利を侵害する写真等のコンテンツを投稿する行為</li>
           <li>当サービスを通じて知り得た情報を第三者に無断で提供する行為</li>
         </ul>
       </Section>
@@ -128,7 +129,7 @@ export function TermsPage({ onBack }) {
       </Section>
 
       <Section title="第10条（知的財産権）">
-        当サービス上のコンテンツ（テキスト・画像・デザイン等）の著作権は当サービスまたは正当な権利者に帰属します。ユーザーが登録した農地・物件情報の著作権はユーザーに帰属しますが、当サービスはサービス改善・宣伝目的でこれを利用できるものとします。
+        当サービス上のコンテンツ（テキスト・画像・デザイン等）の著作権は当サービスまたは正当な権利者に帰属します。ユーザーが登録した農地・物件情報の著作権はユーザーに帰属しますが、当サービスはサービス改善・宣伝目的でこれを利用できるものとします。ユーザーは、自ら投稿する写真等のコンテンツについて、適法な権利を有し、または権利者から必要な許諾を得ていることを保証するものとし、これに違反したことにより当サービスまたは第三者に損害が生じた場合、当該ユーザーが責任を負うものとします。
       </Section>
 
       <Section title="第11条（利用規約の変更）">
@@ -147,7 +148,7 @@ export function PrivacyPage({ onBack }) {
     <LegalPage title="プライバシーポリシー" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2026年7月16日
+        制定日：2025年1月1日　最終更新日：2026年8月7日
       </div>
 
       <Section title="第1条（個人情報の定義）">
@@ -182,6 +183,7 @@ export function PrivacyPage({ onBack }) {
         <ul style={{ marginTop:8, paddingLeft:20 }}>
           <li><strong>Supabase</strong>：データベース・認証サービス（米国）</li>
           <li><strong>Vercel</strong>：ホスティングサービス（米国）</li>
+          <li><strong>Resend</strong>：問い合わせ通知等のメール配信サービス（米国）</li>
           <li><strong>Stripe</strong>：決済処理サービス（米国）※導入予定</li>
         </ul>
         これらのサービスへのデータ移転は、各社のデータ保護方針に基づいて行われます。日本の個人情報保護法上、米国は十分性認定国ではないため、当サービスは各社が締結する標準契約条項（SCCs）等の適切な安全管理措置に基づき、必要な範囲でデータを移転します。移転先である米国には連邦レベルでの包括的な個人情報保護法は存在しませんが、提供先各社が適切なデータ保護・セキュリティ管理体制を備えていることを確認したうえでデータを移転しています。

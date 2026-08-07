@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { stripJpegExif } from "../_stripJpegExif.js";
 
 function getServiceClient() {
   return createClient(
@@ -37,9 +38,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "対応していない画像形式です（jpeg/png/webpのみ）" });
   }
 
-  const buffer = Buffer.from(dataBase64, "base64");
+  let buffer = Buffer.from(dataBase64, "base64");
   if (buffer.length > MAX_BYTES) {
     return res.status(400).json({ error: "ファイルサイズは3MB以下にしてください" });
+  }
+  if (contentType === "image/jpeg") {
+    buffer = stripJpegExif(buffer);
   }
 
   const ext = (filename.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";

@@ -261,7 +261,7 @@ function ListingSourceNote({ item }) {
     return (
       <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8,
         padding:"10px 12px", marginBottom:14, fontSize:11.5, color:C.text, lineHeight:1.7 }}>
-        <strong style={{ color:C.green }}>✅ オーナー本人がFarmatchに直接登録した情報です。</strong>
+        <strong style={{ color:C.green }}>📝 オーナー本人がFarmatchに直接登録した情報です（自己申告であり、当サービスによる所有権の確認は行っておりません）。</strong>
         　下の「問い合わせる」ボタンから送信すると、Farmatch経由でオーナーへメッセージが届きます。
         {item.preferred_contact_method && (
           <> オーナーが希望する連絡方法：<strong>{item.preferred_contact_method}</strong>。</>
@@ -2320,7 +2320,7 @@ function OwnerInquiriesTab() {
           </div>
         </div>
         {selected.email && (
-          <a href={`mailto:${selected.email}?subject=【Farmatch】お問い合わせへのご回答`}
+          <a href={`mailto:${encodeURIComponent(selected.email)}?subject=${encodeURIComponent("【Farmatch】お問い合わせへのご回答")}`}
             style={{ display:"block", background:C.green, color:"#fff", borderRadius:8, padding:"10px",
               textAlign:"center", fontSize:13, fontWeight:700, textDecoration:"none" }}>
             メールで返信する
@@ -2456,7 +2456,7 @@ function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegi
         <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end" }}>
           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"3px 10px", fontSize:11, fontWeight:700 }}>{farm.status}</span>
           {farm.owner_id
-            ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ オーナー本人が登録</span>
+            ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>📝 オーナー本人が登録（自己申告）</span>
             : <span style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", color:"#455A75", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🏛 自治体公開情報（参考掲載）</span>}
           {isEarlyRegistrant && <span style={{ background:"#FFF4CC", border:"1px solid #E8C34A", color:"#8A6D00", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🌟 初期登録オーナー</span>}
         </div>
@@ -2963,7 +2963,7 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
               </div>
             </div>
             {h.owner_id
-              ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, flexShrink:0 }}>✅ オーナー本人が登録</span>
+              ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, flexShrink:0 }}>📝 オーナー本人が登録（自己申告）</span>
               : <span style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", color:"#455A75", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, flexShrink:0 }}>🏛 自治体公開情報（参考掲載）</span>}
           </div>
           <p style={{ fontSize:13, color:C.muted, margin:"0 0 8px", lineHeight:1.6 }}>{h.description}</p>
@@ -3482,7 +3482,7 @@ export default function App() {
                         <div style={{ display:"flex", flexDirection:"column", gap:4, alignItems:"flex-end", flexShrink:0 }}>
                           <span style={{ background:farm.status==="貸出可能"?C.lightGreen:C.soil, color:"#fff", borderRadius:6, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{farm.status}</span>
                           {farm.owner_id
-                            ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ オーナー本人が登録</span>
+                            ? <span style={{ background:"#E8F5E9", border:"1px solid #A5D6A7", color:"#2E7D32", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>📝 オーナー本人が登録（自己申告）</span>
                             : <span style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", color:"#455A75", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>🏛 自治体公開情報（参考掲載）</span>}
                           {farm.is_premium&&<span style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, color:C.soil, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>⭐ Premium</span>}
                           {farm.owner_verified&&<span style={{ background:C.green, color:"#fff", borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700 }}>✅ 本人確認済み</span>}
