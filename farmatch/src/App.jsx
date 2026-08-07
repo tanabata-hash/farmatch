@@ -25,7 +25,7 @@ const SUSPENDED_REGION_MESSAGE = "地震の影響により、対象地域の情�
 
 // 公開画面で取得する列（正確な座標・地番等の機微情報は含めず、ぼかし座標を lat/lng としてエイリアス）
 const PUBLIC_FARM_COLUMNS = "id,owner_id,name,region,location,area_sqm,area_label,farm_type,status,rent_label,rent_amount,water_source,access_info,crops,tags,description,score_water,score_sun,score_soil,score_climate,score_access,is_premium,plan,published_at,created_at,updated_at,owner_verified,owner_bio,reason_for_listing,response_time_estimate,past_crop_history,owner_photo_url,photo_urls,access_notes,trust_score,preferred_contact_method,lat:public_lat,lng:public_lng";
-const PUBLIC_HOUSE_COLUMNS = "id,owner_id,name,region,location,house_type,status,area_label,rent_label,rent_amount,subsidy_info,tags,near_farm_ids,description,plan,created_at,updated_at,preferred_contact_method,lat:public_lat,lng:public_lng";
+const PUBLIC_HOUSE_COLUMNS = "id,owner_id,name,region,location,house_type,status,area_label,rent_label,rent_amount,subsidy_info,tags,near_farm_ids,description,plan,created_at,updated_at,preferred_contact_method,owner_photo_url,photo_urls,lat:public_lat,lng:public_lng";
 
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", midGreen:"#4A7C20", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
@@ -1996,6 +1996,8 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
       description: form.description,
       tags: form.tags.split(/[、,]/).map(t=>t.trim()).filter(Boolean),
       preferred_contact_method: form.preferred_contact_method,
+      owner_photo_url: form.owner_photo_url,
+      photo_urls: form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean),
     };
     if(form.lat.trim() && form.lng.trim()) {
       const lat=parseFloat(form.lat), lng=parseFloat(form.lng);
@@ -2012,8 +2014,6 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
       owner_bio: form.owner_bio, reason_for_listing: form.reason_for_listing,
       access_notes: form.access_notes, response_time_estimate: form.response_time_estimate,
       past_crop_history: form.past_crop_history,
-      owner_photo_url: form.owner_photo_url,
-      photo_urls: form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean),
     } : {
       ...base, house_type: form.house_type,
     };
@@ -2151,45 +2151,46 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
                   padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
             </div>
           </div>
-          <div style={{ marginBottom:10 }}>
+          <div>
             <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>アクセス補足（駐車・道路状況等）</label>
             <input value={form.access_notes} onChange={e=>setForm({...form,access_notes:e.target.value})}
               placeholder="例：軽トラの乗り入れ可、駐車スペース2台分あり"
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
           </div>
-          <div style={{ marginBottom:10 }}>
-            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー写真</label>
-            {form.owner_photo_url && (
-              <div style={{ marginBottom:6 }}>
-                <img src={form.owner_photo_url} alt="オーナー写真"
-                  style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
-              </div>
-            )}
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleOwnerPhotoSelect} disabled={uploading}
-              style={{ fontSize:12 }}/>
-          </div>
-          <div>
-            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真（複数可・最大3MB/枚）</label>
-            {form.photo_urls && (
-              <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:8 }}>
-                {form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).map(url=>(
-                  <div key={url} style={{ position:"relative" }}>
-                    <img src={url} alt="現地写真"
-                      style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
-                    <button type="button" onClick={()=>removeFarmPhoto(url)}
-                      style={{ position:"absolute", top:-6, right:-6, width:18, height:18, borderRadius:"50%",
-                        background:"#E57373", color:"#fff", border:"none", fontSize:11, cursor:"pointer", lineHeight:"18px", padding:0 }}>✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFarmPhotosSelect} disabled={uploading}
-              style={{ fontSize:12 }}/>
-            {uploading && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>アップロード中...</div>}
-          </div>
         </div>
       )}
+
+      <div style={{ marginBottom:12 }}>
+        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー写真</label>
+        {form.owner_photo_url && (
+          <div style={{ marginBottom:6 }}>
+            <img src={form.owner_photo_url} alt="オーナー写真"
+              style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
+          </div>
+        )}
+        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleOwnerPhotoSelect} disabled={uploading}
+          style={{ fontSize:12 }}/>
+      </div>
+      <div style={{ marginBottom:16 }}>
+        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真（複数可・最大3MB/枚）</label>
+        {form.photo_urls && (
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:8 }}>
+            {form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).map(url=>(
+              <div key={url} style={{ position:"relative" }}>
+                <img src={url} alt="現地写真"
+                  style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
+                <button type="button" onClick={()=>removeFarmPhoto(url)}
+                  style={{ position:"absolute", top:-6, right:-6, width:18, height:18, borderRadius:"50%",
+                    background:"#E57373", color:"#fff", border:"none", fontSize:11, cursor:"pointer", lineHeight:"18px", padding:0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFarmPhotosSelect} disabled={uploading}
+          style={{ fontSize:12 }}/>
+        {uploading && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>アップロード中...</div>}
+      </div>
 
       <div style={{ marginBottom:16 }}>
         <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>希望する連絡方法</label>
@@ -2707,6 +2708,14 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
           <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>
             📍 {selectedHouse.region} {selectedHouse.location}　📐 {selectedHouse.area_label}　💴 {selectedHouse.rent_label}　🏠 {selectedHouse.house_type}
           </div>
+          {selectedHouse.photo_urls?.length>0 && (
+            <div style={{ display:"flex", gap:8, overflowX:"auto", marginBottom:12, paddingBottom:2 }}>
+              {selectedHouse.photo_urls.map((url,i)=>(
+                <img key={url} src={url} alt={`${selectedHouse.name} 現地写真${i+1}`}
+                  style={{ width:140, height:105, objectFit:"cover", borderRadius:10, border:`1px solid ${C.border}`, flexShrink:0 }}/>
+              ))}
+            </div>
+          )}
           <p style={{ fontSize:13, color:C.muted, margin:"0 0 10px", lineHeight:1.6 }}>{selectedHouse.description}</p>
           {selectedHouse.subsidy_info && (
             <div style={{ background:C.paleGreen, borderRadius:6, padding:"8px 12px", fontSize:12, color:C.green, marginBottom:10, fontWeight:500 }}>
@@ -2794,7 +2803,11 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
             </div>
           )}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8, gap:12 }}>
-            <div>
+            {h.photo_urls?.length>0 && (
+              <img src={h.photo_urls[0]} alt={h.name}
+                style={{ width:72, height:72, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}`, flexShrink:0 }}/>
+            )}
+            <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>🏡 {h.name}</div>
               <div style={{ fontSize:12, color:C.muted }}>
                 📍 {h.region} {h.location}　📐 {h.area_label}　💴 {h.rent_label}　🏠 {h.house_type}
