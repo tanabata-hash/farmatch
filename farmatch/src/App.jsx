@@ -1777,14 +1777,27 @@ function ContactModal({ item, onClose }) {
     if(website) { setSent(true); return; } // botはここで無言で弾く
     setLoading(true);
     const isHouse=!!item.house_type;
-    const{error}=await supabase.from("inquiries").insert([{
-      target_type:isHouse?"house":"farm",
-      farm_id:isHouse?null:item.id,
-      house_id:isHouse?item.id:null,
-      name:form.name, email:form.email, purpose:form.purpose, message:form.msg, status:"new",
-    }]);
+    let ok = false, errorMsg = "";
+    try {
+      const res = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: isHouse?"house":"farm",
+          farmId: isHouse?null:item.id,
+          houseId: isHouse?item.id:null,
+          name:form.name, email:form.email, purpose:form.purpose, message:form.msg,
+          website,
+        }),
+      });
+      const data = await res.json().catch(()=>({}));
+      ok = res.ok;
+      errorMsg = data.error || "";
+    } catch(err) {
+      errorMsg = err.message;
+    }
     setLoading(false);
-    if(error){alert("送信エラー: "+error.message);return;}
+    if(!ok){alert("送信エラー: "+errorMsg);return;}
     setSent(true);
   };
   return (
