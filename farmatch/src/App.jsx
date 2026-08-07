@@ -1912,10 +1912,70 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
     owner_bio: editItem?.owner_bio || "", reason_for_listing: editItem?.reason_for_listing || "",
     access_notes: editItem?.access_notes || "", response_time_estimate: editItem?.response_time_estimate || "",
     past_crop_history: editItem?.past_crop_history || "",
+    owner_photo_url: editItem?.owner_photo_url || "",
+    photo_urls: (editItem?.photo_urls||[]).join("、"),
     house_type: editItem?.house_type || "一戸建て",
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const uploadPhoto = async(file) => {
+    const dataBase64 = await new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const { data:{ session } } = await supabase.auth.getSession();
+    const res = await fetch("/api/my/upload", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: JSON.stringify({ filename:file.name, contentType:file.type, dataBase64 }),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || "アップロードに失敗しました");
+    return data.url;
+  };
+
+  const handleOwnerPhotoSelect = async(e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if(!file) return;
+    if(file.size > 3*1024*1024) { setError("3MB以下の画像を選択してください"); return; }
+    setUploading(true);
+    try {
+      const url = await uploadPhoto(file);
+      setForm(f=>({...f, owner_photo_url:url}));
+    } catch(err) {
+      setError(err.message);
+    }
+    setUploading(false);
+  };
+
+  const handleFarmPhotosSelect = async(e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if(files.length===0) return;
+    setUploading(true);
+    const currentUrls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean);
+    const newUrls = [];
+    for(const file of files) {
+      if(file.size > 3*1024*1024) { setError(`${file.name} は3MBを超えています`); continue; }
+      try {
+        newUrls.push(await uploadPhoto(file));
+      } catch(err) {
+        setError(err.message);
+      }
+    }
+    setForm(f=>({...f, photo_urls:[...currentUrls, ...newUrls].join("、")}));
+    setUploading(false);
+  };
+
+  const removeFarmPhoto = (urlToRemove) => {
+    const urls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).filter(u=>u!==urlToRemove);
+    setForm(f=>({...f, photo_urls:urls.join("、")}));
+  };
 
   const field = (key,label,ph,extra={}) => (
     <div style={{ gridColumn: extra.full?"1/-1":"auto" }}>
@@ -1928,6 +1988,7 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
 
   const handleSubmit = async()=>{
     if(!form.name.trim() || !form.region.trim()) { setError("名称と都道府県は必須です"); return; }
+    if(uploading) { setError("写真のアップロード完了までお待ちください"); return; }
     setSaving(true); setError("");
     const base = {
       name: form.name, region: form.region, location: form.location,
@@ -1951,6 +2012,8 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
       owner_bio: form.owner_bio, reason_for_listing: form.reason_for_listing,
       access_notes: form.access_notes, response_time_estimate: form.response_time_estimate,
       past_crop_history: form.past_crop_history,
+      owner_photo_url: form.owner_photo_url,
+      photo_urls: form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean),
     } : {
       ...base, house_type: form.house_type,
     };
@@ -2088,12 +2151,42 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
                   padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
             </div>
           </div>
-          <div>
+          <div style={{ marginBottom:10 }}>
             <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>アクセス補足（駐車・道路状況等）</label>
             <input value={form.access_notes} onChange={e=>setForm({...form,access_notes:e.target.value})}
               placeholder="例：軽トラの乗り入れ可、駐車スペース2台分あり"
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+          </div>
+          <div style={{ marginBottom:10 }}>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>オーナー写真</label>
+            {form.owner_photo_url && (
+              <div style={{ marginBottom:6 }}>
+                <img src={form.owner_photo_url} alt="オーナー写真"
+                  style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
+              </div>
+            )}
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleOwnerPhotoSelect} disabled={uploading}
+              style={{ fontSize:12 }}/>
+          </div>
+          <div>
+            <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真（複数可・最大3MB/枚）</label>
+            {form.photo_urls && (
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:8 }}>
+                {form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).map(url=>(
+                  <div key={url} style={{ position:"relative" }}>
+                    <img src={url} alt="現地写真"
+                      style={{ width:64, height:64, objectFit:"cover", borderRadius:8, border:`1px solid ${C.border}` }}/>
+                    <button type="button" onClick={()=>removeFarmPhoto(url)}
+                      style={{ position:"absolute", top:-6, right:-6, width:18, height:18, borderRadius:"50%",
+                        background:"#E57373", color:"#fff", border:"none", fontSize:11, cursor:"pointer", lineHeight:"18px", padding:0 }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFarmPhotosSelect} disabled={uploading}
+              style={{ fontSize:12 }}/>
+            {uploading && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>アップロード中...</div>}
           </div>
         </div>
       )}
