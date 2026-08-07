@@ -2218,7 +2218,128 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
 }
 
 // ── マイ登録（オーナー自己登録の一覧管理） ────────────────
+const INQUIRY_STATUS_LABELS = { new:"新着", replied:"返信済", closed:"クローズ" };
+const INQUIRY_STATUS_COLORS = { new:C.soil, replied:C.lightGreen, closed:C.muted };
+
+function OwnerInquiriesTab() {
+  const [inquiries, setInquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  const fetchInquiries = async()=>{
+    setLoading(true);
+    const { data:{ session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/my/inquiries", {
+        headers: { "Authorization": `Bearer ${session?.access_token || ""}` },
+      });
+      const data = await res.json();
+      setInquiries(Array.isArray(data) ? data : []);
+    } catch {
+      setInquiries([]);
+    }
+    setLoading(false);
+  };
+  useEffect(()=>{ fetchInquiries(); },[]);
+
+  const updateStatus = async(id, status)=>{
+    const { data:{ session } } = await supabase.auth.getSession();
+    await fetch("/api/my/inquiries", {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: JSON.stringify({ id, status }),
+    });
+    setInquiries(prev => prev.map(i => i.id===id ? {...i, status} : i));
+    if(selected?.id===id) setSelected(prev => ({...prev, status}));
+  };
+
+  if(loading) return <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>読み込み中...</div>;
+  if(inquiries.length===0) return (
+    <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>
+      まだ問い合わせはありません。問い合わせが届くとここに表示されます。
+    </div>
+  );
+
+  if(selected) {
+    return (
+      <div>
+        <button onClick={()=>setSelected(null)}
+          style={{ background:"none", border:"none", color:C.muted, fontSize:12, cursor:"pointer", marginBottom:12, padding:0 }}>
+          ← 一覧に戻る
+        </button>
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>{selected.name}</div>
+          <div style={{ fontSize:12, color:C.muted }}>{selected.email}</div>
+        </div>
+        <div style={{ background:C.cream, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
+          {[
+            ["対象物件", selected.target_name || (selected.target_type==="farm"?"🌱 農地":"🏡 住居")],
+            ["目的", selected.purpose||"—"],
+            ["送信日時", new Date(selected.created_at).toLocaleDateString("ja-JP",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})],
+          ].map(([k,v])=>(
+            <div key={k} style={{ display:"flex", gap:12, marginBottom:6 }}>
+              <div style={{ fontSize:11, color:C.muted, width:70, flexShrink:0 }}>{k}</div>
+              <div style={{ fontSize:13, color:C.text, fontWeight:500 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        {selected.message && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:12, color:C.muted, marginBottom:6 }}>メッセージ</div>
+            <div style={{ fontSize:13, color:C.text, lineHeight:1.7, background:C.paleGreen, borderRadius:8, padding:"10px 12px" }}>
+              {selected.message}
+            </div>
+          </div>
+        )}
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12, color:C.muted, marginBottom:8 }}>ステータスを変更</div>
+          <div style={{ display:"flex", gap:8 }}>
+            {Object.entries(INQUIRY_STATUS_LABELS).map(([v,l])=>(
+              <button key={v} onClick={()=>updateStatus(selected.id, v)}
+                style={{ flex:1, padding:"8px",
+                  background: selected.status===v ? INQUIRY_STATUS_COLORS[v] : C.white,
+                  color: selected.status===v ? "#fff" : C.muted,
+                  border:`1.5px solid ${selected.status===v?INQUIRY_STATUS_COLORS[v]:C.border}`,
+                  borderRadius:8, fontSize:12, cursor:"pointer", fontWeight:600 }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        {selected.email && (
+          <a href={`mailto:${selected.email}?subject=【Farmatch】お問い合わせへのご回答`}
+            style={{ display:"block", background:C.green, color:"#fff", borderRadius:8, padding:"10px",
+              textAlign:"center", fontSize:13, fontWeight:700, textDecoration:"none" }}>
+            メールで返信する
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      {inquiries.map(inq=>(
+        <div key={inq.id} onClick={()=>setSelected(inq)}
+          style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px", cursor:"pointer" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{inq.name}</div>
+              <div style={{ fontSize:11, color:C.muted }}>{inq.target_name || (inq.target_type==="farm"?"🌱 農地":"🏡 住居")}への問い合わせ</div>
+            </div>
+            <span style={{ background:INQUIRY_STATUS_COLORS[inq.status]||C.muted, color:"#fff",
+              borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:600, flexShrink:0 }}>
+              {INQUIRY_STATUS_LABELS[inq.status]||inq.status}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MyListingsPanel({ userId, onClose }) {
+  const [tab, setTab] = useState("listings");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formState, setFormState] = useState(null);
@@ -2256,38 +2377,53 @@ function MyListingsPanel({ userId, onClose }) {
   return (
     <Modal onClose={onClose}>
       <h3 style={{ margin:"0 0 4px", color:C.green }}>📋 マイ登録</h3>
-      <p style={{ fontSize:12, color:C.muted, margin:"0 0 16px" }}>ご自身で登録した農地・空き家情報を管理できます。</p>
-      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-        <Btn onClick={()=>setFormState({type:"farm", editItem:null})} style={{ flex:1 }}>🌱 農地を登録する</Btn>
-        <Btn variant="outline" onClick={()=>setFormState({type:"house", editItem:null})} style={{ flex:1 }}>🏡 空き家を登録する</Btn>
+      <p style={{ fontSize:12, color:C.muted, margin:"0 0 14px" }}>ご自身で登録した農地・空き家情報と、届いた問い合わせを管理できます。</p>
+      <div style={{ display:"flex", gap:8, marginBottom:16, borderBottom:`1px solid ${C.border}` }}>
+        {[["listings","登録一覧"],["inquiries","📬 問い合わせ"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setTab(v)}
+            style={{ background:"none", border:"none", borderBottom: tab===v?`2px solid ${C.green}`:"2px solid transparent",
+              color: tab===v?C.green:C.muted, fontWeight: tab===v?700:400, fontSize:13,
+              padding:"6px 4px", marginBottom:-1, cursor:"pointer" }}>
+            {l}
+          </button>
+        ))}
       </div>
-      {loading ? (
-        <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>読み込み中...</div>
-      ) : items.length===0 ? (
-        <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>まだ登録がありません。上のボタンから登録できます。</div>
-      ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {items.map(item=>(
-            <div key={item._type+item.id} style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                    {item._type==="farm"?"🌱":"🏡"} {item.name}
+
+      {tab==="inquiries" ? <OwnerInquiriesTab/> : (
+        <>
+          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+            <Btn onClick={()=>setFormState({type:"farm", editItem:null})} style={{ flex:1 }}>🌱 農地を登録する</Btn>
+            <Btn variant="outline" onClick={()=>setFormState({type:"house", editItem:null})} style={{ flex:1 }}>🏡 空き家を登録する</Btn>
+          </div>
+          {loading ? (
+            <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>読み込み中...</div>
+          ) : items.length===0 ? (
+            <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>まだ登録がありません。上のボタンから登録できます。</div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {items.map(item=>(
+                <div key={item._type+item.id} style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {item._type==="farm"?"🌱":"🏡"} {item.name}
+                      </div>
+                      <div style={{ fontSize:11, color:C.muted }}>{item.region} {item.location} ・ {item.status}</div>
+                    </div>
+                    <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                      <button onClick={()=>setFormState({type:item._type, editItem:item})}
+                        style={{ background:C.paleGreen, border:"1px solid #B8D98A", color:C.green, borderRadius:6, padding:"4px 10px", fontSize:11, cursor:"pointer" }}>編集</button>
+                      <button onClick={()=>toggleVisibility(item)}
+                        style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:6, padding:"4px 10px", fontSize:11, cursor:"pointer" }}>
+                        {item.status==="非公開" ? "掲載を再開" : "非公開にする"}
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ fontSize:11, color:C.muted }}>{item.region} {item.location} ・ {item.status}</div>
                 </div>
-                <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                  <button onClick={()=>setFormState({type:item._type, editItem:item})}
-                    style={{ background:C.paleGreen, border:"1px solid #B8D98A", color:C.green, borderRadius:6, padding:"4px 10px", fontSize:11, cursor:"pointer" }}>編集</button>
-                  <button onClick={()=>toggleVisibility(item)}
-                    style={{ background:"none", border:`1px solid ${C.border}`, color:C.muted, borderRadius:6, padding:"4px 10px", fontSize:11, cursor:"pointer" }}>
-                    {item.status==="非公開" ? "掲載を再開" : "非公開にする"}
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </Modal>
   );
@@ -2896,16 +3032,31 @@ export default function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [showAuth, setShowAuth]   = useState(false);
   const [showMyListings, setShowMyListings] = useState(false);
+  const [newInquiryCount, setNewInquiryCount] = useState(0);
+
+  const fetchNewInquiryCount = async()=>{
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session) { setNewInquiryCount(0); return; }
+    try {
+      const res = await fetch("/api/my/inquiries", {
+        headers: { "Authorization": `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      setNewInquiryCount(Array.isArray(data) ? data.filter(i=>i.status==="new").length : 0);
+    } catch {
+      setNewInquiryCount(0);
+    }
+  };
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
       setUser(session?.user ?? null);
-      if(session?.user) fetchProfile(session.user.id);
+      if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
     });
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
       setUser(session?.user ?? null);
-      if(session?.user) fetchProfile(session.user.id);
-      else { setUserProfile(null); setIsPremium(false); }
+      if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
+      else { setUserProfile(null); setIsPremium(false); setNewInquiryCount(0); }
     });
     return ()=>subscription.unsubscribe();
   },[]);
@@ -3011,8 +3162,15 @@ export default function App() {
                   <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム</span>
                 )}
                 <button onClick={()=>setShowMyListings(true)}
-                  style={{ background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                  style={{ position:"relative", background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                   📋 マイ登録
+                  {newInquiryCount>0 && (
+                    <span style={{ position:"absolute", top:-6, right:-6, background:"#E53935", color:"#fff",
+                      borderRadius:20, minWidth:16, height:16, fontSize:10, fontWeight:700,
+                      display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
+                      {newInquiryCount}
+                    </span>
+                  )}
                 </button>
                 <button onClick={handleLogout}
                   style={{ background:"rgba(255,255,255,0.15)", color:"#fff", border:"1px solid rgba(255,255,255,0.2)", borderRadius:20, padding:"5px 14px", fontSize:11, cursor:"pointer" }}>
@@ -3408,7 +3566,7 @@ export default function App() {
       {reportTarget && <ReportModal item={reportTarget} onClose={()=>setReportTarget(null)}/>}
 
       {showMyListings && user && (
-        <MyListingsPanel userId={user.id} onClose={()=>{ setShowMyListings(false); fetchData(); }}/>
+        <MyListingsPanel userId={user.id} onClose={()=>{ setShowMyListings(false); fetchData(); fetchNewInquiryCount(); }}/>
       )}
 
       {showAuth && (
