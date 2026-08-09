@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabase";
 import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
+import { InheritedFarmlandColumn } from "./pages/Column";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
 import { ReportManager } from "./components/ReportManager";
@@ -18,6 +19,15 @@ const REGION_PAGE_THRESHOLD = 5;
 
 // 登録が古い順にこの件数までを「初期登録オーナー」として非金銭的に優遇表示する（金銭的インセンティブは避ける）
 const EARLY_REGISTRANT_LIMIT = 30;
+
+// URLパスとpage状態の対応（react-router等を使わず、直接URLでの共有・SEOのため最低限のURL連動を行う）
+const PATH_TO_PAGE = {
+  "/terms": "terms",
+  "/privacy": "privacy",
+  "/specified": "specified",
+  "/column/inherited-farmland": "column-inherited-farmland",
+};
+const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([k,v])=>[v,k]));
 
 // 災害等の影響で一時的に情報提供を停止している都道府県（自治体の復旧確認後に解除する）
 const SUSPENDED_REGIONS = ["熊本県"];
@@ -3022,7 +3032,18 @@ export default function App() {
   const [tab, setTab]             = useState(() =>
     new URLSearchParams(window.location.search).has("admin") ? "admin" : "farms"
   );
-  const [page, setPage]           = useState("main");
+  const [page, setPageState]      = useState(() => PATH_TO_PAGE[window.location.pathname] || "main");
+  const setPage = (p) => {
+    setPageState(p);
+    const path = PAGE_TO_PATH[p] || "/";
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    window.scrollTo(0, 0);
+  };
+  useEffect(() => {
+    const onPopState = () => setPageState(PATH_TO_PAGE[window.location.pathname] || "main");
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const [farms, setFarms]         = useState([]);
   const earlyFarmIds = useMemo(() => {
     const sorted = [...farms].filter(f=>f.created_at)
@@ -3141,6 +3162,12 @@ export default function App() {
     <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
       <SpecifiedCommercialPage onBack={()=>setPage("main")}/>
     </div>
+  );
+  if(page==="column-inherited-farmland") return (
+    <InheritedFarmlandColumn onBack={()=>setPage("main")} onGoApp={()=>{
+      setPage("main");
+      setTimeout(()=> user ? setShowMyListings(true) : setShowAuth(true), 0);
+    }}/>
   );
 
   const roleLabel = userProfile?.role === "owner" ? "🏡 オーナー" : userProfile?.role === "seeker" ? "🌱 就農希望者" : null;
@@ -3567,6 +3594,8 @@ export default function App() {
         <div style={{ fontWeight:700, fontSize:14, color:C.lightGreen, marginBottom:4 }}>🌱 {BRAND.name}</div>
         <div style={{ marginBottom:10 }}>{BRAND.tagline}</div>
         <div style={{ display:"flex", justifyContent:"center", gap:20, marginBottom:10, flexWrap:"wrap" }}>
+          <a href="/column/inherited-farmland" onClick={e=>{ e.preventDefault(); setPage("column-inherited-farmland"); }}
+            style={{ color:"#7AB648", fontSize:11, textDecoration:"underline" }}>実家の農地・空き家の活用コラム</a>
           <button onClick={()=>setPage("terms")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>利用規約</button>
           <button onClick={()=>setPage("privacy")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>プライバシーポリシー</button>
           <button onClick={()=>setPage("specified")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>特定商取引法に基づく表記</button>
