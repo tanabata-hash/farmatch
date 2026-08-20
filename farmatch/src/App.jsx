@@ -30,8 +30,9 @@ const PATH_TO_PAGE = {
 const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([k,v])=>[v,k]));
 
 // 災害等の影響で一時的に情報提供を停止している都道府県（自治体の復旧確認後に解除する）
-const SUSPENDED_REGIONS = ["熊本県"];
-const SUSPENDED_REGION_MESSAGE = "地震の影響により、対象地域の情報は一時的に非表示にしています。自治体による復旧状況が確認でき次第、順次再掲載いたします。";
+const SUSPENDED_REGIONS = [];
+const SUSPENDED_REGION_MESSAGE = "";
+const LISTING_NOTICE_MESSAGE = "掲載データを整理しております。農地・空き家をお持ちの方は、ぜひ新規登録をお願いいたします。";
 
 // 公開画面で取得する列（正確な座標・地番等の機微情報は含めず、ぼかし座標を lat/lng としてエイリアス）
 const PUBLIC_FARM_COLUMNS = "id,owner_id,name,region,location,area_sqm,area_label,farm_type,status,rent_label,rent_amount,water_source,access_info,crops,tags,description,score_water,score_sun,score_soil,score_climate,score_access,is_premium,plan,published_at,created_at,updated_at,owner_verified,owner_bio,reason_for_listing,response_time_estimate,past_crop_history,owner_photo_url,photo_urls,access_notes,trust_score,preferred_contact_method,lat:public_lat,lng:public_lng";
@@ -3459,12 +3460,24 @@ export default function App() {
               </button>
             </div>
 
-            {SUSPENDED_REGIONS.length>0 && (
-              <div style={{ background:"#FFF3E0", border:"1px solid #FFB74D", borderRadius:8,
-                padding:"10px 14px", marginBottom:16, fontSize:12, color:"#8A5300", lineHeight:1.6 }}>
-                ⚠️ {SUSPENDED_REGION_MESSAGE}
-              </div>
-            )}
+            <div style={{ background:C.paleGreen, border:`1.5px solid #B8D98A`, borderRadius:8,
+              padding:"12px 16px", marginBottom:16, fontSize:12, color:C.deepGreen, lineHeight:1.7,
+              display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10 }}>
+              <span>🌱 {LISTING_NOTICE_MESSAGE}</span>
+              {user ? (
+                <button onClick={()=>setShowMyListings(true)}
+                  style={{ background:C.green, color:"#fff", border:"none", borderRadius:20,
+                    padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+                  農地・空き家を登録する
+                </button>
+              ) : (
+                <button onClick={()=>setShowAuth(true)}
+                  style={{ background:C.green, color:"#fff", border:"none", borderRadius:20,
+                    padding:"7px 16px", fontSize:12, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+                  新規登録する（無料）
+                </button>
+              )}
+            </div>
 
             {showMap && (
               <div style={{ marginBottom:16, borderRadius:12, overflow:"hidden", border:`2px solid ${C.border}` }}>
