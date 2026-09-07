@@ -3182,7 +3182,8 @@ export default function App() {
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div>
             <div style={{ color:C.lightGreen, fontSize:10, letterSpacing:3, marginBottom:2 }}>FARMATCH JAPAN</div>
-            <div style={{ color:"#fff", fontSize:20, fontWeight:800 }}>🌱 {BRAND.name}</div>
+            <img src="/logo-header.png" alt={BRAND.name} height={34}
+              style={{ display:"block", height:34, width:"auto" }}/>
           </div>
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             {user ? (
@@ -3600,7 +3601,8 @@ export default function App() {
       {/* フッター */}
       <div style={{ background:C.deepGreen, color:"#7AB648", textAlign:"center",
         padding:"24px 20px", fontSize:11, marginTop:20, lineHeight:1.8 }}>
-        <div style={{ fontWeight:700, fontSize:14, color:C.lightGreen, marginBottom:4 }}>🌱 {BRAND.name}</div>
+        <img src="/logo-header.png" alt={BRAND.name} height={26}
+          style={{ height:26, width:"auto", marginBottom:4 }}/>
         <div style={{ marginBottom:10 }}>{BRAND.tagline}</div>
         <div style={{ display:"flex", justifyContent:"center", gap:20, marginBottom:10, flexWrap:"wrap" }}>
           <a href="/column/inherited-farmland" onClick={e=>{ e.preventDefault(); setPage("column-inherited-farmland"); }}
