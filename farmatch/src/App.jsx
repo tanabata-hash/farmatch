@@ -3268,11 +3268,9 @@ export default function App() {
           <style>{`
             @media (max-width: 640px) {
               .fm-hub-node { width: 72px !important; height: 72px !important; padding: 5px !important; }
-              .fm-hub-center { width: 92px !important; height: 92px !important; padding: 5px !important; }
+              .fm-hub-center { width: 92px !important; height: 92px !important; }
               .fm-hub-icon { font-size: 16px !important; margin-top: 0 !important; }
-              .fm-hub-center .fm-hub-icon { font-size: 19px !important; margin-top: 3px !important; }
               .fm-hub-title { font-size: 9.5px !important; }
-              .fm-hub-center .fm-hub-title { font-size: 11.5px !important; }
               .fm-hub-sub { font-size: 7.5px !important; }
               .fm-steps { flex-direction: column; }
               .fm-step-item { flex-direction: column; }
@@ -3322,12 +3320,10 @@ export default function App() {
 
               {/* Farmatch（中央ハブ） */}
               <div className="fm-hub-center" style={{ position:"absolute", left:"50%", top:"60.5%", transform:"translate(-50%,-50%)",
-                width:120, height:120, borderRadius:"50%", background:C.green,
-                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:8,
+                width:120, height:120, borderRadius:"50%",
                 boxShadow:"0 6px 20px rgba(45,80,22,0.35)" }}>
-                <div className="fm-hub-icon" style={{ fontSize:26, marginTop:6, marginBottom:2 }}>🌱</div>
-                <div className="fm-hub-title" style={{ fontWeight:800, fontSize:15, color:"#fff", marginBottom:3 }}>Farmatch</div>
-                <div className="fm-hub-sub" style={{ fontSize:10, color:"#D4EDAA" }}>農地と人をつなぐ</div>
+                <img src="/logo.png" alt="Farmatch 農地と人をつなぐ" width={120} height={120}
+                  style={{ display:"block", width:"100%", height:"100%", borderRadius:"50%" }}/>
               </div>
 
               {/* 農業をしたい人（左下） */}
