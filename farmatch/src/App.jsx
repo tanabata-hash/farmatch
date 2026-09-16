@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabase";
 import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 import { InheritedFarmlandColumn } from "./pages/Column";
+import { FarmingLifeGuide } from "./pages/FarmingLife";
+import { OwnerGuide } from "./pages/OwnerGuide";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
 import { ReportManager } from "./components/ReportManager";
@@ -26,6 +28,8 @@ const PATH_TO_PAGE = {
   "/privacy": "privacy",
   "/specified": "specified",
   "/column/inherited-farmland": "column-inherited-farmland",
+  "/farming-life": "farming-life",
+  "/owner-guide": "owner-guide",
 };
 const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([k,v])=>[v,k]));
 
@@ -3170,6 +3174,25 @@ export default function App() {
       setTimeout(()=> user ? setShowMyListings(true) : setShowAuth(true), 0);
     }}/>
   );
+  if(page==="farming-life") return (
+    <FarmingLifeGuide
+      onBack={()=>setPage("main")}
+      onGoApp={()=>{
+        setPage("main");
+        setTimeout(()=> user ? setShowMyListings(true) : setShowAuth(true), 0);
+      }}
+      onGoCalendar={()=>{
+        setPage("main");
+        setTab("calendar");
+      }}
+    />
+  );
+  if(page==="owner-guide") return (
+    <OwnerGuide onBack={()=>setPage("main")} onGoApp={()=>{
+      setPage("main");
+      setTimeout(()=> user ? setShowMyListings(true) : setShowAuth(true), 0);
+    }}/>
+  );
 
   const roleLabel = userProfile?.role === "owner" ? "🏡 オーナー" : userProfile?.role === "seeker" ? "🌱 就農希望者" : null;
 
@@ -3385,6 +3408,21 @@ export default function App() {
                   )}
                 </div>
               ))}
+            </div>
+
+            <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"center", gap:10, marginTop:24 }}>
+              <a href="/farming-life" onClick={e=>{ e.preventDefault(); setPage("farming-life"); }}
+                style={{ display:"inline-block", background:C.white, border:`1.5px solid ${C.lightGreen}`,
+                  borderRadius:20, padding:"10px 22px", fontSize:12.5, fontWeight:700, color:C.green,
+                  textDecoration:"none" }}>
+                🌾 就農後の生活はどうなる？ライフサイクルガイドを見る
+              </a>
+              <a href="/owner-guide" onClick={e=>{ e.preventDefault(); setPage("owner-guide"); }}
+                style={{ display:"inline-block", background:C.white, border:`1.5px solid ${C.lightGreen}`,
+                  borderRadius:20, padding:"10px 22px", fontSize:12.5, fontWeight:700, color:C.green,
+                  textDecoration:"none" }}>
+                🏞️ 農地オーナー向け：登録のメリットと放置のリスク
+              </a>
             </div>
 
           </div>
@@ -3605,6 +3643,10 @@ export default function App() {
           style={{ height:26, width:"auto", marginBottom:4 }}/>
         <div style={{ marginBottom:10 }}>{BRAND.tagline}</div>
         <div style={{ display:"flex", justifyContent:"center", gap:20, marginBottom:10, flexWrap:"wrap" }}>
+          <a href="/farming-life" onClick={e=>{ e.preventDefault(); setPage("farming-life"); }}
+            style={{ color:"#7AB648", fontSize:11, textDecoration:"underline" }}>就農後のライフサイクルガイド</a>
+          <a href="/owner-guide" onClick={e=>{ e.preventDefault(); setPage("owner-guide"); }}
+            style={{ color:"#7AB648", fontSize:11, textDecoration:"underline" }}>農地オーナー向けガイド</a>
           <a href="/column/inherited-farmland" onClick={e=>{ e.preventDefault(); setPage("column-inherited-farmland"); }}
             style={{ color:"#7AB648", fontSize:11, textDecoration:"underline" }}>実家の農地・空き家の活用コラム</a>
           <button onClick={()=>setPage("terms")} style={{ background:"none", border:"none", color:"#7AB648", cursor:"pointer", fontSize:11, textDecoration:"underline" }}>利用規約</button>
