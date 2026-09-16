@@ -4,6 +4,7 @@ import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 import { InheritedFarmlandColumn } from "./pages/Column";
 import { FarmingLifeGuide } from "./pages/FarmingLife";
 import { OwnerGuide } from "./pages/OwnerGuide";
+import { MigrationMap } from "./pages/MigrationMap";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
 import { ReportManager } from "./components/ReportManager";
@@ -3139,6 +3140,7 @@ export default function App() {
     {id:"farms",label:"🌱 農地"},
     {id:"housing",label:"🏡 住まい＋農地"},
     {id:"map",label:"🗺 地図"},
+    {id:"migration",label:"🗾 移住マップ"},
     {id:"calendar",label:"🗓 カレンダー"},
     {id:"pricing",label:"💰 料金"},
   ];
@@ -3639,6 +3641,9 @@ export default function App() {
             <MapView farms={farms.filter(f=>!SUSPENDED_REGIONS.includes(f.region))} houses={houses.filter(h=>!SUSPENDED_REGIONS.includes(h.region))} focusId={mapFocus} onSelectFarm={f=>{ setSelected(f); setTab("farms"); }} onSelectHouse={()=>setTab("housing")}/>
             <p style={{ fontSize:12, color:C.muted, marginTop:10, lineHeight:1.6 }}>OpenStreetMap による実地図表示。ピンをクリックすると概要が表示されます。</p>
           </div>
+        )}
+        {tab==="migration" && (
+          <MigrationMap onSelectPrefecture={pref=>{ setPrefFilter(pref); setTab("farms"); }}/>
         )}
         {tab==="calendar" && <CropCalendar/>}
         {tab==="pricing" && <PricingView/>}
