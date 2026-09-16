@@ -3283,6 +3283,21 @@ export default function App() {
               </button>
             )}
           </div>
+
+          <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"center", gap:10, marginTop:16 }}>
+            <a href="/farming-life" onClick={e=>{ e.preventDefault(); setPage("farming-life"); }}
+              style={{ display:"inline-block", background:"rgba(255,255,255,0.14)", border:"1.5px solid rgba(255,255,255,0.75)",
+                borderRadius:20, padding:"8px 18px", fontSize:12, fontWeight:700, color:"#fff",
+                textDecoration:"none" }}>
+              🌾 就農後の生活はどうなる？ガイドを見る
+            </a>
+            <a href="/owner-guide" onClick={e=>{ e.preventDefault(); setPage("owner-guide"); }}
+              style={{ display:"inline-block", background:"rgba(255,255,255,0.14)", border:"1.5px solid rgba(255,255,255,0.75)",
+                borderRadius:20, padding:"8px 18px", fontSize:12, fontWeight:700, color:"#fff",
+                textDecoration:"none" }}>
+              🏞️ オーナー向け：登録のメリットと放置のリスク
+            </a>
+          </div>
         </div>
       )}
 
@@ -3408,21 +3423,6 @@ export default function App() {
                   )}
                 </div>
               ))}
-            </div>
-
-            <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"center", gap:10, marginTop:24 }}>
-              <a href="/farming-life" onClick={e=>{ e.preventDefault(); setPage("farming-life"); }}
-                style={{ display:"inline-block", background:C.white, border:`1.5px solid ${C.lightGreen}`,
-                  borderRadius:20, padding:"10px 22px", fontSize:12.5, fontWeight:700, color:C.green,
-                  textDecoration:"none" }}>
-                🌾 就農後の生活はどうなる？ライフサイクルガイドを見る
-              </a>
-              <a href="/owner-guide" onClick={e=>{ e.preventDefault(); setPage("owner-guide"); }}
-                style={{ display:"inline-block", background:C.white, border:`1.5px solid ${C.lightGreen}`,
-                  borderRadius:20, padding:"10px 22px", fontSize:12.5, fontWeight:700, color:C.green,
-                  textDecoration:"none" }}>
-                🏞️ 農地オーナー向け：登録のメリットと放置のリスク
-              </a>
             </div>
 
           </div>
