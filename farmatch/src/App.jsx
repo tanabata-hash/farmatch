@@ -3283,21 +3283,6 @@ export default function App() {
               </button>
             )}
           </div>
-
-          <div style={{ display:"flex", flexWrap:"wrap", justifyContent:"center", gap:10, marginTop:16 }}>
-            <a href="/farming-life" onClick={e=>{ e.preventDefault(); setPage("farming-life"); }}
-              style={{ display:"inline-block", background:"rgba(255,255,255,0.14)", border:"1.5px solid rgba(255,255,255,0.75)",
-                borderRadius:20, padding:"8px 18px", fontSize:12, fontWeight:700, color:"#fff",
-                textDecoration:"none" }}>
-              🌾 就農後の生活はどうなる？ガイドを見る
-            </a>
-            <a href="/owner-guide" onClick={e=>{ e.preventDefault(); setPage("owner-guide"); }}
-              style={{ display:"inline-block", background:"rgba(255,255,255,0.14)", border:"1.5px solid rgba(255,255,255,0.75)",
-                borderRadius:20, padding:"8px 18px", fontSize:12, fontWeight:700, color:"#fff",
-                textDecoration:"none" }}>
-              🏞️ オーナー向け：登録のメリットと放置のリスク
-            </a>
-          </div>
         </div>
       )}
 
@@ -3312,6 +3297,7 @@ export default function App() {
               .fm-hub-title { font-size: 9.5px !important; }
               .fm-hub-sub { font-size: 7.5px !important; }
               .fm-steps { flex-direction: column; }
+              .fm-guides { flex-direction: column !important; }
               .fm-step-item { flex-direction: column; }
               .fm-step-arrow-wrap { width: 100% !important; height: 22px; }
               .fm-step-arrow-triangle { transform: rotate(90deg); }
@@ -3422,6 +3408,33 @@ export default function App() {
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
+
+            {/* 区切り */}
+            <div style={{ display:"flex", alignItems:"center", gap:10, margin:"28px 0 20px" }}>
+              <div style={{ flex:1, height:1, background:C.border }}/>
+              <div style={{ fontSize:11, color:C.muted, fontWeight:600, whiteSpace:"nowrap" }}>もっと詳しく知る</div>
+              <div style={{ flex:1, height:1, background:C.border }}/>
+            </div>
+
+            {/* ガイドリンク：就農希望者向け／オーナー向け */}
+            <div className="fm-guides" style={{ display:"flex", gap:14 }}>
+              {[
+                ["/farming-life","farming-life","🌾","就農希望者の方へ","就農後の生活はどうなる？","#8A6423","#F2EAD8"],
+                ["/owner-guide","owner-guide","🏞️","農地オーナーの方へ","登録のメリットと放置のリスク","#5C9484","#E4EEEA"],
+              ].map(([href,pageId,icon,eyebrow,title,accent,bg])=>(
+                <a key={pageId} href={href} onClick={e=>{ e.preventDefault(); setPage(pageId); }}
+                  style={{ flex:1, minWidth:0, display:"flex", alignItems:"center", gap:14, textDecoration:"none",
+                    background:bg, border:`2px solid ${accent}`, borderRadius:14, padding:"16px 18px" }}>
+                  <div style={{ flexShrink:0, width:48, height:48, borderRadius:"50%", background:C.white,
+                    border:`2px solid ${accent}`, display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:22, boxShadow:"0 2px 8px rgba(0,0,0,0.07)" }}>{icon}</div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:10.5, color:accent, fontWeight:700, marginBottom:2 }}>{eyebrow}</div>
+                    <div style={{ fontSize:13, fontWeight:800, color:C.deepGreen, lineHeight:1.5 }}>{title} →</div>
+                  </div>
+                </a>
               ))}
             </div>
 
