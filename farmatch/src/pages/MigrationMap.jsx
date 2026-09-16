@@ -190,6 +190,18 @@ const BLOCK_ACCENTS = {
   "近畿":"#C97A4F", "中国":"#B98FD1", "四国":"#5C9484", "九州・沖縄":"#C4883A",
 };
 
+// デフォルメした日本列島上の配置（実際の緯度経度ではなく、北東〜南西の位置関係を再現した簡易レイアウト）
+const MAP_POSITIONS = {
+  "北海道":   { left:"56%", top:"4%",  w:72, h:34 },
+  "東北":     { left:"52%", top:"17%", w:76, h:34 },
+  "関東":     { left:"58%", top:"31%", w:76, h:34 },
+  "中部":     { left:"42%", top:"31%", w:72, h:34 },
+  "近畿":     { left:"33%", top:"42%", w:72, h:34 },
+  "中国":     { left:"20%", top:"48%", w:72, h:34 },
+  "四国":     { left:"27%", top:"58%", w:64, h:32 },
+  "九州・沖縄": { left:"10%", top:"65%", w:88, h:34 },
+};
+
 function DetailModal({ pref, onClose, onSelectPrefecture }) {
   const data = getPrefData(pref);
   const hasSpecialties = data.specialties && data.specialties.length > 0;
@@ -256,25 +268,59 @@ function DetailModal({ pref, onClose, onSelectPrefecture }) {
   );
 }
 
+function JapanMap({ selectedBlock, onSelectBlock }) {
+  return (
+    <div style={{ position:"relative", width:"100%", maxWidth:360, aspectRatio:"9/11", margin:"0 auto 16px",
+      background:"linear-gradient(180deg, #EAF3FC 0%, #EDF5E1 100%)", borderRadius:16,
+      border:`1.5px solid ${C.border}` }}>
+      {REGION_BLOCKS.map(block => {
+        const pos = MAP_POSITIONS[block.name];
+        const isSelected = selectedBlock === block.name;
+        return (
+          <button key={block.name} onClick={()=>onSelectBlock(block.name)}
+            style={{ position:"absolute", left:pos.left, top:pos.top, width:pos.w, minHeight:pos.h,
+              background:isSelected?BLOCK_ACCENTS[block.name]:C.white,
+              border:`2px solid ${BLOCK_ACCENTS[block.name]}`, borderRadius:10,
+              color:isSelected?"#fff":C.deepGreen, fontSize:10.5, fontWeight:800, cursor:"pointer",
+              padding:"4px 6px", lineHeight:1.3, boxShadow:isSelected?"0 3px 10px rgba(0,0,0,0.2)":"0 1px 4px rgba(0,0,0,0.08)",
+              transition:"background 0.15s, color 0.15s" }}>
+            {block.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function MigrationMap({ onSelectPrefecture }) {
+  const [selectedBlock, setSelectedBlock] = useState(null);
   const [openPref, setOpenPref] = useState(null);
+  const block = REGION_BLOCKS.find(b => b.name === selectedBlock);
 
   return (
     <div>
       <h3 style={{ color:C.green, marginBottom:4, fontSize:16 }}>🗾 移住・就農先マップ</h3>
       <p style={{ color:C.muted, fontSize:13, marginBottom:8, lineHeight:1.8 }}>
-        気になる都道府県をクリックすると、支援制度の概要・名産品・移住先としての魅力がわかります。ピンとくる地域が見つかったら、そのまま農地を探してみましょう。
+        地図の地方をクリックすると、その地方の都道府県が一覧表示されます。都道府県をクリックすると、支援制度の概要・名産品・移住先としての魅力がわかります。ピンとくる地域が見つかったら、そのまま農地を探してみましょう。
       </p>
       <div style={{ display:"inline-block", background:C.paleGreen, border:"1px solid #B8D98A", borderRadius:20,
-        padding:"4px 14px", fontSize:11, color:C.green, fontWeight:700, marginBottom:18 }}>
+        padding:"4px 14px", fontSize:11, color:C.green, fontWeight:700, marginBottom:16 }}>
         📅 支援制度情報は{formatVerifiedDate(DATA_VERIFIED_ON)}時点で確認したものです（都道府県ごとに随時変更されます）
       </div>
 
-      {REGION_BLOCKS.map(block => (
-        <div key={block.name} style={{ marginBottom:18 }}>
+      <JapanMap selectedBlock={selectedBlock} onSelectBlock={name => setSelectedBlock(name===selectedBlock?null:name)}/>
+
+      {!block && (
+        <p style={{ textAlign:"center", color:C.muted, fontSize:12.5, marginTop:4 }}>
+          ↑ 地図の地方をクリックしてください
+        </p>
+      )}
+
+      {block && (
+        <div style={{ marginTop:4 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
             <span style={{ width:8, height:8, borderRadius:"50%", background:BLOCK_ACCENTS[block.name] }}/>
-            <span style={{ fontSize:12.5, fontWeight:700, color:C.deepGreen }}>{block.name}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:C.deepGreen }}>{block.name}</span>
           </div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
             {block.prefs.map(pref => (
@@ -286,7 +332,7 @@ export function MigrationMap({ onSelectPrefecture }) {
             ))}
           </div>
         </div>
-      ))}
+      )}
 
       {openPref && (
         <DetailModal pref={openPref} onClose={()=>setOpenPref(null)} onSelectPrefecture={onSelectPrefecture}/>
