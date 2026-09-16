@@ -190,16 +190,30 @@ const BLOCK_ACCENTS = {
   "近畿":"#C97A4F", "中国":"#B98FD1", "四国":"#5C9484", "九州・沖縄":"#C4883A",
 };
 
-// デフォルメした日本列島上の配置（実際の緯度経度ではなく、北東〜南西の位置関係を再現した簡易レイアウト）
-const MAP_POSITIONS = {
-  "北海道":   { left:"56%", top:"4%",  w:72, h:34 },
-  "東北":     { left:"52%", top:"17%", w:76, h:34 },
-  "関東":     { left:"58%", top:"31%", w:76, h:34 },
-  "中部":     { left:"42%", top:"31%", w:72, h:34 },
-  "近畿":     { left:"33%", top:"42%", w:72, h:34 },
-  "中国":     { left:"20%", top:"48%", w:72, h:34 },
-  "四国":     { left:"27%", top:"58%", w:64, h:32 },
-  "九州・沖縄": { left:"10%", top:"65%", w:88, h:34 },
+// 日本列島の島の輪郭を模した自作SVG（外部地図データは使用せず、実際の島の形・位置関係に近づけたシルエット）
+// viewBox: 0 0 400 600
+const MAP_VIEWBOX = "0 0 400 600";
+
+const ISLAND_PATHS = {
+  hokkaido: "M248,35 C265,20 292,18 310,32 C325,44 328,62 320,78 C330,90 328,108 312,116 C295,124 275,120 262,106 C245,110 228,100 222,84 C216,68 222,50 236,42 C240,38 244,36 248,35 Z",
+  honshu: "M262,120 C285,138 300,160 302,185 C304,208 296,222 306,238 C296,258 272,268 258,286 C246,302 240,318 222,328 C202,340 186,336 168,346 C150,356 138,360 122,366 C110,370 102,376 96,384 C88,378 88,364 98,354 C110,342 128,338 142,328 C130,320 128,306 138,296 C150,284 168,282 182,272 C196,262 200,246 210,232 C198,224 194,208 202,194 C210,180 224,176 232,164 C222,150 226,132 240,124 C247,120 255,119 262,120 Z",
+  shikoku: "M182,352 C198,346 216,350 224,362 C230,372 222,382 208,384 C192,386 176,382 170,370 C166,362 172,356 182,352 Z",
+  kyushu: "M126,382 C144,376 162,384 166,402 C170,416 166,430 168,444 C170,458 160,472 144,476 C128,480 112,472 104,458 C96,444 98,428 92,414 C87,402 92,390 104,384 C111,381 119,380 126,382 Z",
+};
+
+// 沖縄は本州から大きく離れているため、実際の地図同様に左下へ縮小インセットで表示
+const OKINAWA_INSET = { x:30, y:540, w:90, h:46 };
+
+// 各地方ブロックのピン位置（viewBox座標）。列島の形に合わせた地方の実際の位置関係を再現。
+const MAP_PINS = {
+  "北海道":     { x:272, y:70 },
+  "東北":       { x:270, y:150 },
+  "関東":       { x:296, y:222 },
+  "中部":       { x:236, y:220 },
+  "近畿":       { x:196, y:266 },
+  "中国":       { x:150, y:310 },
+  "四国":       { x:198, y:366 },
+  "九州・沖縄": { x:128, y:428 },
 };
 
 function DetailModal({ pref, onClose, onSelectPrefecture }) {
@@ -268,26 +282,56 @@ function DetailModal({ pref, onClose, onSelectPrefecture }) {
   );
 }
 
+function Pin({ name, x, y, isSelected, onClick, small, colorOverride }) {
+  // viewBox は 0 0 400 600 なので % に変換して重ねる
+  const left = `${(x/400)*100}%`, top = `${(y/600)*100}%`;
+  const color = colorOverride || BLOCK_ACCENTS[name];
+  return (
+    <button onClick={onClick} title={name}
+      style={{ position:"absolute", left, top, transform:"translate(-50%,-50%)",
+        display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+        background:"none", border:"none", cursor:"pointer", padding:0, zIndex:isSelected?3:2 }}>
+      <span style={{ width:isSelected?18:13, height:isSelected?18:13, borderRadius:"50%",
+        background:color, border:"2px solid #fff",
+        boxShadow:isSelected?"0 0 0 3px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.25)",
+        transition:"width 0.15s, height 0.15s" }}/>
+      <span style={{ fontSize:small?9:10.5, fontWeight:800, whiteSpace:"nowrap",
+        color:isSelected?C.deepGreen:C.text, background:"rgba(255,255,255,0.88)",
+        borderRadius:6, padding:"1px 5px", boxShadow:"0 1px 3px rgba(0,0,0,0.12)" }}>
+        {name}
+      </span>
+    </button>
+  );
+}
+
 function JapanMap({ selectedBlock, onSelectBlock }) {
   return (
-    <div style={{ position:"relative", width:"100%", maxWidth:360, aspectRatio:"9/11", margin:"0 auto 16px",
-      background:"linear-gradient(180deg, #EAF3FC 0%, #EDF5E1 100%)", borderRadius:16,
-      border:`1.5px solid ${C.border}` }}>
-      {REGION_BLOCKS.map(block => {
-        const pos = MAP_POSITIONS[block.name];
-        const isSelected = selectedBlock === block.name;
-        return (
-          <button key={block.name} onClick={()=>onSelectBlock(block.name)}
-            style={{ position:"absolute", left:pos.left, top:pos.top, width:pos.w, minHeight:pos.h,
-              background:isSelected?BLOCK_ACCENTS[block.name]:C.white,
-              border:`2px solid ${BLOCK_ACCENTS[block.name]}`, borderRadius:10,
-              color:isSelected?"#fff":C.deepGreen, fontSize:10.5, fontWeight:800, cursor:"pointer",
-              padding:"4px 6px", lineHeight:1.3, boxShadow:isSelected?"0 3px 10px rgba(0,0,0,0.2)":"0 1px 4px rgba(0,0,0,0.08)",
-              transition:"background 0.15s, color 0.15s" }}>
-            {block.name}
-          </button>
-        );
-      })}
+    <div style={{ position:"relative", width:"100%", maxWidth:340, aspectRatio:"400/600", margin:"0 auto 16px" }}>
+      <svg viewBox={MAP_VIEWBOX} style={{ width:"100%", height:"100%", display:"block" }}>
+        <rect x="0" y="0" width="400" height="600" rx="16" fill="#EAF3FC"/>
+        <path d={ISLAND_PATHS.hokkaido} fill="#DCE9C8" stroke="#B9C99A" strokeWidth="1.5"/>
+        <path d={ISLAND_PATHS.honshu} fill="#DCE9C8" stroke="#B9C99A" strokeWidth="1.5"/>
+        <path d={ISLAND_PATHS.shikoku} fill="#DCE9C8" stroke="#B9C99A" strokeWidth="1.5"/>
+        <path d={ISLAND_PATHS.kyushu} fill="#DCE9C8" stroke="#B9C99A" strokeWidth="1.5"/>
+        {/* 沖縄インセット（実際の位置からは大きく離れているため縮尺・位置は模式的） */}
+        <rect x={OKINAWA_INSET.x-6} y={OKINAWA_INSET.y-14} width={OKINAWA_INSET.w+12} height={OKINAWA_INSET.h+20}
+          rx="6" fill="none" stroke="#B9C99A" strokeWidth="1" strokeDasharray="3,3"/>
+        <text x={OKINAWA_INSET.x-2} y={OKINAWA_INSET.y-4} fontSize="9" fill={C.muted} fontWeight="700">沖縄（位置は模式的）</text>
+        <ellipse cx={OKINAWA_INSET.x+16} cy={OKINAWA_INSET.y+18} rx="12" ry="7" fill="#DCE9C8" stroke="#B9C99A" strokeWidth="1.2"/>
+        <ellipse cx={OKINAWA_INSET.x+46} cy={OKINAWA_INSET.y+26} rx="7" ry="4.5" fill="#DCE9C8" stroke="#B9C99A" strokeWidth="1.2"/>
+      </svg>
+
+      {REGION_BLOCKS.filter(b=>b.name!=="九州・沖縄").map(b => (
+        <Pin key={b.name} name={b.name} x={MAP_PINS[b.name].x} y={MAP_PINS[b.name].y}
+          isSelected={selectedBlock===b.name} onClick={()=>onSelectBlock(b.name)}/>
+      ))}
+      {/* 「九州・沖縄」ブロックは九州本島と沖縄インセットの2箇所にピンを置き、どちらからでも選択可能にする */}
+      <Pin name="九州" x={MAP_PINS["九州・沖縄"].x} y={MAP_PINS["九州・沖縄"].y}
+        isSelected={selectedBlock==="九州・沖縄"} onClick={()=>onSelectBlock("九州・沖縄")}
+        colorOverride={BLOCK_ACCENTS["九州・沖縄"]}/>
+      <Pin name="沖縄" x={OKINAWA_INSET.x+30} y={OKINAWA_INSET.y+40}
+        isSelected={selectedBlock==="九州・沖縄"} onClick={()=>onSelectBlock("九州・沖縄")}
+        colorOverride={BLOCK_ACCENTS["九州・沖縄"]} small/>
     </div>
   );
 }
