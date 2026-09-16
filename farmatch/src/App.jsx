@@ -3440,6 +3440,18 @@ export default function App() {
               ))}
             </div>
 
+            {/* 区切り */}
+            <div style={{ display:"flex", alignItems:"center", gap:10, margin:"28px 0 20px" }}>
+              <div style={{ flex:1, height:1, background:C.border }}/>
+              <div style={{ fontSize:11, color:C.muted, fontWeight:600, whiteSpace:"nowrap" }}>移住先・就農先を探す</div>
+              <div style={{ flex:1, height:1, background:C.border }}/>
+            </div>
+
+            {/* 移住・就農先マップ（地図から地方→都道府県→詳細の順に絞り込める） */}
+            <div style={{ background:C.white, border:`2px solid ${C.border}`, borderRadius:14, padding:"20px 22px" }}>
+              <MigrationMap onSelectPrefecture={pref=>{ setPrefFilter(pref); setTab("farms"); }}/>
+            </div>
+
           </div>
         </div>
       )}
