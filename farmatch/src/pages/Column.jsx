@@ -68,7 +68,7 @@ function CtaBox({ onGoApp }) {
         🌱 実家の農地を、Farmatchで探している人に届けませんか？
       </div>
       <p style={{ fontSize:13, color:C.text, lineHeight:1.8, margin:"0 0 16px" }}>
-        Farmatchは、全国の遊休農地と就農希望者・移住希望者をマッチングする無料のプラットフォームです。掲載料は当面無料。ログインすれば数分で登録でき、問い合わせが届いたらメールでお知らせします。
+        Farmatchは、全国の遊休農地と就農希望者・移住希望者をマッチングする無料のプラットフォームです。掲載料は無料。ログインすれば数分で登録でき、メッセージが届いたらメールでお知らせします。
       </p>
       <button onClick={onGoApp} style={{ background:C.green, color:"#fff", border:"none",
         borderRadius:24, padding:"12px 28px", fontSize:14, fontWeight:800, cursor:"pointer" }}>
