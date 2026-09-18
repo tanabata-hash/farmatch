@@ -18,16 +18,22 @@ function getClientIp(req) {
 
 // 問い合わせ本文を個別に取得するエンドポイント。利用規約第6条（メッセージ機能及び
 // 通信の秘密）第3項の各号に該当する場合に限り、理由を選択したうえで本文を確認できる。
-// 取得の都度 message_access_logs に日時・理由・IPを記録する（同条第5項）。
+// 取得の都度 message_access_logs に日時・理由・確認者名・IPを記録する（同条第5項）。
 export default async function handler(req, res) {
   if (!(await requireAdminPassword(req, res))) return;
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { id, reason } = req.query;
+  const { id, reason, accessedBy } = req.query;
+  const trimmedAccessedBy = typeof accessedBy === "string" ? accessedBy.trim() : "";
   if (!id || !ALLOWED_REASONS.includes(reason)) {
     return res.status(400).json({ error: "idと有効なreasonが必要です" });
+  }
+  // フロントの入力必須チェックに加え、サーバー側でも確認者名の入力を必須とする
+  // （利用規約第6条第5項「確認した者」の記録をフロントだけの制御にしない）。
+  if (!trimmedAccessedBy) {
+    return res.status(400).json({ error: "確認者名の入力が必要です" });
   }
 
   const supabase = getServiceClient();
@@ -39,7 +45,7 @@ export default async function handler(req, res) {
   if (fetchError || !inquiry) return res.status(404).json({ error: "見つかりません" });
 
   const { error: logError } = await supabase.from("message_access_logs").insert([{
-    inquiry_id: id, reason, ip: getClientIp(req),
+    inquiry_id: id, reason, accessed_by: trimmedAccessedBy, ip: getClientIp(req),
   }]);
   if (logError) console.error("message_access_logs insert failed:", logError.message);
 

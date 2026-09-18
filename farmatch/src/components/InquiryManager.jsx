@@ -15,8 +15,9 @@ export function InquiryManager() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("all");
-  // 本文（message）は一覧APIに含まれないため、理由選択のうえ個別に取得する
+  // 本文（message）は一覧APIに含まれないため、理由・確認者名を入力のうえ個別に取得する
   const [accessReason, setAccessReason] = useState("");
+  const [accessorName, setAccessorName] = useState("");
   const [messageText, setMessageText] = useState(null);
   const [messageLoading, setMessageLoading] = useState(false);
   const [messageError, setMessageError] = useState("");
@@ -24,16 +25,18 @@ export function InquiryManager() {
   const selectInquiry = (inq) => {
     setSelected(inq);
     setAccessReason("");
+    setAccessorName("");
     setMessageText(null);
     setMessageError("");
   };
 
   const fetchMessage = async () => {
-    if (!selected || !accessReason) return;
+    const name = accessorName.trim();
+    if (!selected || !accessReason || !name) return;
     setMessageLoading(true);
     setMessageError("");
     try {
-      const res = await fetch(`/api/admin/inquiry-message?id=${encodeURIComponent(selected.id)}&reason=${encodeURIComponent(accessReason)}`, {
+      const res = await fetch(`/api/admin/inquiry-message?id=${encodeURIComponent(selected.id)}&reason=${encodeURIComponent(accessReason)}&accessedBy=${encodeURIComponent(name)}`, {
         headers: { "x-admin-password": sessionStorage.getItem("adminPw") || "" },
       });
       const data = await res.json();
@@ -194,7 +197,7 @@ export function InquiryManager() {
                   <div style={{ background:C.cream, borderRadius:8, padding:"10px 12px" }}>
                     <p style={{ fontSize:11, color:C.muted, margin:"0 0 8px", lineHeight:1.6 }}>
                       通信の秘密保護のため、本文は一覧に表示されません。利用規約第6条第3項の各号に該当する場合のみ、
-                      確認理由を選択のうえで表示できます（確認の日時・理由は記録されます）。
+                      確認理由と確認者名を入力のうえで表示できます（確認の日時・理由・確認者名は記録されます）。
                     </p>
                     <select value={accessReason} onChange={e=>setAccessReason(e.target.value)}
                       style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:6,
@@ -204,12 +207,15 @@ export function InquiryManager() {
                         <option key={r} value={r}>{r}</option>
                       ))}
                     </select>
+                    <input type="text" value={accessorName} onChange={e=>setAccessorName(e.target.value)}
+                      placeholder="確認者名（必須）" style={{ width:"100%", border:`1.5px solid ${C.border}`,
+                        borderRadius:6, padding:"6px 8px", fontSize:12, marginBottom:8, boxSizing:"border-box" }}/>
                     {messageError && <p style={{ color:"#E57373", fontSize:11, marginBottom:8 }}>{messageError}</p>}
-                    <button onClick={fetchMessage} disabled={!accessReason||messageLoading}
-                      style={{ width:"100%", background: accessReason?C.green:C.border,
-                        color: accessReason?"#fff":C.muted, border:"none", borderRadius:6,
+                    <button onClick={fetchMessage} disabled={!accessReason||!accessorName.trim()||messageLoading}
+                      style={{ width:"100%", background: (accessReason&&accessorName.trim())?C.green:C.border,
+                        color: (accessReason&&accessorName.trim())?"#fff":C.muted, border:"none", borderRadius:6,
                         padding:"8px", fontSize:12, fontWeight:700,
-                        cursor: accessReason?"pointer":"not-allowed" }}>
+                        cursor: (accessReason&&accessorName.trim())?"pointer":"not-allowed" }}>
                       {messageLoading ? "確認中..." : "本文を確認する"}
                     </button>
                   </div>
