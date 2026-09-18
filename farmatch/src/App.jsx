@@ -7,6 +7,7 @@ import { OwnerGuide } from "./pages/OwnerGuide";
 import { MigrationMap } from "./pages/MigrationMap";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
+import { PasswordResetModal } from "./components/PasswordReset";
 import { ReportManager } from "./components/ReportManager";
 
 const BRAND = {
@@ -3071,6 +3072,7 @@ export default function App() {
   const [user, setUser]           = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuth, setShowAuth]   = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showMyListings, setShowMyListings] = useState(false);
   const [newInquiryCount, setNewInquiryCount] = useState(0);
 
@@ -3093,7 +3095,12 @@ export default function App() {
       setUser(session?.user ?? null);
       if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
     });
-    const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
+    // パスワードリセットのリンクから戻ってきた場合は、再設定画面を表示する
+    const hash = window.location.hash || "";
+    if(hash.includes("type=recovery")) setShowPasswordReset(true);
+
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange((event, session)=>{
+      if(event === "PASSWORD_RECOVERY") setShowPasswordReset(true);
       setUser(session?.user ?? null);
       if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
       else { setUserProfile(null); setIsPremium(false); setNewInquiryCount(0); }
@@ -3700,6 +3707,13 @@ export default function App() {
       </div>
 
       {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
+
+      {showPasswordReset && (
+        <PasswordResetModal onClose={()=>{
+          setShowPasswordReset(false);
+          if(window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }}/>
+      )}
       {reportTarget && <ReportModal item={reportTarget} onClose={()=>setReportTarget(null)}/>}
 
       {showMyListings && user && (
