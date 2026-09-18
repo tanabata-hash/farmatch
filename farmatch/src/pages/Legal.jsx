@@ -1,3 +1,5 @@
+import { TERMS_EFFECTIVE_DATE, formatJaDate } from "../termsVersion";
+
 const C = {
   deepGreen:"#1E3D0F", green:"#2D5016", lightGreen:"#7AB648", paleGreen:"#EDF5E1",
   cream:"#F5F0E8", white:"#FFFFFF", text:"#1A1A1A", muted:"#6B6B6B", border:"#E0D8CC",
@@ -30,9 +32,9 @@ function LegalPage({ title, onBack, children }) {
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, id, children }) {
   return (
-    <div style={{ marginBottom:28 }}>
+    <div id={id} style={{ marginBottom:28 }}>
       <h2 style={{ fontSize:15, color:C.green, fontWeight:700, marginBottom:10,
         paddingBottom:6, borderBottom:`1px solid ${C.border}` }}>{title}</h2>
       <div style={{ fontSize:13, color:C.text, lineHeight:1.9 }}>{children}</div>
@@ -54,7 +56,7 @@ export function TermsPage({ onBack }) {
     <LegalPage title="利用規約" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2026年8月7日
+        制定日：2025年1月1日　本改定の施行日：{formatJaDate(TERMS_EFFECTIVE_DATE)}
       </div>
 
       <Section title="第1条（適用）">
@@ -98,7 +100,21 @@ export function TermsPage({ onBack }) {
         </ul>
       </Section>
 
-      <Section title="第6条（有料サービスと料金）">
+      <Section title="第6条（メッセージ機能及び通信の秘密）" id="terms-messaging">
+        1. 当サービスは、利用者が農地・物件の登録者その他の利用者に宛ててメッセージを送信し、受信することができる機能（以下「メッセージ機能」といいます。）を提供します。<br/>
+        2. 当サービスは、電気通信事業法に基づき、メッセージ機能による通信の秘密を守ります。<br/>
+        3. 前項の定めにかかわらず、利用者は、次の各号のいずれかに該当する場合に限り、当サービスがその目的の達成に必要な範囲でメッセージの内容を確認することに同意するものとします。
+        <ul style={{ marginTop:8, paddingLeft:20 }}>
+          <li>他の利用者から通報を受け、その内容を確認する必要がある場合</li>
+          <li>詐欺、不当な勧誘、迷惑行為その他本規約に違反する行為の疑いがあり、調査する必要がある場合</li>
+          <li>人の生命、身体又は財産の保護のために緊急の必要がある場合</li>
+          <li>法令に基づき開示を求められた場合</li>
+        </ul>
+        4. 当サービスは、前項により確認した内容を、同項各号の目的以外に利用せず、法令に基づく場合を除き第三者に提供しません。<br/>
+        5. 当サービスは、第3項によりメッセージの内容を確認したときは、その日時、理由及び確認した者を記録します。
+      </Section>
+
+      <Section title="第7条（有料サービスと料金）">
         当サービスは、以下の有料プランを提供します。
         <ul style={{ marginTop:8, paddingLeft:20 }}>
           <li>農地・物件オーナー向けベーシック掲載：¥3,000/月</li>
@@ -111,11 +127,11 @@ export function TermsPage({ onBack }) {
         将来、無料期間の終了に伴い課金体系を変更する場合は、変更内容と適用開始日を事前にメール等でお知らせします。
       </Section>
 
-      <Section title="第7条（解約・返金）">
+      <Section title="第8条（解約・返金）">
         有料プランの解約はいつでも可能です。解約後は当月末まで引き続きサービスをご利用いただけます。原則として既にお支払いいただいた料金の返金はいたしません。ただし、当サービスの重大な瑕疵により正常にサービスを提供できなかった場合はこの限りではありません。
       </Section>
 
-      <Section title="第8条（サービスの停止等）">
+      <Section title="第9条（サービスの停止等）">
         当サービスは、以下のいずれかの事由がある場合、ユーザーに事前通知なく本サービスの全部または一部の提供を停止・中断することができます。
         <ul style={{ marginTop:8, paddingLeft:20 }}>
           <li>システムの保守点検または更新を行う場合</li>
@@ -124,19 +140,19 @@ export function TermsPage({ onBack }) {
         </ul>
       </Section>
 
-      <Section title="第9条（免責事項）">
+      <Section title="第10条（免責事項）">
         当サービスは、農地・物件の情報を掲載し、当事者同士が連絡を取り合うための場（プラットフォーム）を提供するものです。当サービスは契約の媒介・代理・条件交渉のあっせんを行うものではなく、実際の契約締結や交渉はユーザー間で行っていただきます。当サービスは、ユーザー間の取引の場を提供するものであり、実際の取引および契約から生じる損害について、当サービスに故意または重大な過失がある場合を除き、責任を負いません。なお、当サービスが責任を負う場合であっても、その賠償範囲はユーザーに生じた直接かつ通常の損害に限られ、かつ損害発生時点から遡って過去3ヶ月間に当該ユーザーから受領した利用料金の額を上限とします。ただし、消費者契約法に定める消費者契約となる場合、この免責規定は同法の定める範囲でのみ適用されます。
       </Section>
 
-      <Section title="第10条（知的財産権）">
+      <Section title="第11条（知的財産権）">
         当サービス上のコンテンツ（テキスト・画像・デザイン等）の著作権は当サービスまたは正当な権利者に帰属します。ユーザーが登録した農地・物件情報の著作権はユーザーに帰属しますが、当サービスはサービス改善・宣伝目的でこれを利用できるものとします。ユーザーは、自ら投稿する写真等のコンテンツについて、適法な権利を有し、または権利者から必要な許諾を得ていることを保証するものとし、これに違反したことにより当サービスまたは第三者に損害が生じた場合、当該ユーザーが責任を負うものとします。
       </Section>
 
-      <Section title="第11条（利用規約の変更）">
+      <Section title="第12条（利用規約の変更）">
         当サービスは、必要と判断した場合、ユーザーに通知のうえ本規約を変更することができます。変更後も当サービスをご利用いただいた場合、変更後の規約に同意したものとみなします。
       </Section>
 
-      <Section title="第12条（準拠法・裁判管轄）">
+      <Section title="第13条（準拠法・裁判管轄）">
         本規約の解釈にあたっては、日本法を準拠法とします。本サービスに関して紛争が生じた場合には、運営者の所在地を管轄する裁判所を専属的合意管轄とします。
       </Section>
     </LegalPage>
@@ -148,7 +164,7 @@ export function PrivacyPage({ onBack }) {
     <LegalPage title="プライバシーポリシー" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2026年8月7日
+        制定日：2025年1月1日　本改定の施行日：{formatJaDate(TERMS_EFFECTIVE_DATE)}
       </div>
 
       <Section title="第1条（個人情報の定義）">
@@ -160,7 +176,7 @@ export function PrivacyPage({ onBack }) {
         <ul style={{ marginTop:8, paddingLeft:20 }}>
           <li>氏名・メールアドレス（利用登録時）</li>
           <li>農地・物件情報（掲載登録時）</li>
-          <li>問い合わせ内容・メッセージ</li>
+          <li>問い合わせ内容・メッセージ（送受信日時を含む）</li>
           <li>決済情報（Stripeを経由して処理、当サービスはカード番号を保持しません）</li>
           <li>アクセスログ・利用履歴</li>
         </ul>
@@ -172,21 +188,23 @@ export function PrivacyPage({ onBack }) {
           <li>サービスの提供・運営</li>
           <li>農地・物件のマッチング</li>
           <li>お問い合わせへの対応</li>
+          <li>メッセージの送受信及び到着の通知</li>
           <li>重要なお知らせの送信</li>
           <li>サービス改善・分析</li>
           <li>不正利用の防止</li>
+          <li>利用規約第6条第3項に定める場合における、不正利用・規約違反への対応</li>
         </ul>
       </Section>
 
       <Section title="第4条（第三者サービスの利用）">
-        当サービスは以下の第三者サービスを利用しており、それぞれのプライバシーポリシーが適用されます。
+        当サービスは、サービスの提供に必要な範囲で、以下の事業者に個人情報の取扱いを委託又は利用しており、それぞれのプライバシーポリシーが適用されます。
         <ul style={{ marginTop:8, paddingLeft:20 }}>
-          <li><strong>Supabase</strong>：データベース・認証サービス（米国）</li>
-          <li><strong>Vercel</strong>：ホスティングサービス（米国）</li>
+          <li><strong>Supabase</strong>：データベース・認証サービス（データの保存場所：日本（東京）／運営事業者の所在国：米国）</li>
+          <li><strong>Vercel</strong>：ホスティングサービス及びサーバー処理（米国）</li>
           <li><strong>Resend</strong>：問い合わせ通知等のメール配信サービス（米国）</li>
           <li><strong>Stripe</strong>：決済処理サービス（米国）※導入予定</li>
         </ul>
-        これらのサービスへのデータ移転は、各社のデータ保護方針に基づいて行われます。日本の個人情報保護法上、米国は十分性認定国ではないため、当サービスは各社が締結する標準契約条項（SCCs）等の適切な安全管理措置に基づき、必要な範囲でデータを移転します。移転先である米国には連邦レベルでの包括的な個人情報保護法は存在しませんが、提供先各社が適切なデータ保護・セキュリティ管理体制を備えていることを確認したうえでデータを移転しています。
+        Supabaseについては、データそのものは日本国内（東京リージョン）に保存されますが、運営事業者は米国法人であるため、保守・サポート等に伴い米国からのアクセスが生じ得ます。Vercel・Resendは米国でサービスを運営しています。これらのサービスへのデータ移転は、各社のデータ保護方針に基づいて行われます。日本の個人情報保護法上、米国は十分性認定国ではないため、当サービスは各社が締結する標準契約条項（SCCs）等の適切な安全管理措置に基づき、必要な範囲でデータを移転します。移転先である米国には連邦レベルでの包括的な個人情報保護法は存在しませんが、提供先各社が適切なデータ保護・セキュリティ管理体制を備えていることを確認したうえでデータを移転しています。米国の個人情報保護制度については、個人情報保護委員会のウェブサイトをご参照ください。
       </Section>
 
       <Section title="第5条（第三者提供の制限）">

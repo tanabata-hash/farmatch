@@ -1786,10 +1786,11 @@ function AdminPanel({ onLogout }) {
 function ContactModal({ item, onClose }) {
   const [form, setForm] = useState({name:"",email:"",purpose:"",msg:""});
   const [website, setWebsite] = useState(""); // ハニーポット（人間には見えない。入力があればbot扱い）
+  const [consent, setConsent] = useState(false);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const handleSubmit = async()=>{
-    if(!form.name||!form.email) return;
+    if(!form.name||!form.email||!consent) return;
     if(website) { setSent(true); return; } // botはここで無言で弾く
     setLoading(true);
     const isHouse=!!item.house_type;
@@ -1803,7 +1804,7 @@ function ContactModal({ item, onClose }) {
           farmId: isHouse?null:item.id,
           houseId: isHouse?item.id:null,
           name:form.name, email:form.email, purpose:form.purpose, message:form.msg,
-          website,
+          website, consent,
         }),
       });
       const data = await res.json().catch(()=>({}));
@@ -1850,9 +1851,20 @@ function ContactModal({ item, onClose }) {
                 padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
           <LegalCautionNote compact isHouse={!!item.house_type}/>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:16 }}>
+            <input type="checkbox" id="inquiry-consent" checked={consent}
+              onChange={e=>setConsent(e.target.checked)} style={{ marginTop:2 }}/>
+            <label htmlFor="inquiry-consent" style={{ fontSize:11.5, color:C.muted, lineHeight:1.6, cursor:"pointer" }}>
+              <a href="/terms#terms-messaging" target="_blank" rel="noopener noreferrer"
+                style={{ color:C.green, textDecoration:"underline" }}>
+                利用規約第6条（メッセージ機能及び通信の秘密）
+              </a>
+              に同意する
+            </label>
+          </div>
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
-            <Btn onClick={handleSubmit} style={{ flex:2, opacity:loading?0.7:1 }}>
+            <Btn onClick={handleSubmit} style={{ flex:2, opacity:(loading||!consent)?0.6:1 }}>
               {loading?"送信中...":"送信する"}
             </Btn>
           </div>

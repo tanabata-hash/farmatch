@@ -8,12 +8,42 @@ const C = {
 
 const STATUS_LABELS = { new:"新着", replied:"返信済", closed:"クローズ" };
 const STATUS_COLORS = { new:C.soil, replied:C.lightGreen, closed:C.muted };
+const MESSAGE_ACCESS_REASONS = ["通報対応", "規約違反の調査", "緊急対応", "法令に基づく対応"];
 
 export function InquiryManager() {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("all");
+  // 本文（message）は一覧APIに含まれないため、理由選択のうえ個別に取得する
+  const [accessReason, setAccessReason] = useState("");
+  const [messageText, setMessageText] = useState(null);
+  const [messageLoading, setMessageLoading] = useState(false);
+  const [messageError, setMessageError] = useState("");
+
+  const selectInquiry = (inq) => {
+    setSelected(inq);
+    setAccessReason("");
+    setMessageText(null);
+    setMessageError("");
+  };
+
+  const fetchMessage = async () => {
+    if (!selected || !accessReason) return;
+    setMessageLoading(true);
+    setMessageError("");
+    try {
+      const res = await fetch(`/api/admin/inquiry-message?id=${encodeURIComponent(selected.id)}&reason=${encodeURIComponent(accessReason)}`, {
+        headers: { "x-admin-password": sessionStorage.getItem("adminPw") || "" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "取得に失敗しました");
+      setMessageText(data.message);
+    } catch (err) {
+      setMessageError(err.message);
+    }
+    setMessageLoading(false);
+  };
 
   const fetchInquiries = async () => {
     setLoading(true);
@@ -92,7 +122,7 @@ export function InquiryManager() {
           {/* List */}
           <div>
             {filtered.map(inq=>(
-              <div key={inq.id} onClick={()=>setSelected(inq)}
+              <div key={inq.id} onClick={()=>selectInquiry(inq)}
                 style={{ background: selected?.id===inq.id ? C.paleGreen : C.white,
                   border:`2px solid ${selected?.id===inq.id?C.lightGreen:C.border}`,
                   borderRadius:10, padding:"14px 16px", marginBottom:10, cursor:"pointer" }}>
@@ -124,7 +154,7 @@ export function InquiryManager() {
           {selected && (
             <div style={{ background:C.white, border:`2px solid ${C.border}`,
               borderRadius:10, padding:20, position:"sticky", top:16, height:"fit-content" }}>
-              <button onClick={()=>setSelected(null)}
+              <button onClick={()=>selectInquiry(null)}
                 style={{ background:"none", border:"none", color:C.muted,
                   fontSize:12, cursor:"pointer", marginBottom:12, padding:0 }}>
                 ← 一覧に戻る
@@ -153,15 +183,38 @@ export function InquiryManager() {
                 ))}
               </div>
 
-              {selected.message && (
-                <div style={{ marginBottom:16 }}>
-                  <div style={{ fontSize:12, color:C.muted, marginBottom:6 }}>メッセージ</div>
+              <div style={{ marginBottom:16 }}>
+                <div style={{ fontSize:12, color:C.muted, marginBottom:6 }}>メッセージ本文</div>
+                {messageText !== null ? (
                   <div style={{ fontSize:13, color:C.text, lineHeight:1.7,
                     background:C.paleGreen, borderRadius:8, padding:"10px 12px" }}>
-                    {selected.message}
+                    {messageText || "（本文なし）"}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div style={{ background:C.cream, borderRadius:8, padding:"10px 12px" }}>
+                    <p style={{ fontSize:11, color:C.muted, margin:"0 0 8px", lineHeight:1.6 }}>
+                      通信の秘密保護のため、本文は一覧に表示されません。利用規約第6条第3項の各号に該当する場合のみ、
+                      確認理由を選択のうえで表示できます（確認の日時・理由は記録されます）。
+                    </p>
+                    <select value={accessReason} onChange={e=>setAccessReason(e.target.value)}
+                      style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:6,
+                        padding:"6px 8px", fontSize:12, marginBottom:8 }}>
+                      <option value="">確認理由を選択...</option>
+                      {MESSAGE_ACCESS_REASONS.map(r=>(
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                    {messageError && <p style={{ color:"#E57373", fontSize:11, marginBottom:8 }}>{messageError}</p>}
+                    <button onClick={fetchMessage} disabled={!accessReason||messageLoading}
+                      style={{ width:"100%", background: accessReason?C.green:C.border,
+                        color: accessReason?"#fff":C.muted, border:"none", borderRadius:6,
+                        padding:"8px", fontSize:12, fontWeight:700,
+                        cursor: accessReason?"pointer":"not-allowed" }}>
+                      {messageLoading ? "確認中..." : "本文を確認する"}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Status update */}
               <div>
