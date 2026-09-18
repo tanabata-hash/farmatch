@@ -8,7 +8,7 @@
 
 create table if not exists message_access_logs (
   id bigint generated always as identity primary key,
-  inquiry_id bigint not null references inquiries(id) on delete cascade,
+  inquiry_id uuid not null references inquiries(id) on delete cascade,
   reason text not null,
   accessed_by text not null,
   accessed_at timestamptz not null default now(),
