@@ -3110,11 +3110,19 @@ export default function App() {
       const { data:{ user } } = await supabase.auth.getUser();
       if(user) {
         const meta = user.user_metadata || {};
-        await supabase.from("users").upsert([{
+        const role = meta.role || "seeker";
+        const profile = {
           id: uid, email: user.email, name: meta.name || "",
-          role: meta.role || "seeker",
-        }]);
-        setUserProfile({ id: uid, email: user.email, name: meta.name || "", role: meta.role || "seeker", is_premium: false });
+          role, bio: meta.bio || "",
+        };
+        if(role === "seeker") {
+          profile.farming_experience = meta.farming_experience || "";
+          profile.desired_area = meta.desired_area || "";
+          profile.desired_crop = meta.desired_crop || "";
+          profile.household_info = meta.household_info || "";
+        }
+        await supabase.from("users").upsert([profile]);
+        setUserProfile({ ...profile, is_premium: false });
       }
     }
   };

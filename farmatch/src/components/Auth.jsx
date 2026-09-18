@@ -53,13 +53,25 @@ export function AuthModal({ onClose, onSuccess, onNavigateTerms, onNavigatePriva
     if(password.length < 8) { setError("パスワードは8文字以上で設定してください"); return; }
     if(!agreed) { setError("利用規約とプライバシーポリシーへの同意が必要です"); return; }
     setLoading(true); setError("");
+    const metadata = { name, role, bio };
+    if(role === "seeker") {
+      metadata.farming_experience = farmingExperience;
+      metadata.desired_area = desiredArea;
+      metadata.desired_crop = desiredCrop;
+      metadata.household_info = householdInfo;
+    }
     const { data, error } = await supabase.auth.signUp({ email, password,
-      options: { data: { name, role } }
+      options: { data: metadata, emailRedirectTo: window.location.origin }
     });
     setLoading(false);
     if(error) { setError("登録に失敗しました: "+error.message); return; }
-    // usersテーブルにも追加（信頼構築のための任意項目を含む）
-    if(data.user) {
+    if(data.user?.identities?.length === 0) {
+      setError("このメールアドレスは既に登録されています。ログインしてください。");
+      return;
+    }
+    // usersテーブルにも追加（信頼構築のための任意項目を含む）。
+    // Confirm email有効時はセッションが発行されないため、その場合はメール確認後の初回ログイン時（fetchProfile）に反映する
+    if(data.session && data.user) {
       const profile = { id: data.user.id, email, name, role, bio };
       if(role === "seeker") {
         profile.farming_experience = farmingExperience;
