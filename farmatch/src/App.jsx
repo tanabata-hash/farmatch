@@ -1311,10 +1311,12 @@ function AdminPanel({ onLogout }) {
     {key:"tags",label:"タグ"},{key:"lat",label:"緯度"},{key:"lng",label:"経度"},
     {key:"created_at",label:"登録日時"},
   ];
+  // 通信の秘密保護のため、メッセージ本文は一覧APIのレスポンスにも含まれない
+  // （/api/admin/inquiries.js参照）。列自体も将来的な本文混入を避けるため定義しない。
   const INQUIRY_COLS = [
     {key:"id",label:"ID"},{key:"name",label:"お名前"},{key:"email",label:"メール"},
     {key:"target_type",label:"対象種別"},{key:"purpose",label:"目的"},
-    {key:"message",label:"メッセージ"},{key:"status",label:"ステータス"},
+    {key:"status",label:"ステータス"},
     {key:"created_at",label:"送信日時"},
   ];
   const USER_COLS = [
@@ -1823,7 +1825,7 @@ function ContactModal({ item, onClose }) {
         <div style={{ textAlign:"center", padding:"20px 0" }}>
           <div style={{ fontSize:48 }}>✅</div>
           <h3 style={{ color:C.green, margin:"12px 0 8px" }}>送信しました</h3>
-          <p style={{ color:C.muted, fontSize:13 }}>3〜5営業日以内にご連絡します。</p>
+          <p style={{ color:C.muted, fontSize:13 }}>オーナーにメッセージを送信しました。オーナーからの連絡をお待ちください。</p>
           <Btn onClick={onClose} style={{ marginTop:12 }}>閉じる</Btn>
         </div>
       ) : (
