@@ -190,7 +190,7 @@ export function FarmingLifeGuide({ onBack, onGoApp, onGoCalendar }) {
         <CtaBox
           onGoApp={onGoApp}
           label="🌱 まずは農地を探してみませんか？"
-          desc="Farmatchは、全国の遊休農地と就農希望者・移住希望者をマッチングする無料のプラットフォームです。会員登録すれば、気になる農地のオーナーに直接問い合わせできます。"
+          desc="Farmatchは、全国の遊休農地と就農希望者・移住希望者をマッチングする無料のプラットフォームです。会員登録すれば、気になる農地のオーナーに直接メッセージを送れます。"
           buttonLabel="農地をさがしてみる"
         />
       </PageLayout>
