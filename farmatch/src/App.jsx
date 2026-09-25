@@ -7,6 +7,8 @@ import { OwnerGuide } from "./pages/OwnerGuide";
 import { MigrationMap } from "./pages/MigrationMap";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
+import { PasswordResetModal } from "./components/PasswordReset";
+import { LocationPicker } from "./components/LocationPicker";
 import { ReportManager } from "./components/ReportManager";
 
 const BRAND = {
@@ -1931,7 +1933,9 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
     status: editItem?.status || (type==="farm" ? "貸出可能" : "掲載中"),
     description: editItem?.description || "",
     tags: (editItem?.tags||[]).join("、"),
-    lat: "", lng: "",
+    lat: editItem?.lat != null ? String(editItem.lat) : "",
+    lng: editItem?.lng != null ? String(editItem.lng) : "",
+    chiban: editItem?.chiban || "",
     preferred_contact_method: editItem?.preferred_contact_method || "",
     crops: (editItem?.crops||[]).join("、"),
     water_source: editItem?.water_source || "", access_info: editItem?.access_info || "",
@@ -2032,6 +2036,9 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
       const lat=parseFloat(form.lat), lng=parseFloat(form.lng);
       if(!isNaN(lat)) base.lat=lat;
       if(!isNaN(lng)) base.lng=lng;
+    } else if(isEdit) {
+      // 編集画面で位置をクリアした場合は、保存時にも位置情報を消す
+      base.lat = null; base.lng = null;
     }
     const payload = type==="farm" ? {
       ...base,
@@ -2074,13 +2081,10 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
         {type==="farm" && field("access_info","アクセス","例：最寄り駅より車5分")}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:6 }}>
-        {field("lat","緯度","例：31.178")}
-        {field("lng","経度","例：130.529")}
-      </div>
-      <p style={{ fontSize:11, color:C.muted, margin:"0 0 12px" }}>
-        {isEdit ? "位置情報を変更しない場合は空欄のままにしてください。" : "地図アプリ等で調べた緯度・経度を入力してください（任意。未入力の場合は地図に表示されません）。"}
-      </p>
+      <LocationPicker
+        region={form.region} location={form.location} chiban={form.chiban}
+        lat={form.lat} lng={form.lng}
+        onChange={(newLat,newLng)=>setForm(f=>({ ...f, lat:newLat, lng:newLng }))}/>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
         <div>
@@ -3071,6 +3075,7 @@ export default function App() {
   const [user, setUser]           = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuth, setShowAuth]   = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showMyListings, setShowMyListings] = useState(false);
   const [newInquiryCount, setNewInquiryCount] = useState(0);
 
@@ -3093,7 +3098,12 @@ export default function App() {
       setUser(session?.user ?? null);
       if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
     });
-    const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
+    // パスワードリセットのリンクから戻ってきた場合は、再設定画面を表示する
+    const hash = window.location.hash || "";
+    if(hash.includes("type=recovery")) setShowPasswordReset(true);
+
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange((event, session)=>{
+      if(event === "PASSWORD_RECOVERY") setShowPasswordReset(true);
       setUser(session?.user ?? null);
       if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
       else { setUserProfile(null); setIsPremium(false); setNewInquiryCount(0); }
@@ -3700,6 +3710,13 @@ export default function App() {
       </div>
 
       {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
+
+      {showPasswordReset && (
+        <PasswordResetModal onClose={()=>{
+          setShowPasswordReset(false);
+          if(window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }}/>
+      )}
       {reportTarget && <ReportModal item={reportTarget} onClose={()=>setReportTarget(null)}/>}
 
       {showMyListings && user && (
