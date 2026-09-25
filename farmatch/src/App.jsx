@@ -6,9 +6,7 @@ import { FarmingLifeGuide } from "./pages/FarmingLife";
 import { OwnerGuide } from "./pages/OwnerGuide";
 import { MigrationMap } from "./pages/MigrationMap";
 import { AuthModal } from "./components/Auth";
-import { MessagesPanel, MessageNotice, fetchUnreadMessageCount } from "./components/Messages";
-import { PasswordResetModal } from "./components/PasswordReset";
-import { LocationPicker } from "./components/LocationPicker";
+import { InquiryManager } from "./components/InquiryManager";
 import { ReportManager } from "./components/ReportManager";
 
 const BRAND = {
@@ -280,7 +278,7 @@ function ListingSourceNote({ item }) {
       <div style={{ background:"#F8FBF3", border:"1px solid #DCEBC4", borderRadius:8,
         padding:"10px 12px", marginBottom:14, fontSize:11.5, color:C.text, lineHeight:1.7 }}>
         <strong style={{ color:C.green }}>📝 オーナー本人がFarmatchに直接登録した情報です（自己申告であり、当サービスによる所有権の確認は行っておりません）。</strong>
-        　ログイン後、下のボタンからオーナーに直接メッセージを送ることができます（やり取りの内容はお二人だけが閲覧でき、Farmatchは交渉や契約に関与しません）。
+        　下の「問い合わせる」ボタンから送信すると、Farmatch経由でオーナーへメッセージが届きます。
         {item.preferred_contact_method && (
           <> オーナーが希望する連絡方法：<strong>{item.preferred_contact_method}</strong>。</>
         )}
@@ -291,7 +289,7 @@ function ListingSourceNote({ item }) {
     <div style={{ background:"#EEF2F7", border:"1px solid #C7D2E0", borderRadius:8,
       padding:"10px 12px", marginBottom:14, fontSize:11.5, color:"#455A75", lineHeight:1.7 }}>
       <strong>🏛 自治体等が公開しているデータを参考情報として掲載しています。</strong>
-      　オーナー本人による登録ではないため、最新の空き状況や詳細は自治体の窓口へ直接ご確認いただくことをおすすめします。この情報についてはFarmatchのメッセージ機能はご利用いただけません。
+      　オーナー本人による登録ではないため、最新の空き状況や詳細は自治体の窓口へ直接ご確認いただくことをおすすめします。Farmatch経由でも問い合わせは送信できますが、返信をお約束するものではありません。
     </div>
   );
 }
@@ -823,40 +821,75 @@ function PricingView() {
   const plans = [
     { id:"owner", who:"農地・物件オーナー", emoji:"🏡", color:C.soil, bg:C.soilLight, border:C.soilBorder,
       items:[
-        {name:"農地・物件の掲載",price:"無料",desc:"農地・空き家の情報掲載は無料です。掲載料はいただきません。"},
-        {name:"メッセージの受信・返信",price:"無料",desc:"希望者からのメッセージの受信・返信は無料です。成約時の手数料もいただきません。"},
+        {name:"ベーシック掲載",price:"¥3,000/月",desc:"農地・物件の基本情報掲載。問い合わせ受付機能付き。",free:true},
+        {name:"プレミアム掲載",price:"¥5,000/月",desc:"上位表示・詳細情報・写真10枚・問い合わせ優先通知。",free:true},
+        {name:"成約報酬",price:"初月賃料の20%",desc:"マッチング成立時のみ発生。成約しなければ追加費用なし。今後、成約支援の充実に伴い有料化を予定しています。",free:true},
       ]},
     { id:"seeker", who:"就農希望者・移住希望者", emoji:"🌱", color:C.green, bg:C.paleGreen, border:"#B8D98A",
       items:[
-        {name:"閲覧・メッセージ",price:"無料",desc:"農地・住まい情報の閲覧と、オーナーへのメッセージ送信は無料です。"},
-        {name:"プレミアム会員（準備中）",price:"未定",desc:"新着情報のお知らせや、就農・移住に役立つ情報コンテンツなどを予定しています。料金は成約の有無にかかわらず定額です。"},
+        {name:"無料プラン",price:"¥0",desc:"農地・住居の一覧閲覧。詳細情報は非表示。",free:false},
+        {name:"プレミアム会員",price:"¥1,480/月",desc:"全情報閲覧・優先問い合わせ・補助金情報・作物相談チャット。",free:true},
+        {name:"体験ツアー予約",price:"予約額の10%",desc:"農業体験・見学ツアーの仲介手数料。参加費は別途。",free:true},
       ]},
   ];
   return (
     <div>
-      <h3 style={{ color:C.green, marginBottom:4, fontSize:16 }}>💰 料金について</h3>
-      <p style={{ color:C.muted, fontSize:13, marginBottom:8 }}>Farmatchは、農地・住まいの情報と人が出会う場を提供するサービスです。</p>
-      <div style={{ background:C.paleGreen, border:"1.5px solid #B8D98A", borderRadius:8,
-        padding:"10px 14px", marginBottom:20, fontSize:12.5, color:C.green, lineHeight:1.6 }}>
-        🌱 オーナーの掲載・メッセージは<strong>完全無料</strong>です。Farmatchは当事者間の交渉や契約には関与せず、仲介手数料・成約手数料もいただきません。
-      </div>
+      <h3 style={{ color:C.green, marginBottom:4, fontSize:16 }}>💰 料金・収益モデル</h3>
+      <p style={{ color:C.muted, fontSize:13, marginBottom:8 }}>オーナーと就農希望者の双方から収益を得るプラットフォームモデル</p>
+      {!PAID_FEATURES_ACTIVE && (
+        <div style={{ background:C.paleGreen, border:"1.5px solid #B8D98A", borderRadius:8,
+          padding:"10px 14px", marginBottom:20, fontSize:12.5, color:C.green, lineHeight:1.6 }}>
+          🎉 <strong>現在は登録農地数の拡大に注力する無料期間中</strong>です。掲載料・成功報酬・プレミアム会員費はすべて ¥0 でご利用いただけます。以下は将来導入予定の料金プランです。
+        </div>
+      )}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
         {plans.map(p=>(
           <div key={p.id} style={{ background:p.bg, border:`2px solid ${p.border}`, borderRadius:12, padding:20 }}>
             <div style={{ fontSize:24, marginBottom:6 }}>{p.emoji}</div>
             <div style={{ fontWeight:700, color:p.color, fontSize:15, marginBottom:14 }}>{p.who}</div>
-            {p.items.map(pl=>(
+            {p.items.map(pl=>{
+              const showFree = pl.free && !PAID_FEATURES_ACTIVE;
+              return (
               <div key={pl.name} style={{ background:C.white, borderRadius:8, padding:"12px 14px",
                 marginBottom:10, border:`1px solid ${p.border}` }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
                   <span style={{ fontWeight:700, fontSize:13, color:C.text }}>{pl.name}</span>
-                  <span style={{ fontWeight:800, color:p.color, fontSize:12, whiteSpace:"nowrap", marginLeft:8 }}>{pl.price}</span>
+                  {showFree ? (
+                    <span style={{ display:"flex", alignItems:"center", gap:6, marginLeft:8, whiteSpace:"nowrap" }}>
+                      <span style={{ fontSize:11, color:C.muted, textDecoration:"line-through" }}>{pl.price}</span>
+                      <span style={{ fontWeight:800, color:p.color, fontSize:12 }}>¥0</span>
+                    </span>
+                  ) : (
+                    <span style={{ fontWeight:800, color:p.color, fontSize:12, whiteSpace:"nowrap", marginLeft:8 }}>{pl.price}</span>
+                  )}
                 </div>
+                {showFree && (
+                  <span style={{ display:"inline-block", background:p.color, color:"#fff", fontSize:10, fontWeight:700,
+                    borderRadius:4, padding:"1px 7px", marginBottom:6 }}>無料公開中</span>
+                )}
                 <p style={{ fontSize:12, color:C.muted, margin:0, lineHeight:1.5 }}>{pl.desc}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         ))}
+      </div>
+      <div style={{ background:C.deepGreen, borderRadius:12, padding:20, marginTop:16, color:"#fff", opacity:PAID_FEATURES_ACTIVE?1:0.55 }}>
+        <div style={{ fontWeight:700, fontSize:14, marginBottom:12, color:C.lightGreen }}>
+          📊 収益シミュレーション（月次目安）{!PAID_FEATURES_ACTIVE && <span style={{ fontSize:11, fontWeight:600, color:"#D4EDAA", marginLeft:8 }}>※将来プラン導入後の目標値（Coming soon）</span>}
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+          {[["オーナー掲載料","10件 × ¥4,000","¥40,000"],["プレミアム会員費","50人 × ¥1,480","¥74,000"],["成約報酬","月3件 × ¥10,000","¥30,000"]].map(([l,c,v])=>(
+            <div key={l} style={{ background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"12px", textAlign:"center" }}>
+              <div style={{ fontSize:11, color:"#B8D98A", marginBottom:4 }}>{l}</div>
+              <div style={{ fontSize:11, color:"#D4EDAA", marginBottom:6 }}>{c}</div>
+              <div style={{ fontSize:18, fontWeight:800, color:C.lightGreen }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign:"right", marginTop:10, fontSize:13, color:"#D4EDAA" }}>
+          想定月次収益合計：<span style={{ fontSize:18, fontWeight:800, color:"#fff" }}>¥144,000</span>
+        </div>
       </div>
     </div>
   );
@@ -1278,6 +1311,12 @@ function AdminPanel({ onLogout }) {
     {key:"tags",label:"タグ"},{key:"lat",label:"緯度"},{key:"lng",label:"経度"},
     {key:"created_at",label:"登録日時"},
   ];
+  const INQUIRY_COLS = [
+    {key:"id",label:"ID"},{key:"name",label:"お名前"},{key:"email",label:"メール"},
+    {key:"target_type",label:"対象種別"},{key:"purpose",label:"目的"},
+    {key:"message",label:"メッセージ"},{key:"status",label:"ステータス"},
+    {key:"created_at",label:"送信日時"},
+  ];
   const USER_COLS = [
     {key:"id",label:"ID"},{key:"name",label:"お名前"},{key:"email",label:"メール"},
     {key:"role",label:"ロール"},{key:"prefecture",label:"都道府県"},
@@ -1291,11 +1330,12 @@ function AdminPanel({ onLogout }) {
 
   const handleExport = async(format) => {
     showToast("⏳ データ取得中...");
-    let farmsAll, housesAll, usersAll, reportsAll;
+    let farmsAll, housesAll, inquiriesAll, usersAll, reportsAll;
     try {
-      [farmsAll, housesAll, usersAll, reportsAll] = await Promise.all([
+      [farmsAll, housesAll, inquiriesAll, usersAll, reportsAll] = await Promise.all([
         adminFetch("/api/admin/farms"),
         adminFetch("/api/admin/houses"),
+        adminFetch("/api/admin/inquiries"),
         adminFetch("/api/admin/users"),
         adminFetch("/api/admin/reports"),
       ]);
@@ -1306,15 +1346,17 @@ function AdminPanel({ onLogout }) {
     if(format==="csv") {
       downloadCSV(toCSV(farmsAll||[], FARM_COLS), `farmatch_farms_${date}.csv`);
       setTimeout(()=>downloadCSV(toCSV(housesAll||[], HOUSE_COLS), `farmatch_houses_${date}.csv`), 300);
+      setTimeout(()=>downloadCSV(toCSV(inquiriesAll||[], INQUIRY_COLS), `farmatch_inquiries_${date}.csv`), 600);
       setTimeout(()=>downloadCSV(toCSV(usersAll||[], USER_COLS), `farmatch_users_${date}.csv`), 900);
       setTimeout(()=>downloadCSV(toCSV(reportsAll||[], REPORT_COLS), `farmatch_reports_${date}.csv`), 1200);
-      showToast("✅ CSV 4ファイルをダウンロードしました");
+      showToast("✅ CSV 5ファイルをダウンロードしました");
     } else {
       downloadExcel(farmsAll||[], FARM_COLS, `farmatch_farms_${date}.xls`);
       setTimeout(()=>downloadExcel(housesAll||[], HOUSE_COLS, `farmatch_houses_${date}.xls`), 300);
+      setTimeout(()=>downloadExcel(inquiriesAll||[], INQUIRY_COLS, `farmatch_inquiries_${date}.xls`), 600);
       setTimeout(()=>downloadExcel(usersAll||[], USER_COLS, `farmatch_users_${date}.xls`), 900);
       setTimeout(()=>downloadExcel(reportsAll||[], REPORT_COLS, `farmatch_reports_${date}.xls`), 1200);
-      showToast("✅ Excel 4ファイルをダウンロードしました");
+      showToast("✅ Excel 5ファイルをダウンロードしました");
     }
   };
 
@@ -1346,7 +1388,7 @@ function AdminPanel({ onLogout }) {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
         <div>
           <h2 style={{ margin:0, color:C.deepGreen, fontSize:18 }}>⚙️ 管理パネル</h2>
-          <p style={{ margin:"4px 0 0", color:C.muted, fontSize:12 }}>農地・物件・通報を管理できます</p>
+          <p style={{ margin:"4px 0 0", color:C.muted, fontSize:12 }}>農地・物件・問い合わせを管理できます</p>
         </div>
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={()=>handleExport("csv")}
@@ -1378,12 +1420,12 @@ function AdminPanel({ onLogout }) {
       </div>
 
       <div style={{ display:"flex", gap:2, marginBottom:0, alignItems:"flex-end" }}>
-        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"],["reports","🚩 通報"]].map(([t,l])=>(
+        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"],["inquiries","📬 問い合わせ"],["reports","🚩 通報"]].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{ padding:"10px 20px", borderRadius:"8px 8px 0 0",
             border:"none", cursor:"pointer", fontWeight:700, fontSize:13,
             background:tab===t?C.green:C.border, color:tab===t?"#fff":C.muted }}>{l}</button>
         ))}
-        {tab!=="reports" && (
+        {tab!=="inquiries" && tab!=="reports" && (
           <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
             {tab==="farms" && (
               <Btn variant="outline" onClick={()=>setShowCsvImport(true)}
@@ -1395,7 +1437,11 @@ function AdminPanel({ onLogout }) {
         )}
       </div>
 
-      {tab==="reports" ? (
+      {tab==="inquiries" ? (
+        <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
+          <InquiryManager />
+        </div>
+      ) : tab==="reports" ? (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
           <ReportManager />
         </div>
@@ -1736,103 +1782,84 @@ function AdminPanel({ onLogout }) {
   );
 }
 
-// ── メッセージ送信モーダル（会話の開始） ────────────────────
-function ContactModal({ item, user, onClose, onRequireLogin, onOpenMessages }) {
-  const [msg, setMsg] = useState("");
-  const [sentConversationId, setSentConversationId] = useState(null);
+// ── 問い合わせモーダル ────────────────────────────────────
+function ContactModal({ item, onClose }) {
+  const [form, setForm] = useState({name:"",email:"",purpose:"",msg:""});
+  const [website, setWebsite] = useState(""); // ハニーポット（人間には見えない。入力があればbot扱い）
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const isHouse = !!item.house_type;
-
   const handleSubmit = async()=>{
-    if(!msg.trim() || loading) return;
-    setLoading(true); setError("");
+    if(!form.name||!form.email) return;
+    if(website) { setSent(true); return; } // botはここで無言で弾く
+    setLoading(true);
+    const isHouse=!!item.house_type;
+    let ok = false, errorMsg = "";
     try {
-      const { data:{ session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/messages", {
+      const res = await fetch("/api/inquiries", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ action:"start", targetType: isHouse?"house":"farm", targetId: item.id, body: msg }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: isHouse?"house":"farm",
+          farmId: isHouse?null:item.id,
+          houseId: isHouse?item.id:null,
+          name:form.name, email:form.email, purpose:form.purpose, message:form.msg,
+          website,
+        }),
       });
       const data = await res.json().catch(()=>({}));
-      if(!res.ok) setError(data.error || "送信に失敗しました");
-      else setSentConversationId(data.conversationId);
+      ok = res.ok;
+      errorMsg = data.error || "";
     } catch(err) {
-      setError(err.message);
+      errorMsg = err.message;
     }
     setLoading(false);
+    if(!ok){alert("送信エラー: "+errorMsg);return;}
+    setSent(true);
   };
-
-  let content;
-  if(!item.owner_id) {
-    content = (
-      <>
-        <h3 style={{ margin:"0 0 8px", color:C.text }}>メッセージ</h3>
-        <p style={{ fontSize:13, color:C.muted, lineHeight:1.7 }}>
-          この情報はオーナー本人による登録ではないため、Farmatchのメッセージ機能はご利用いただけません。最新の状況は、自治体などの窓口へ直接ご確認ください。
-        </p>
-        <Btn onClick={onClose} style={{ marginTop:8 }}>閉じる</Btn>
-      </>
-    );
-  } else if(!user) {
-    content = (
-      <>
-        <h3 style={{ margin:"0 0 8px", color:C.text }}>オーナーにメッセージを送る</h3>
-        <p style={{ fontSize:13, color:C.muted, lineHeight:1.7 }}>
-          メッセージの送信には、無料の会員登録（ログイン）が必要です。オーナーからの返信も、サイト内のメッセージで受け取れます。
-        </p>
-        <div style={{ display:"flex", gap:10, marginTop:8 }}>
-          <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
-          <Btn onClick={onRequireLogin} style={{ flex:2 }}>ログイン / 無料登録</Btn>
+  return (
+    <Modal onClose={onClose}>
+      {sent ? (
+        <div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ fontSize:48 }}>✅</div>
+          <h3 style={{ color:C.green, margin:"12px 0 8px" }}>送信しました</h3>
+          <p style={{ color:C.muted, fontSize:13 }}>3〜5営業日以内にご連絡します。</p>
+          <Btn onClick={onClose} style={{ marginTop:12 }}>閉じる</Btn>
         </div>
-      </>
-    );
-  } else if(user.id === item.owner_id) {
-    content = (
-      <>
-        <h3 style={{ margin:"0 0 8px", color:C.text }}>メッセージ</h3>
-        <p style={{ fontSize:13, color:C.muted, lineHeight:1.7 }}>ご自身が登録した物件です。届いたメッセージは画面上部の「💬 メッセージ」から確認できます。</p>
-        <Btn onClick={onClose} style={{ marginTop:8 }}>閉じる</Btn>
-      </>
-    );
-  } else if(sentConversationId) {
-    content = (
-      <div style={{ textAlign:"center", padding:"20px 0" }}>
-        <div style={{ fontSize:48 }}>✅</div>
-        <h3 style={{ color:C.green, margin:"12px 0 8px" }}>メッセージを送信しました</h3>
-        <p style={{ color:C.muted, fontSize:13, lineHeight:1.7 }}>
-          オーナーから返信があると、登録メールアドレスにお知らせが届きます。<br/>返信のお約束や時期はオーナーによって異なります。
-        </p>
-        <div style={{ display:"flex", gap:10, marginTop:12, justifyContent:"center" }}>
-          <Btn variant="outline" onClick={onClose}>閉じる</Btn>
-          <Btn onClick={()=>onOpenMessages(sentConversationId)}>メッセージを見る</Btn>
-        </div>
-      </div>
-    );
-  } else {
-    content = (
-      <>
-        <h3 style={{ margin:"0 0 4px", color:C.text }}>オーナーにメッセージを送る</h3>
-        <p style={{ fontSize:12, color:C.muted, margin:"0 0 12px" }}>{item.name}</p>
-        <MessageNotice/>
-        <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>メッセージ *</label>
-        <textarea value={msg} onChange={e=>setMsg(e.target.value)} rows={5} maxLength={2000}
-          placeholder={"自己紹介や、就農・移住の目的、見学のご希望などを書いてください。"}
-          style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
-            padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none", marginBottom:12 }}/>
-        {error && <div style={{ color:"#C0392B", fontSize:12, marginBottom:8 }}>{error}</div>}
-        <LegalCautionNote compact isHouse={isHouse}/>
-        <div style={{ display:"flex", gap:10 }}>
-          <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
-          <Btn onClick={handleSubmit} style={{ flex:2, opacity:(loading||!msg.trim())?0.6:1 }}>
-            {loading?"送信中...":"送信する"}
-          </Btn>
-        </div>
-      </>
-    );
-  }
-
-  return <Modal onClose={onClose}>{content}</Modal>;
+      ) : (
+        <>
+          <h3 style={{ margin:"0 0 4px", color:C.text }}>問い合わせフォーム</h3>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 18px" }}>{item.name}</p>
+          <input type="text" name="website" value={website} onChange={e=>setWebsite(e.target.value)}
+            tabIndex={-1} autoComplete="off"
+            style={{ position:"absolute", left:"-9999px", width:1, height:1, opacity:0 }}
+            aria-hidden="true"/>
+          {[{key:"name",label:"お名前 *",ph:"山田 太郎",type:"text"},
+            {key:"email",label:"メールアドレス *",ph:"example@mail.com",type:"email"},
+            {key:"purpose",label:"ご利用目的",ph:"本格就農 / 週末農業 / 移住 など",type:"text"}].map(({key,label,ph,type})=>(
+            <div key={key} style={{ marginBottom:12 }}>
+              <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>{label}</label>
+              <input type={type} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={ph}
+                style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                  padding:"9px 12px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+            </div>
+          ))}
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>メッセージ</label>
+            <textarea value={form.msg} onChange={e=>setForm({...form,msg:e.target.value})} rows={3}
+              style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
+                padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
+          </div>
+          <LegalCautionNote compact isHouse={!!item.house_type}/>
+          <div style={{ display:"flex", gap:10 }}>
+            <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
+            <Btn onClick={handleSubmit} style={{ flex:2, opacity:loading?0.7:1 }}>
+              {loading?"送信中...":"送信する"}
+            </Btn>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
 }
 
 // ── 通報モーダル ──────────────────────────────────────────
@@ -1904,9 +1931,7 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
     status: editItem?.status || (type==="farm" ? "貸出可能" : "掲載中"),
     description: editItem?.description || "",
     tags: (editItem?.tags||[]).join("、"),
-    lat: editItem?.lat != null ? String(editItem.lat) : "",
-    lng: editItem?.lng != null ? String(editItem.lng) : "",
-    chiban: editItem?.chiban || "",
+    lat: "", lng: "",
     preferred_contact_method: editItem?.preferred_contact_method || "",
     crops: (editItem?.crops||[]).join("、"),
     water_source: editItem?.water_source || "", access_info: editItem?.access_info || "",
@@ -2007,9 +2032,6 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
       const lat=parseFloat(form.lat), lng=parseFloat(form.lng);
       if(!isNaN(lat)) base.lat=lat;
       if(!isNaN(lng)) base.lng=lng;
-    } else if(isEdit) {
-      // 編集画面で位置をクリアした場合は、保存時にも位置情報を消す
-      base.lat = null; base.lng = null;
     }
     const payload = type==="farm" ? {
       ...base,
@@ -2052,10 +2074,13 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
         {type==="farm" && field("access_info","アクセス","例：最寄り駅より車5分")}
       </div>
 
-      <LocationPicker
-        region={form.region} location={form.location} chiban={form.chiban}
-        lat={form.lat} lng={form.lng}
-        onChange={(newLat,newLng)=>setForm(f=>({ ...f, lat:newLat, lng:newLng }))}/>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:6 }}>
+        {field("lat","緯度","例：31.178")}
+        {field("lng","経度","例：130.529")}
+      </div>
+      <p style={{ fontSize:11, color:C.muted, margin:"0 0 12px" }}>
+        {isEdit ? "位置情報を変更しない場合は空欄のままにしてください。" : "地図アプリ等で調べた緯度・経度を入力してください（任意。未入力の場合は地図に表示されません）。"}
+      </p>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
         <div>
@@ -2222,7 +2247,128 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
 }
 
 // ── マイ登録（オーナー自己登録の一覧管理） ────────────────
+const INQUIRY_STATUS_LABELS = { new:"新着", replied:"返信済", closed:"クローズ" };
+const INQUIRY_STATUS_COLORS = { new:C.soil, replied:C.lightGreen, closed:C.muted };
+
+function OwnerInquiriesTab() {
+  const [inquiries, setInquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  const fetchInquiries = async()=>{
+    setLoading(true);
+    const { data:{ session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/my/inquiries", {
+        headers: { "Authorization": `Bearer ${session?.access_token || ""}` },
+      });
+      const data = await res.json();
+      setInquiries(Array.isArray(data) ? data : []);
+    } catch {
+      setInquiries([]);
+    }
+    setLoading(false);
+  };
+  useEffect(()=>{ fetchInquiries(); },[]);
+
+  const updateStatus = async(id, status)=>{
+    const { data:{ session } } = await supabase.auth.getSession();
+    await fetch("/api/my/inquiries", {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
+      body: JSON.stringify({ id, status }),
+    });
+    setInquiries(prev => prev.map(i => i.id===id ? {...i, status} : i));
+    if(selected?.id===id) setSelected(prev => ({...prev, status}));
+  };
+
+  if(loading) return <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>読み込み中...</div>;
+  if(inquiries.length===0) return (
+    <div style={{ textAlign:"center", padding:20, color:C.muted, fontSize:13 }}>
+      まだ問い合わせはありません。問い合わせが届くとここに表示されます。
+    </div>
+  );
+
+  if(selected) {
+    return (
+      <div>
+        <button onClick={()=>setSelected(null)}
+          style={{ background:"none", border:"none", color:C.muted, fontSize:12, cursor:"pointer", marginBottom:12, padding:0 }}>
+          ← 一覧に戻る
+        </button>
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>{selected.name}</div>
+          <div style={{ fontSize:12, color:C.muted }}>{selected.email}</div>
+        </div>
+        <div style={{ background:C.cream, borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
+          {[
+            ["対象物件", selected.target_name || (selected.target_type==="farm"?"🌱 農地":"🏡 住居")],
+            ["目的", selected.purpose||"—"],
+            ["送信日時", new Date(selected.created_at).toLocaleDateString("ja-JP",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})],
+          ].map(([k,v])=>(
+            <div key={k} style={{ display:"flex", gap:12, marginBottom:6 }}>
+              <div style={{ fontSize:11, color:C.muted, width:70, flexShrink:0 }}>{k}</div>
+              <div style={{ fontSize:13, color:C.text, fontWeight:500 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        {selected.message && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:12, color:C.muted, marginBottom:6 }}>メッセージ</div>
+            <div style={{ fontSize:13, color:C.text, lineHeight:1.7, background:C.paleGreen, borderRadius:8, padding:"10px 12px" }}>
+              {selected.message}
+            </div>
+          </div>
+        )}
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12, color:C.muted, marginBottom:8 }}>ステータスを変更</div>
+          <div style={{ display:"flex", gap:8 }}>
+            {Object.entries(INQUIRY_STATUS_LABELS).map(([v,l])=>(
+              <button key={v} onClick={()=>updateStatus(selected.id, v)}
+                style={{ flex:1, padding:"8px",
+                  background: selected.status===v ? INQUIRY_STATUS_COLORS[v] : C.white,
+                  color: selected.status===v ? "#fff" : C.muted,
+                  border:`1.5px solid ${selected.status===v?INQUIRY_STATUS_COLORS[v]:C.border}`,
+                  borderRadius:8, fontSize:12, cursor:"pointer", fontWeight:600 }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        {selected.email && (
+          <a href={`mailto:${encodeURIComponent(selected.email)}?subject=${encodeURIComponent("【Farmatch】お問い合わせへのご回答")}`}
+            style={{ display:"block", background:C.green, color:"#fff", borderRadius:8, padding:"10px",
+              textAlign:"center", fontSize:13, fontWeight:700, textDecoration:"none" }}>
+            メールで返信する
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      {inquiries.map(inq=>(
+        <div key={inq.id} onClick={()=>setSelected(inq)}
+          style={{ border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px", cursor:"pointer" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{inq.name}</div>
+              <div style={{ fontSize:11, color:C.muted }}>{inq.target_name || (inq.target_type==="farm"?"🌱 農地":"🏡 住居")}への問い合わせ</div>
+            </div>
+            <span style={{ background:INQUIRY_STATUS_COLORS[inq.status]||C.muted, color:"#fff",
+              borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:600, flexShrink:0 }}>
+              {INQUIRY_STATUS_LABELS[inq.status]||inq.status}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MyListingsPanel({ userId, onClose }) {
+  const [tab, setTab] = useState("listings");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formState, setFormState] = useState(null);
@@ -2260,8 +2406,19 @@ function MyListingsPanel({ userId, onClose }) {
   return (
     <Modal onClose={onClose}>
       <h3 style={{ margin:"0 0 4px", color:C.green }}>📋 マイ登録</h3>
-      <p style={{ fontSize:12, color:C.muted, margin:"0 0 14px" }}>ご自身で登録した農地・空き家情報を管理できます。届いたメッセージは画面上部の「💬 メッセージ」から確認できます。</p>
-      {(
+      <p style={{ fontSize:12, color:C.muted, margin:"0 0 14px" }}>ご自身で登録した農地・空き家情報と、届いた問い合わせを管理できます。</p>
+      <div style={{ display:"flex", gap:8, marginBottom:16, borderBottom:`1px solid ${C.border}` }}>
+        {[["listings","登録一覧"],["inquiries","📬 問い合わせ"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setTab(v)}
+            style={{ background:"none", border:"none", borderBottom: tab===v?`2px solid ${C.green}`:"2px solid transparent",
+              color: tab===v?C.green:C.muted, fontWeight: tab===v?700:400, fontSize:13,
+              padding:"6px 4px", marginBottom:-1, cursor:"pointer" }}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {tab==="inquiries" ? <OwnerInquiriesTab/> : (
         <>
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
             <Btn onClick={()=>setFormState({type:"farm", editItem:null})} style={{ flex:1 }}>🌱 農地を登録する</Btn>
@@ -2379,7 +2536,7 @@ function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegi
       <ListingSourceNote item={farm}/>
       <LegalCautionNote compact/>
 
-      <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>オーナーにメッセージを送る</Btn>
+      <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>この農地に問い合わせる</Btn>
       <button type="button" onClick={()=>onReport(farm)}
         style={{ display:"block", width:"100%", background:"none", border:"none", color:C.muted,
           fontSize:11, cursor:"pointer", marginTop:10, padding:"4px", textDecoration:"underline" }}>
@@ -2784,7 +2941,7 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
           })()}
           <ListingSourceNote item={selectedHouse}/>
           <LegalCautionNote compact isHouse/>
-          <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>オーナーにメッセージを送る</Btn>
+          <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
           <button type="button" onClick={()=>onReport(selectedHouse)}
             style={{ display:"block", width:"100%", background:"none", border:"none", color:C.muted,
               fontSize:11, cursor:"pointer", marginTop:10, padding:"4px", textDecoration:"underline" }}>
@@ -2914,36 +3071,32 @@ export default function App() {
   const [user, setUser]           = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [showAuth, setShowAuth]   = useState(false);
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showMyListings, setShowMyListings] = useState(false);
-  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [messagesState, setMessagesState] = useState(null); // null=閉 / { conversationId }
+  const [newInquiryCount, setNewInquiryCount] = useState(0);
 
   const fetchNewInquiryCount = async()=>{
-    setUnreadMessageCount(await fetchUnreadMessageCount());
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session) { setNewInquiryCount(0); return; }
+    try {
+      const res = await fetch("/api/my/inquiries", {
+        headers: { "Authorization": `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      setNewInquiryCount(Array.isArray(data) ? data.filter(i=>i.status==="new").length : 0);
+    } catch {
+      setNewInquiryCount(0);
+    }
   };
-
-  // ログイン中は1分ごとに未読件数を確認
-  useEffect(()=>{
-    if(!user) return;
-    const timer = setInterval(fetchNewInquiryCount, 60000);
-    return ()=>clearInterval(timer);
-  },[user]);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
       setUser(session?.user ?? null);
       if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
     });
-    // パスワードリセットのリンクから戻ってきた場合は、再設定画面を表示する
-    const hash = window.location.hash || "";
-    if(hash.includes("type=recovery")) setShowPasswordReset(true);
-
-    const { data:{ subscription } } = supabase.auth.onAuthStateChange((event, session)=>{
-      if(event === "PASSWORD_RECOVERY") setShowPasswordReset(true);
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange((_event, session)=>{
       setUser(session?.user ?? null);
       if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
-      else { setUserProfile(null); setIsPremium(false); setUnreadMessageCount(0); }
+      else { setUserProfile(null); setIsPremium(false); setNewInquiryCount(0); }
     });
     return ()=>subscription.unsubscribe();
   },[]);
@@ -3078,15 +3231,11 @@ export default function App() {
                 <button onClick={()=>setShowMyListings(true)}
                   style={{ position:"relative", background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                   📋 マイ登録
-                </button>
-                <button onClick={()=>setMessagesState({ conversationId:null })}
-                  style={{ position:"relative", background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-                  💬 メッセージ
-                  {unreadMessageCount>0 && (
+                  {newInquiryCount>0 && (
                     <span style={{ position:"absolute", top:-6, right:-6, background:"#E53935", color:"#fff",
                       borderRadius:20, minWidth:16, height:16, fontSize:10, fontWeight:700,
                       display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
-                      {unreadMessageCount}
+                      {newInquiryCount}
                     </span>
                   )}
                 </button>
@@ -3249,7 +3398,7 @@ export default function App() {
               {[
                 ["📝","登録する","農地オーナーが空いている農地を登録します","#FFF4E6",C.soilBorder],
                 ["🔍","さがす","気になる地域や作物で農地を探せます","#EDF5E1",C.lightGreen],
-                ["💬","れんらくする","気に入った農地のオーナーにメッセージ","#EAF3FC",C.sky],
+                ["💬","れんらくする","気に入った農地のオーナーに問い合わせ","#EAF3FC",C.sky],
                 ["🤝","はなしあう","直接会って条件を相談（契約はご自身で）","#F5EDFA","#B98FD1"],
               ].map(([icon,title,desc,bg,accent],i,arr)=>(
                 <div key={title} className="fm-step-item" style={{ display:"flex", alignItems:"stretch", flex:1, minWidth:0 }}>
@@ -3550,24 +3699,7 @@ export default function App() {
         <div style={{ color:"rgba(255,255,255,0.35)" }}>© {BRAND.year} {BRAND.name} — 全国の遊休農地有効活用プロジェクト</div>
       </div>
 
-      {contact && (
-        <ContactModal item={contact} user={user} onClose={()=>setContact(null)}
-          onRequireLogin={()=>{ setContact(null); setShowAuth(true); }}
-          onOpenMessages={(conversationId)=>{ setContact(null); setMessagesState({ conversationId }); }}/>
-      )}
-
-      {showPasswordReset && (
-        <PasswordResetModal onClose={()=>{
-          setShowPasswordReset(false);
-          if(window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
-        }}/>
-      )}
-
-      {messagesState && user && (
-        <MessagesPanel initialConversationId={messagesState.conversationId}
-          onClose={()=>{ setMessagesState(null); fetchNewInquiryCount(); }}
-          onUnreadChange={setUnreadMessageCount}/>
-      )}
+      {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
       {reportTarget && <ReportModal item={reportTarget} onClose={()=>setReportTarget(null)}/>}
 
       {showMyListings && user && (
