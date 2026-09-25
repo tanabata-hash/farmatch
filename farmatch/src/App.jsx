@@ -3288,6 +3288,18 @@ export default function App() {
         </div>
       )}
 
+      {/* お知らせ：サイト内メッセージ機能について */}
+      {tab==="farms" && (
+        <div style={{ padding:"18px 20px 0" }}>
+          <div style={{ maxWidth:860, margin:"0 auto", background:"#EEF2F7", border:"1px solid #C7D2E0",
+            borderRadius:10, padding:"14px 16px", fontSize:12.5, color:"#455A75", lineHeight:1.8 }}>
+            <strong style={{ display:"block", marginBottom:4, color:"#33455F" }}>📢 サイト内メッセージ機能について</strong>
+            農地の所有者様と就農・移住希望者様が直接やり取りできるメッセージ機能を準備しております。安全にご利用いただくための法令上の手続きを進めている関係で、公開までもうしばらくお時間をいただきます。
+            現在は、各農地ページの「お問い合わせ」フォームからご連絡いただけます。公開時期が決まり次第、こちらでお知らせいたします。
+          </div>
+        </div>
+      )}
+
       {/* サービス概要（ハブ＆スポーク 繋がりデザイン） */}
       {tab==="farms" && (
         <div style={{ background:`linear-gradient(180deg, ${C.cream} 0%, #EAE4D8 100%)`, padding:"36px 20px 32px" }}>
