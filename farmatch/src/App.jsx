@@ -10,6 +10,8 @@ import { InquiryManager } from "./components/InquiryManager";
 import { PasswordResetModal } from "./components/PasswordReset";
 import { LocationPicker } from "./components/LocationPicker";
 import { ReportManager } from "./components/ReportManager";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { trackView, setTrackingExcluded } from "./track";
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
@@ -911,6 +913,7 @@ function AdminLogin({ onSuccess }) {
       const data = await res.json();
       if (data.ok) {
         sessionStorage.setItem("adminPw", pw);
+        setTrackingExcluded(true); // 管理者の端末はアクセス計測から除外する
         onSuccess();
       } else {
         setError(true);
@@ -1026,7 +1029,7 @@ function AdminPanel({ onLogout }) {
   };
   useEffect(()=>{ fetchAdminData(); },[]);
 
-  const [tab, setTab] = useState("farms");
+  const [tab, setTab] = useState("dashboard");
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState("farm");
   const [editItem, setEditItem] = useState(null);
@@ -1422,12 +1425,12 @@ function AdminPanel({ onLogout }) {
       </div>
 
       <div style={{ display:"flex", gap:2, marginBottom:0, alignItems:"flex-end" }}>
-        {[["farms","🌱 農地管理"],["houses","🏡 物件管理"],["inquiries","📬 問い合わせ"],["reports","🚩 通報"]].map(([t,l])=>(
+        {[["dashboard","📊 ダッシュボード"],["farms","🌱 農地管理"],["houses","🏡 物件管理"],["inquiries","📬 問い合わせ"],["reports","🚩 通報"]].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)} style={{ padding:"10px 20px", borderRadius:"8px 8px 0 0",
             border:"none", cursor:"pointer", fontWeight:700, fontSize:13,
             background:tab===t?C.green:C.border, color:tab===t?"#fff":C.muted }}>{l}</button>
         ))}
-        {tab!=="inquiries" && tab!=="reports" && (
+        {tab!=="dashboard" && tab!=="inquiries" && tab!=="reports" && (
           <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
             {tab==="farms" && (
               <Btn variant="outline" onClick={()=>setShowCsvImport(true)}
@@ -1439,7 +1442,11 @@ function AdminPanel({ onLogout }) {
         )}
       </div>
 
-      {tab==="inquiries" ? (
+      {tab==="dashboard" ? (
+        <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
+          <AdminDashboard adminFetch={adminFetch} farms={farms} houses={houses} onEdit={openEdit}/>
+        </div>
+      ) : tab==="inquiries" ? (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
           <InquiryManager />
         </div>
@@ -3054,6 +3061,10 @@ export default function App() {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+  // 簡易アクセス計測（画面が切り替わるたびに1回記録）
+  useEffect(() => {
+    trackView(page !== "main" ? page : tab);
+  }, [page, tab]);
   const [farms, setFarms]         = useState([]);
   const earlyFarmIds = useMemo(() => {
     const sorted = [...farms].filter(f=>f.created_at)
