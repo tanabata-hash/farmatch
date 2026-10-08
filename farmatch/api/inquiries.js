@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { TERMS_VERSION } from "../src/termsVersion.js";
 
 function getServiceClient() {
   return createClient(
@@ -75,13 +76,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { targetType, farmId, houseId, name, email, purpose, message, website } = req.body || {};
+  const { targetType, farmId, houseId, name, email, purpose, message, website, consent } = req.body || {};
 
   // ハニーポット：人間には見えない項目に入力があればbotとみなし、成功したふりをして無言で弾く
   if (website) return res.status(200).json({ ok: true });
 
   if (!name || !email || (targetType !== "farm" && targetType !== "house")) {
     return res.status(400).json({ error: "name, email, targetTypeは必須です" });
+  }
+  // 利用規約第6条（メッセージ機能及び通信の秘密）への同意はフロント側の必須チェックに加え、
+  // サーバー側でも検証する（フロントの制御をバイパスした直接POSTで未同意のまま保存されるのを防ぐ）。
+  if (consent !== true) {
+    return res.status(400).json({ error: "利用規約への同意が必要です" });
   }
   if (!EMAIL_RE.test(email)) {
     return res.status(400).json({ error: "メールアドレスの形式が正しくありません" });
@@ -109,6 +115,7 @@ export default async function handler(req, res) {
     farm_id: targetType === "farm" ? farmId : null,
     house_id: targetType === "house" ? houseId : null,
     name, email, purpose, message, status: "new", ip,
+    consented_at: new Date().toISOString(), terms_version: TERMS_VERSION,
   }]);
   if (insertError) return res.status(500).json({ error: insertError.message });
 
