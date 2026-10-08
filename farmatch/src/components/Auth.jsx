@@ -69,14 +69,21 @@ export function AuthModal({ onClose, onSuccess, onNavigateTerms, onNavigatePriva
       }
       await supabase.from("users").upsert([profile]);
     }
-    setDone("確認メールを送信しました。メールのリンクをクリックして登録を完了してください。");
+    // メール確認が有効な場合はセッションが発行されない（＝確認メールが送られる）
+    if(data.session){
+      setDone("登録が完了しました。そのままご利用いただけます。");
+      onSuccess();
+    } else {
+      setDone("確認メールを送信しました。メールのリンクをクリックして登録を完了してください。");
+    }
   };
 
   const handleReset = async () => {
     if(!email) { setError("メールアドレスを入力してください"); return; }
     setLoading(true); setError("");
+    // 戻り先は、いま利用しているサイトのURL（本番・テスト環境のどちらでも正しく戻れる）
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://www.farmatch.net",
+      redirectTo: window.location.origin,
     });
     setLoading(false);
     if(error) { setError("送信に失敗しました"); return; }
