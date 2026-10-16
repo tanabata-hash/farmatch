@@ -65,7 +65,16 @@ async function notifyRecipient(supabase, conv, senderRole) {
   const recipientId = senderRole === "seeker" ? conv.owner_id : conv.seeker_id;
   if (!recipientId) return;
   const { data: recipient } = await supabase.from("users").select("email").eq("id", recipientId).maybeSingle();
-  if (!recipient?.email) return;
+  let to = recipient?.email;
+  if (!to) {
+    // usersテーブルにメールアドレスが無い場合は、認証情報（auth.users）から取得する
+    const { data: authUser } = await supabase.auth.admin.getUserById(recipientId);
+    to = authUser?.user?.email;
+  }
+  if (!to) {
+    console.error("Message notification skipped: no email for recipient", recipientId);
+    return;
+  }
 
   const senderLabel = senderRole === "seeker"
     ? `${conv.seeker_name || "利用者"}さん`
@@ -80,11 +89,12 @@ async function notifyRecipient(supabase, conv, senderRole) {
     <p style="font-size:12px;color:#666">このメールは送信専用です。返信してもメッセージは相手に届きません。</p>
   `;
   try {
-    await fetch("https://api.resend.com/emails", {
+    const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: fromAddress, to: recipient.email, subject, html }),
+      body: JSON.stringify({ from: fromAddress, to, subject, html }),
     });
+    if (!resp.ok) console.error("Resend message notification rejected:", resp.status, await resp.text().catch(() => ""));
   } catch (err) {
     console.error("Resend message notification failed:", err.message);
   }
