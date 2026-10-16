@@ -11,6 +11,34 @@
 -- ・掲載や利用者のアカウントが削除されても記録が消えないよう、参照先は
 --   on delete set null とし、掲載名・表示名はスレッド作成時点の値を保存する。
 
+-- 以前に取り下げた同名機能の古いテーブルが残っている環境への対策。
+-- 「create table if not exists」は、同名のテーブルが既にあると何もしないため、列が足りない
+-- 古い形式のまま残り、「Could not find the 'seeker_name' column」等のエラーになる。
+-- 古い形式（seeker_name列が無い）で、かつ中身が空の場合に限り、削除して作り直す。
+-- データが入っている場合は、誤って消さないようにエラーで止める（内容を確認してから対応する）。
+do $$
+declare
+  legacy boolean;
+  row_count bigint := 0;
+begin
+  legacy := exists (select 1 from information_schema.tables
+                    where table_schema = 'public' and table_name = 'conversations')
+    and not exists (select 1 from information_schema.columns
+                    where table_schema = 'public' and table_name = 'conversations' and column_name = 'seeker_name');
+
+  if legacy then
+    execute 'select count(*) from public.conversations' into row_count;
+    if to_regclass('public.messages') is not null then
+      row_count := row_count + (select count(*) from public.messages);
+    end if;
+    if row_count > 0 then
+      raise exception '古い形式のconversations/messagesにデータ（% 件）があるため、自動では削除しません。内容を確認してから対応してください。', row_count;
+    end if;
+    drop table if exists public.messages;
+    drop table if exists public.conversations;
+  end if;
+end $$;
+
 create table if not exists conversations (
   id uuid primary key default gen_random_uuid(),
   target_type text not null check (target_type in ('farm', 'house')),
@@ -62,3 +90,6 @@ revoke all on conversations from service_role;
 revoke all on messages from service_role;
 grant select, insert, update on conversations to service_role;
 grant select, insert on messages to service_role;
+
+-- テーブル構造を変更した直後でも、APIがすぐ新しい列を認識できるようにする
+notify pgrst, 'reload schema';
