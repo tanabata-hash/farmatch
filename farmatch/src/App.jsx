@@ -13,6 +13,7 @@ import { ReportManager } from "./components/ReportManager";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { trackView, setTrackingExcluded } from "./track";
 import { getCurrentPosition, reverseGeocode, compressImage } from "./geo";
+import { MessagesPanel, sendFirstMessage, countUnreadConversations } from "./components/Messages";
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
@@ -1793,16 +1794,43 @@ function AdminPanel({ onLogout }) {
 }
 
 // ── 問い合わせモーダル ────────────────────────────────────
-function ContactModal({ item, onClose }) {
+function ContactModal({ item, user, onLogin, onOpenMessages, onClose }) {
+  const isHouse = !!item.house_type;
+  // オーナー本人が登録した掲載はサイト内メッセージでやり取りできる。
+  // オーナー不在の掲載（自治体データ等）は、従来の問い合わせフォーム（運営経由）のまま。
+  const canMessage = !!item.owner_id;
+  const isOwnListing = !!user && item.owner_id === user.id;
+  const [mode, setMode] = useState(canMessage ? (user ? "message" : "login") : "legacy");
+
+  // サイト内メッセージ
+  const [msgBody, setMsgBody] = useState("");
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgError, setMsgError] = useState("");
+  const [sentConversationId, setSentConversationId] = useState(null);
+
+  // 従来の問い合わせフォーム
   const [form, setForm] = useState({name:"",email:"",purpose:"",msg:""});
   const [website, setWebsite] = useState(""); // ハニーポット（人間には見えない。入力があればbot扱い）
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const handleSendMessage = async()=>{
+    if(!msgBody.trim()) { setMsgError("メッセージを入力してください"); return; }
+    setMsgSending(true); setMsgError("");
+    try {
+      const r = await sendFirstMessage({ targetType:isHouse?"house":"farm", targetId:item.id, body:msgBody });
+      setSentConversationId(r.conversationId);
+      setSent(true);
+    } catch(err) {
+      setMsgError(err.message);
+    }
+    setMsgSending(false);
+  };
+
   const handleSubmit = async()=>{
     if(!form.name||!form.email) return;
     if(website) { setSent(true); return; } // botはここで無言で弾く
     setLoading(true);
-    const isHouse=!!item.house_type;
     let ok = false, errorMsg = "";
     try {
       const res = await fetch("/api/inquiries", {
@@ -1828,13 +1856,77 @@ function ContactModal({ item, onClose }) {
   };
   return (
     <Modal onClose={onClose}>
-      {sent ? (
+      {sent && sentConversationId ? (
+        <div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ fontSize:48 }}>✅</div>
+          <h3 style={{ color:C.green, margin:"12px 0 8px" }}>メッセージを送りました</h3>
+          <p style={{ color:C.muted, fontSize:13, lineHeight:1.7 }}>
+            オーナーから返信があると、メールでお知らせします。<br/>
+            返信は画面右上の「💬 メッセージ」から確認できます。
+          </p>
+          <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:14 }}>
+            <Btn variant="outline" onClick={onClose}>閉じる</Btn>
+            <Btn onClick={()=>onOpenMessages(sentConversationId)}>メッセージを開く</Btn>
+          </div>
+        </div>
+      ) : sent ? (
         <div style={{ textAlign:"center", padding:"20px 0" }}>
           <div style={{ fontSize:48 }}>✅</div>
           <h3 style={{ color:C.green, margin:"12px 0 8px" }}>送信しました</h3>
           <p style={{ color:C.muted, fontSize:13 }}>3〜5営業日以内にご連絡します。</p>
           <Btn onClick={onClose} style={{ marginTop:12 }}>閉じる</Btn>
         </div>
+      ) : mode==="message" ? (
+        <>
+          <h3 style={{ margin:"0 0 4px", color:C.text }}>オーナーにメッセージを送る</h3>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 14px" }}>{item.name}</p>
+          {isOwnListing ? (
+            <>
+              <p style={{ fontSize:13, color:C.muted, lineHeight:1.7 }}>ご自身の掲載には、メッセージを送れません。</p>
+              <Btn variant="outline" onClick={onClose} style={{ width:"100%" }}>閉じる</Btn>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize:12, color:C.muted, margin:"0 0 10px", lineHeight:1.7 }}>
+                Farmatchの中でオーナーとやり取りできます。お互いのメールアドレスは相手に表示されません。
+                返信があるとメールでお知らせします。やり取りの記録は「💬 メッセージ」に残ります。
+              </p>
+              <textarea value={msgBody} onChange={e=>setMsgBody(e.target.value)} rows={5} maxLength={2000}
+                placeholder="例：はじめまして。農業を始めたいと考えています。この農地についてお話を伺いたいです。"
+                style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"10px 12px",
+                  fontSize:14, boxSizing:"border-box", resize:"vertical", outline:"none", fontFamily:"inherit", marginBottom:6 }}/>
+              <div style={{ fontSize:11, color:C.muted, textAlign:"right", marginBottom:10 }}>{msgBody.length} / 2000</div>
+              {msgError && (
+                <p style={{ fontSize:12, color:"#C0392B", background:"#FDEDEC", border:"1px solid #F5B7B1",
+                  borderRadius:8, padding:"8px 12px", margin:"0 0 12px" }}>❌ {msgError}</p>
+              )}
+              <LegalCautionNote compact isHouse={isHouse}/>
+              <div style={{ display:"flex", gap:10 }}>
+                <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
+                <Btn onClick={handleSendMessage} style={{ flex:2, opacity:msgSending?0.7:1 }}>
+                  {msgSending?"送信中...":"メッセージを送る"}
+                </Btn>
+              </div>
+            </>
+          )}
+        </>
+      ) : mode==="login" ? (
+        <>
+          <h3 style={{ margin:"0 0 4px", color:C.text }}>オーナーに問い合わせる</h3>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 14px" }}>{item.name}</p>
+          <div style={{ background:C.paleGreen, border:"1.5px solid #B8D98A", borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:C.green, marginBottom:6 }}>💬 サイト内メッセージで問い合わせる</div>
+            <p style={{ fontSize:12, color:C.text, margin:"0 0 12px", lineHeight:1.7 }}>
+              ログイン（無料）すると、Farmatchの中でオーナーと直接やり取りでき、やり取りの記録も残ります。
+              お互いのメールアドレスは相手に表示されません。
+            </p>
+            <Btn onClick={onLogin} style={{ width:"100%", textAlign:"center" }}>ログイン / 新規登録して送る</Btn>
+          </div>
+          <button onClick={()=>setMode("legacy")}
+            style={{ background:"none", border:"none", color:C.muted, fontSize:12, textDecoration:"underline", cursor:"pointer", padding:0 }}>
+            ログインせずに、メールで問い合わせる
+          </button>
+        </>
       ) : (
         <>
           <h3 style={{ margin:"0 0 4px", color:C.text }}>問い合わせフォーム</h3>
@@ -1859,7 +1951,7 @@ function ContactModal({ item, onClose }) {
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
-          <LegalCautionNote compact isHouse={!!item.house_type}/>
+          <LegalCautionNote compact isHouse={isHouse}/>
           <div style={{ display:"flex", gap:10 }}>
             <Btn variant="outline" onClick={onClose} style={{ flex:1 }}>戻る</Btn>
             <Btn onClick={handleSubmit} style={{ flex:2, opacity:loading?0.7:1 }}>
@@ -3165,6 +3257,9 @@ export default function App() {
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [showMyListings, setShowMyListings] = useState(false);
   const [newInquiryCount, setNewInquiryCount] = useState(0);
+  const [showMessages, setShowMessages] = useState(false);
+  const [messagesInitialId, setMessagesInitialId] = useState(null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   const fetchNewInquiryCount = async()=>{
     const { data:{ session } } = await supabase.auth.getSession();
@@ -3180,10 +3275,23 @@ export default function App() {
     }
   };
 
+  const fetchUnreadMessageCount = async()=>{
+    const { data:{ session } } = await supabase.auth.getSession();
+    if(!session) { setUnreadMessageCount(0); return; }
+    setUnreadMessageCount(await countUnreadConversations());
+  };
+
+  // ログイン中は、新着メッセージのバッジを一定間隔で更新する
+  useEffect(()=>{
+    if(!user) return;
+    const timer = setInterval(()=>{ if(document.visibilityState==="visible") fetchUnreadMessageCount(); }, 60000);
+    return ()=>clearInterval(timer);
+  },[user]);
+
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{
       setUser(session?.user ?? null);
-      if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
+      if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); fetchUnreadMessageCount(); }
     });
     // パスワードリセットのリンクから戻ってきた場合は、再設定画面を表示する
     const hash = window.location.hash || "";
@@ -3192,8 +3300,8 @@ export default function App() {
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((event, session)=>{
       if(event === "PASSWORD_RECOVERY") setShowPasswordReset(true);
       setUser(session?.user ?? null);
-      if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); }
-      else { setUserProfile(null); setIsPremium(false); setNewInquiryCount(0); }
+      if(session?.user) { fetchProfile(session.user.id); fetchNewInquiryCount(); fetchUnreadMessageCount(); }
+      else { setUserProfile(null); setIsPremium(false); setNewInquiryCount(0); setUnreadMessageCount(0); }
     });
     return ()=>subscription.unsubscribe();
   },[]);
@@ -3325,6 +3433,17 @@ export default function App() {
                 {isPremium && (
                   <span style={{ background:C.soil, color:"#fff", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700 }}>⭐ プレミアム</span>
                 )}
+                <button onClick={()=>{ setMessagesInitialId(null); setShowMessages(true); }}
+                  style={{ position:"relative", background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                  💬 メッセージ
+                  {unreadMessageCount>0 && (
+                    <span style={{ position:"absolute", top:-6, right:-6, background:"#E53935", color:"#fff",
+                      borderRadius:20, minWidth:16, height:16, fontSize:10, fontWeight:700,
+                      display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
+                      {unreadMessageCount}
+                    </span>
+                  )}
+                </button>
                 <button onClick={()=>setShowMyListings(true)}
                   style={{ position:"relative", background:C.lightGreen, color:C.deepGreen, border:"none", borderRadius:20, padding:"5px 14px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                   📋 マイ登録
@@ -3784,7 +3903,17 @@ export default function App() {
         <div style={{ color:"rgba(255,255,255,0.35)" }}>© {BRAND.year} {BRAND.name} — 全国の遊休農地有効活用プロジェクト</div>
       </div>
 
-      {contact && <ContactModal item={contact} onClose={()=>setContact(null)}/>}
+      {contact && (
+        <ContactModal item={contact} user={user}
+          onLogin={()=>{ setContact(null); setShowAuth(true); }}
+          onOpenMessages={(conversationId)=>{ setContact(null); setMessagesInitialId(conversationId); setShowMessages(true); }}
+          onClose={()=>{ setContact(null); fetchUnreadMessageCount(); }}/>
+      )}
+
+      {showMessages && user && (
+        <MessagesPanel initialId={messagesInitialId}
+          onClose={()=>{ setShowMessages(false); setMessagesInitialId(null); fetchUnreadMessageCount(); }}/>
+      )}
 
       {showPasswordReset && (
         <PasswordResetModal onClose={()=>{

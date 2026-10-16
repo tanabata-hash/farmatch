@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { handleConversations } from "../_messages.js";
 
 function getServiceClient() {
   return createClient(
@@ -26,6 +27,12 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: "ログインが必要です" });
 
   const supabase = getServiceClient();
+
+  // サイト内メッセージ（?resource=conversations）。Vercelの関数数の上限に収めるため、
+  // 独立したエンドポイントを増やさず、この認証済みエンドポイントに同居させている。
+  if (req.query?.resource === "conversations") {
+    return handleConversations(req, res, supabase, userId);
+  }
 
   const [{ data: myFarms }, { data: myHouses }] = await Promise.all([
     supabase.from("farms").select("id,name").eq("owner_id", userId),
