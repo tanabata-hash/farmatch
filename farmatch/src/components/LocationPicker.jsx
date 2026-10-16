@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { C } from "../theme";
+import { getCurrentPosition } from "../geo";
 
 // ── 位置の指定（住所からの自動検索＋地図クリックでの微調整） ──────────
 // 農地オーナーが緯度・経度の数値を自分で調べなくても済むようにするための部品。
@@ -90,6 +91,24 @@ export function LocationPicker({ region, location, chiban, lat, lng, onChange })
     if (map.getZoom() < 13) map.setView(p, 15); else map.panTo(p);
   }, [lat, lng, hasPoint]);
 
+  // 端末のGPSで「今いる場所」を取得（農地の前で押してもらう想定）
+  const [locating, setLocating] = useState(false);
+  const useCurrentLocation = async () => {
+    setLocating(true); setMessage("");
+    try {
+      const pos = await getCurrentPosition();
+      setPoint(pos.lat, pos.lng);
+      setMessage(
+        pos.accuracy > 100
+          ? `今いる場所を表示しました（誤差 約${Math.round(pos.accuracy)}m）。精度が低めなので、ピンをドラッグして農地の場所に合わせてください。`
+          : `今いる場所を表示しました（誤差 約${Math.round(pos.accuracy)}m）。ずれている場合は、ピンをドラッグして調整してください。`
+      );
+    } catch (e) {
+      setMessage(e.message);
+    }
+    setLocating(false);
+  };
+
   // 住所からおおよその位置を検索
   const searchByAddress = async () => {
     const query = [region, location, chiban].map(v => (v || "").trim()).filter(Boolean).join("");
@@ -118,12 +137,17 @@ export function LocationPicker({ region, location, chiban, lat, lng, onChange })
         場所（地図でのおおよその位置）
       </label>
       <p style={{ fontSize:11, color:C.muted, margin:"0 0 8px", lineHeight:1.6 }}>
-        「住所から探す」を押すと、入力済みの住所からおおよその位置を表示します。
+        農地・空き家の前にいる場合は「今いる場所を使う」を押すと、スマホのGPSで現在地を表示します。別の場所から登録する場合は「住所から探す」で、入力済みの住所からおおよその位置を表示します。
         そのあと<strong>地図をクリック、またはピンをドラッグ</strong>して、農地のある場所に合わせてください。
         公開ページでは、防犯のため実際の位置から少しずらして表示されます。
       </p>
 
       <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, flexWrap:"wrap" }}>
+        <button type="button" onClick={useCurrentLocation} disabled={locating}
+          style={{ background:C.green, color:"#fff", border:`1.5px solid ${C.green}`,
+            borderRadius:8, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+          {locating ? "取得中..." : "📍 今いる場所を使う"}
+        </button>
         <button type="button" onClick={searchByAddress} disabled={searching}
           style={{ background:C.paleGreen, color:C.green, border:`1.5px solid ${C.lightGreen}`,
             borderRadius:8, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer" }}>

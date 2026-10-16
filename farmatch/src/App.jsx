@@ -12,6 +12,7 @@ import { LocationPicker } from "./components/LocationPicker";
 import { ReportManager } from "./components/ReportManager";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { trackView, setTrackingExcluded } from "./track";
+import { getCurrentPosition, reverseGeocode, compressImage } from "./geo";
 
 const BRAND = {
   name: "Farmatch", tagline: "農地と人をつなぐプラットフォーム",
@@ -1959,8 +1960,12 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [captureNote, setCaptureNote] = useState(null);
 
-  const uploadPhoto = async(file) => {
+  const uploadPhoto = async(rawFile) => {
+    // スマホの写真は大きいため、長辺1600pxのJPEGに縮小してから送る（3MB上限対策）
+    const file = await compressImage(rawFile);
     const dataBase64 = await new Promise((resolve,reject)=>{
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result.split(",")[1]);
@@ -1982,7 +1987,7 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if(!file) return;
-    if(file.size > 3*1024*1024) { setError("3MB以下の画像を選択してください"); return; }
+    if(file.size > 20*1024*1024) { setError("20MB以下の画像を選択してください"); return; }
     setUploading(true);
     try {
       const url = await uploadPhoto(file);
@@ -2001,7 +2006,7 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
     const currentUrls = form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean);
     const newUrls = [];
     for(const file of files) {
-      if(file.size > 3*1024*1024) { setError(`${file.name} は3MBを超えています`); continue; }
+      if(file.size > 20*1024*1024) { setError(`${file.name} は20MBを超えています`); continue; }
       try {
         newUrls.push(await uploadPhoto(file));
       } catch(err) {
@@ -2010,6 +2015,49 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
     }
     setForm(f=>({...f, photo_urls:[...currentUrls, ...newUrls].join("、")}));
     setUploading(false);
+  };
+
+  // 「写真を撮って場所を登録」：撮影した写真のアップロードと現在地の取得を同時に行い、
+  // 位置・都道府県・市区町村・名称を自動入力する（高齢のオーナーでも文字入力なしで登録できるように）
+  const handleCapture = async(e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if(!file) return;
+    setError(""); setCaptureNote(null); setCapturing(true);
+    const label = type==="farm" ? "農地" : "空き家";
+    const [photoRes, posRes] = await Promise.allSettled([uploadPhoto(file), getCurrentPosition()]);
+    const errors = [];
+    const patch = {};
+    if(photoRes.status==="fulfilled") patch.photoUrl = photoRes.value;
+    else errors.push(photoRes.reason?.message || "写真のアップロードに失敗しました");
+    let place = null;
+    if(posRes.status==="fulfilled") {
+      patch.lat = posRes.value.lat.toFixed(6);
+      patch.lng = posRes.value.lng.toFixed(6);
+      place = await reverseGeocode(posRes.value.lat, posRes.value.lng);
+    } else errors.push(posRes.reason?.message || "位置情報を取得できませんでした");
+    setForm(f=>{
+      const next = { ...f };
+      if(patch.photoUrl) {
+        const urls = f.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean);
+        next.photo_urls = [...urls, patch.photoUrl].join("、");
+      }
+      if(patch.lat) { next.lat = patch.lat; next.lng = patch.lng; }
+      if(place) {
+        if(!f.region.trim()) next.region = place.region;
+        if(!f.location.trim()) next.location = place.location;
+      }
+      if(!f.name.trim() && patch.lat) {
+        next.name = place ? `${place.location}の${label}` : `${label}（写真から登録）`;
+      }
+      return next;
+    });
+    if(errors.length) setError(errors.join(" "));
+    setCaptureNote({
+      photoOk: !!patch.photoUrl, posOk: !!patch.lat, placeOk: !!place,
+      accuracy: posRes.status==="fulfilled" ? Math.round(posRes.value.accuracy) : null,
+    });
+    setCapturing(false);
   };
 
   const removeFarmPhoto = (urlToRemove) => {
@@ -2028,7 +2076,7 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
 
   const handleSubmit = async()=>{
     if(!form.name.trim() || !form.region.trim()) { setError("名称と都道府県は必須です"); return; }
-    if(uploading) { setError("写真のアップロード完了までお待ちください"); return; }
+    if(uploading || capturing) { setError("写真・位置情報の取得完了までお待ちください"); return; }
     setSaving(true); setError("");
     const base = {
       name: form.name, region: form.region, location: form.location,
@@ -2077,6 +2125,34 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
       <p style={{ fontSize:12, color:C.muted, margin:"0 0 16px" }}>
         {isEdit ? "内容を修正して保存してください。" : "ご自身が所有・管理されている農地や空き家の情報を登録できます。掲載後は「マイ登録」からいつでも編集できます。"}
       </p>
+
+      {!isEdit && (
+        <div style={{ background:C.paleGreen, border:`1.5px solid ${C.lightGreen}`, borderRadius:12,
+          padding:"16px", marginBottom:16, textAlign:"center" }}>
+          <label style={{ display:"block", background:C.green, color:"#fff", borderRadius:28,
+            padding:"16px 12px", fontSize:17, fontWeight:800, lineHeight:1.4,
+            cursor:capturing?"default":"pointer", opacity:capturing?0.6:1 }}>
+            {capturing ? "場所と写真を取得しています…" : "📷 写真を撮って場所を登録"}
+            <input type="file" accept="image/*" capture="environment" onChange={handleCapture}
+              disabled={capturing} style={{ display:"none" }}/>
+          </label>
+          <p style={{ fontSize:12, color:C.muted, margin:"10px 0 0", lineHeight:1.7, textAlign:"left" }}>
+            {type==="farm" ? "農地" : "空き家"}の前でこのボタンを押して写真を撮ると、<strong>今いる場所が地図に自動で入ります</strong>。
+            都道府県・市区町村・名称も自動で入るので、文字入力なしで登録できます。
+            初めて使うときは、位置情報の利用確認が表示されたら「許可」を選んでください。
+            撮影した写真の位置情報は保存せず、公開ページでは実際の位置から少しずらして表示します。
+          </p>
+          {captureNote && (
+            <div style={{ fontSize:12, lineHeight:1.7, textAlign:"left", marginTop:8,
+              color:captureNote.posOk && captureNote.accuracy<=100 ? C.green : "#B5541C" }}>
+              {captureNote.photoOk && <div>✅ 写真を追加しました</div>}
+              {captureNote.posOk && <div>✅ 今いる場所を地図に入力しました（誤差 約{captureNote.accuracy}m）</div>}
+              {captureNote.posOk && captureNote.accuracy>100 && <div>⚠️ 位置の誤差が大きめです。下の地図でピンをドラッグして調整してください。</div>}
+              {captureNote.posOk && !captureNote.placeOk && <div>⚠️ 市区町村を自動入力できませんでした。都道府県とエリア名を入力してください。</div>}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
         {field("name","名称 *","例：南部農地 D区画",{full:true})}
@@ -2213,7 +2289,7 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
           style={{ fontSize:12 }}/>
       </div>
       <div style={{ marginBottom:16 }}>
-        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真（複数可・最大3MB/枚）</label>
+        <label style={{ fontSize:11, color:C.green, fontWeight:600, display:"block", marginBottom:3 }}>現地写真（複数可・自動で縮小されます）</label>
         {form.photo_urls && (
           <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:8 }}>
             {form.photo_urls.split(/[、,]/).map(u=>u.trim()).filter(Boolean).map(url=>(
