@@ -148,7 +148,7 @@ export function PrivacyPage({ onBack }) {
     <LegalPage title="プライバシーポリシー" onBack={onBack}>
       <div style={{ background:"#FFF8E1", border:"1px solid #FFD54F", borderRadius:8,
         padding:"12px 16px", marginBottom:24, fontSize:12, color:"#795548" }}>
-        制定日：2025年1月1日　最終更新日：2026年9月29日
+        制定日：2025年1月1日　最終更新日：2026年10月16日
       </div>
 
       <Section title="第1条（個人情報の定義）">
@@ -163,6 +163,7 @@ export function PrivacyPage({ onBack }) {
           <li>問い合わせ内容・メッセージ</li>
           <li>決済情報（Stripeを経由して処理、当サービスはカード番号を保持しません）</li>
           <li>アクセスログ・利用履歴</li>
+          <li>端末の現在地（位置情報）：「写真を撮って場所を登録」「今いる場所を使う」機能をご利用になった場合に限り、ブラウザ（端末）の許可を得たうえで取得し、農地・空き家の掲載位置として保存します。撮影した写真に含まれる位置情報（EXIF）は削除したうえで保存します。公開ページでは、防犯のため実際の位置から少しずらした位置を表示します。</li>
         </ul>
       </Section>
 
@@ -184,6 +185,7 @@ export function PrivacyPage({ onBack }) {
           <li><strong>Supabase</strong>：データベース・認証サービス（米国）</li>
           <li><strong>Vercel</strong>：ホスティングサービス（米国）</li>
           <li><strong>Resend</strong>：問い合わせ通知等のメール配信サービス（米国）</li>
+          <li><strong>OpenStreetMap（Nominatim・地図タイル）／HeartRails Geo API／国土地理院 住所検索</strong>：地図の表示、および位置情報や入力された住所から市区町村名への変換のために、緯度経度・住所を送信します（運営者はそれぞれ英国・日本）。送信するのは位置と住所のみで、氏名・メールアドレス等は送信しません。</li>
           <li><strong>Stripe</strong>：決済処理サービス（米国）※導入予定</li>
         </ul>
         これらのサービスへのデータ移転は、各社のデータ保護方針に基づいて行われます。日本の個人情報保護法上、米国は十分性認定国ではないため、当サービスは各社が締結する標準契約条項（SCCs）等の適切な安全管理措置に基づき、必要な範囲でデータを移転します。移転先である米国には連邦レベルでの包括的な個人情報保護法は存在しませんが、提供先各社が適切なデータ保護・セキュリティ管理体制を備えていることを確認したうえでデータを移転しています。
