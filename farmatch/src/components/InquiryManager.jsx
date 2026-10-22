@@ -42,7 +42,7 @@ export function InquiryManager() {
     setMessageLoading(true);
     setMessageError("");
     try {
-      const res = await fetch(`/api/admin/inquiry-message?id=${encodeURIComponent(selected.id)}&reason=${encodeURIComponent(accessReason)}&accessedBy=${encodeURIComponent(name)}`, {
+      const res = await fetch(`/api/admin/inquiries?resource=message&id=${encodeURIComponent(selected.id)}&reason=${encodeURIComponent(accessReason)}&accessedBy=${encodeURIComponent(name)}`, {
         headers: { "x-admin-password": sessionStorage.getItem("adminPw") || "" },
       });
       const data = await res.json();
