@@ -30,9 +30,9 @@ function LegalPage({ title, onBack, children }) {
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, id, children }) {
   return (
-    <div style={{ marginBottom:28 }}>
+    <div id={id} style={{ marginBottom:28 }}>
       <h2 style={{ fontSize:15, color:C.green, fontWeight:700, marginBottom:10,
         paddingBottom:6, borderBottom:`1px solid ${C.border}` }}>{title}</h2>
       <div style={{ fontSize:13, color:C.text, lineHeight:1.9 }}>{children}</div>
@@ -109,7 +109,7 @@ export function TermsPage({ onBack }) {
         </ul>
       </Section>
 
-      <Section title="第5条の3（お問い合わせフォーム）">
+      <Section title="第5条の3（お問い合わせフォーム）" id="terms-inquiry-form">
         <ul style={{ paddingLeft:20 }}>
           <li>お問い合わせフォームは、ログインしていない利用者や、自治体等が参考情報として掲載した農地・空き家について、利用者が掲載者（オーナー）等へ連絡するための機能です（ログインしてご利用いただける場合は、前条のサイト内メッセージをご案内することがあります）。</li>
           <li>お問い合わせの内容は、電気通信事業法に基づき通信の秘密として保護します。当社は、業務上の必要がある場合を除き、お問い合わせの内容を閲覧しません。</li>
