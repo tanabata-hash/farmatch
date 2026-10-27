@@ -1517,7 +1517,7 @@ function AdminPanel({ onLogout }) {
           {!editItem && !PAID_FEATURES_ACTIVE && (
             <p style={{ fontSize:12, color:C.green, background:C.paleGreen, border:"1px solid #B8D98A",
               borderRadius:8, padding:"6px 10px", margin:"0 0 14px" }}>
-              🎉 掲載料は当面無料です。安心してご登録ください。
+              🎉 掲載料は無料です。安心してご登録ください。
             </p>
           )}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
@@ -3535,7 +3535,7 @@ export default function App() {
             <div style={{ display:"inline-block", marginTop:14, background:"rgba(255,255,255,0.15)",
               border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, padding:"5px 16px",
               color:"#fff", fontSize:12, fontWeight:700 }}>
-              🎉 掲載料は当面無料です
+              🎉 掲載料は無料です
             </div>
           )}
           <div style={{ marginTop:18 }}>
