@@ -3436,8 +3436,8 @@ export default function App() {
       {/* ヒーロー */}
       {tab==="farms" && (
         <div style={{
-          background: `linear-gradient(135deg, rgba(20, 42, 10, 0.82) 0%, rgba(12, 28, 8, 0.90) 100%), url('/hero-bg.jpg') center/cover no-repeat`,
-          padding:"48px 20px 42px", textAlign:"center", color:"#fff"
+          background: `linear-gradient(135deg, rgba(20, 42, 10, 0.76) 0%, rgba(12, 28, 8, 0.86) 100%), url('/hero-bg.jpg') center 18% / cover no-repeat`,
+          padding:"54px 20px 48px", minHeight:440, display:"flex", flexDirection:"column", justifyContent:"center", textAlign:"center", color:"#fff"
         }}>
           <div className="fm-hero-sub" style={{ color:"#D4EDAA", fontSize:11.5, letterSpacing:3, marginBottom:10, fontWeight:700 }}>
             🍃 都会の早い流れを離れ、自然のリズムで生きる
@@ -3512,7 +3512,7 @@ export default function App() {
                 },
                 {
                   icon:"👥", title:"仲間と分担する共同耕作", tag:"共同耕作OK",
-                  image:"/lifestyle-restoration.jpg",
+                  image:"/lifestyle-together.jpg",
                   desc:"一人で抱え込まず仲間とシェア。種まき、草刈り、収穫など、できる作業を持ち寄る安心感。"
                 },
                 {
@@ -3563,7 +3563,10 @@ export default function App() {
 
       {/* サービス概要（ハブ＆スポーク 繋がりデザイン） */}
       {tab==="farms" && (
-        <div style={{ background:`linear-gradient(180deg, ${C.cream} 0%, #EAE4D8 100%)`, padding:"36px 20px 32px" }}>
+        <div style={{
+          background:`linear-gradient(180deg, rgba(245, 240, 232, 0.90) 0%, rgba(234, 228, 216, 0.93) 100%), url('/network-bg.jpg') center/cover no-repeat`,
+          padding:"40px 20px 36px"
+        }}>
           <style>{`
             .fm-br-mobile { display: none; }
             @media (max-width: 640px) {
