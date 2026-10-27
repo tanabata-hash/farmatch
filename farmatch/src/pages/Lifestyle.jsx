@@ -34,7 +34,7 @@ export function LifestylePage({ onBack, onGoFarms }) {
           荒れた農地を少しずつ整えたり。あなたに合った「関わり方」を選べます。
         </p>
 
-        <h2 style={{ fontSize:17, color:C.green, fontWeight:700, margin:"0 0 14px" }}>6つの関わり方</h2>
+        <h2 style={{ fontSize:17, color:C.green, fontWeight:700, margin:"0 0 14px" }}>7つの関わり方</h2>
         <div style={{ display:"grid", gap:12 }}>
           {LIFESTYLE_STYLES.map(s => (
             <div key={s.id} style={{ border:`1.5px solid ${C.border}`, borderRadius:12, padding:"14px 16px", background:C.cream }}>

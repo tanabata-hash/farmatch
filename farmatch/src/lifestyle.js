@@ -20,6 +20,9 @@ export const LIFESTYLE_STYLES = [
   { id:"restoration", icon:"🌾", name:"開墾・再生", tag:"開墾・再生",
     summary:"長年放置された荒れ農地を、仲間と少しずつ整えて使える状態に戻す。",
     day:"草刈りや石拾いを仲間と。before/afterを記録しながら少しずつ畑に戻す。" },
+  { id:"farming",     icon:"🚜", name:"本格就農", tag:"本格就農向き",
+    summary:"農業を仕事として始めたい人に。まとまった広さの農地や、新規就農の相談につながる農地を探せます。",
+    day:"朝から畑で作業し、販路や栽培計画を整える。地域の農家や就農相談窓口とも連携して経営を軌道に乗せる。" },
 ];
 
 // 一覧の絞り込みに使うタグ一覧（オーナー向けの入力ヒントにも使用）
@@ -30,7 +33,7 @@ export const LIFESTYLE_QUIZ = [
   { q:"農に関われる時間は？",
     options:[
       { label:"週末の数時間だけ", score:{ weekend:3, together:1 } },
-      { label:"平日も含め、まとまった時間がある", score:{ slow:2, restoration:2, trial:1 } },
+      { label:"平日も含め、まとまった時間がある", score:{ slow:2, restoration:2, trial:1, farming:2 } },
       { label:"休みの日に家族と", score:{ family:3, weekend:1 } },
     ]},
   { q:"誰と取り組みたい？",
@@ -44,16 +47,18 @@ export const LIFESTYLE_QUIZ = [
       { label:"無理なく続けること", score:{ slow:3, weekend:1 } },
       { label:"地域や仲間とのつながり", score:{ together:2, restoration:2 } },
       { label:"まず体験して確かめること", score:{ trial:3, family:1 } },
+      { label:"農業を仕事にして収入を得ること", score:{ farming:4 } },
     ]},
   { q:"体を動かす作業は？",
     options:[
-      { label:"しっかり動きたい", score:{ restoration:3, together:1 } },
+      { label:"しっかり動きたい", score:{ restoration:3, together:1, farming:1 } },
       { label:"軽めの作業がいい", score:{ slow:2, weekend:2 } },
       { label:"収穫など楽しい作業中心", score:{ family:2, trial:2 } },
     ]},
   { q:"移住や暮らしの変化について",
     options:[
-      { label:"移住も検討している", score:{ trial:3, slow:1 } },
+      { label:"移住も検討している", score:{ trial:3, slow:1, farming:1 } },
+      { label:"移住・転職して就農したい", score:{ farming:4, trial:1 } },
       { label:"今の暮らしのまま関わりたい", score:{ weekend:3 } },
       { label:"まだ決めていない", score:{ trial:1, together:1, slow:1 } },
     ]},
