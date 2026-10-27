@@ -3435,32 +3435,128 @@ export default function App() {
 
       {/* ヒーロー */}
       {tab==="farms" && (
-        <div style={{ background:`linear-gradient(135deg,${C.green},${C.deepGreen})`, padding:"28px 20px", textAlign:"center" }}>
-          <div className="fm-hero-sub" style={{ color:"#D4EDAA", fontSize:11, letterSpacing:3, marginBottom:8 }}>{BRAND.sub}</div>
-          <h1 className="fm-hero-title" style={{ color:"#fff", fontSize:26, margin:"0 0 6px", fontWeight:800, lineHeight:1.3 }}>{BRAND.tagline}</h1>
-          <p style={{ color:"#B8D98A", fontSize:13, margin:"0 0 10px" }}>遊休農地を活かし、新しい農業の担い手へつなぐ</p>
-          <p style={{ color:"#fff", fontSize:15, fontWeight:800, margin:"0 0 20px" }}>🌾 農業で日本を豊かにしたい！</p>
-          <div style={{ display:"inline-block", marginTop:14, background:"rgba(255,255,255,0.15)",
-            border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, padding:"5px 16px",
-            color:"#fff", fontSize:12, fontWeight:700 }}>
-            🎉 掲載料は無料です
+        <div style={{
+          background: `linear-gradient(135deg, rgba(20, 42, 10, 0.82) 0%, rgba(12, 28, 8, 0.90) 100%), url('/hero-bg.jpg') center/cover no-repeat`,
+          padding:"48px 20px 42px", textAlign:"center", color:"#fff"
+        }}>
+          <div className="fm-hero-sub" style={{ color:"#D4EDAA", fontSize:11.5, letterSpacing:3, marginBottom:10, fontWeight:700 }}>
+            🍃 都会の早い流れを離れ、自然のリズムで生きる
           </div>
-          <div style={{ marginTop:18 }}>
+          <h1 className="fm-hero-title" style={{ color:"#fff", fontSize:28, margin:"0 auto 14px", fontWeight:800, lineHeight:1.38, maxWidth:780 }}>
+            農地と人をつなぎ、<br className="fm-br-mobile"/>農業と共に生きるライフプランを。
+          </h1>
+          <p style={{ color:"#E4F0D3", fontSize:13.5, lineHeight:1.85, maxWidth:720, margin:"0 auto 18px", textShadow:"0 1px 3px rgba(0,0,0,0.4)" }}>
+            都会の暮らしに少し疲れたら、土の匂いと季節の風の中で深呼吸。<br/>
+            晴れたら土を耕し、雨ならのんびり本を読む「晴耕雨読」のスローライフから、仲間との共同耕作、本格就農まで。<br/>
+            一人で抱え込まず、あなたのペースで始める「農ある暮らし」をご提案します。
+          </p>
+
+          <div style={{ display:"inline-flex", alignItems:"center", gap:10, flexWrap:"wrap", justifyContent:"center", marginBottom:22 }}>
+            <span style={{ background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.4)", borderRadius:20, padding:"4px 14px", color:"#fff", fontSize:11.5, fontWeight:700 }}>
+              🎉 掲載料は無料です
+            </span>
+            <span style={{ background:"rgba(255,255,255,0.18)", border:"1px solid rgba(255,255,255,0.4)", borderRadius:20, padding:"4px 14px", color:"#fff", fontSize:11.5, fontWeight:700 }}>
+              🌾 7つの関わり方から選べます
+            </span>
+          </div>
+
+          <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap", alignItems:"center" }}>
+            <button onClick={()=>setPage("lifestyle")}
+              style={{ background:C.lightGreen, color:"#fff", border:"none", borderRadius:26,
+                padding:"12px 26px", fontSize:13.5, fontWeight:800, cursor:"pointer",
+                boxShadow:"0 4px 14px rgba(0,0,0,0.3)", display:"flex", alignItems:"center", gap:6 }}>
+              🍃 あなたに合う関わり方を診断する（無料）
+            </button>
             {user ? (
               <button onClick={()=>setShowMyListings(true)}
-                style={{ background:"#fff", color:C.deepGreen, border:"none", borderRadius:24,
-                  padding:"10px 24px", fontSize:13, fontWeight:800, cursor:"pointer",
-                  boxShadow:"0 2px 8px rgba(0,0,0,0.15)" }}>
+                style={{ background:"#fff", color:C.deepGreen, border:"none", borderRadius:26,
+                  padding:"12px 24px", fontSize:13, fontWeight:800, cursor:"pointer",
+                  boxShadow:"0 2px 8px rgba(0,0,0,0.2)" }}>
                 🌱 あなたの農地・空き家を登録する
               </button>
             ) : (
               <button onClick={()=>setShowAuth(true)}
-                style={{ background:"#fff", color:C.deepGreen, border:"none", borderRadius:24,
-                  padding:"10px 24px", fontSize:13, fontWeight:800, cursor:"pointer",
-                  boxShadow:"0 2px 8px rgba(0,0,0,0.15)" }}>
+                style={{ background:"#fff", color:C.deepGreen, border:"none", borderRadius:26,
+                  padding:"12px 24px", fontSize:13, fontWeight:800, cursor:"pointer",
+                  boxShadow:"0 2px 8px rgba(0,0,0,0.2)" }}>
                 🌱 オーナー登録して掲載する（無料）
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ライフスタイル提案カード（写真付き） */}
+      {tab==="farms" && (
+        <div style={{ background:C.white, borderBottom:`2px solid ${C.border}`, padding:"36px 20px 32px" }}>
+          <div style={{ maxWidth:920, margin:"0 auto" }}>
+            <div style={{ textAlign:"center", marginBottom:24 }}>
+              <div style={{ display:"inline-block", background:C.paleGreen, borderRadius:20, padding:"4px 16px",
+                fontSize:11, fontWeight:700, color:C.midGreen, letterSpacing:"0.05em", marginBottom:8 }}>
+                LIFESTYLE STORIES
+              </div>
+              <h2 style={{ fontSize:20, fontWeight:800, color:C.deepGreen, margin:"0 0 6px" }}>
+                農業との関わり方は、ひとつじゃない
+              </h2>
+              <p style={{ fontSize:12.5, color:C.muted, margin:0 }}>
+                あなたのライフスタイルや想いに合わせた、4つの新しい関わり方
+              </p>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:14 }}>
+              {[
+                {
+                  icon:"🍃", title:"晴耕雨読のスローライフ", tag:"Slow Life向き",
+                  image:"/lifestyle-harvest-joy.jpg",
+                  desc:"都会の早い流れに疲れたら。収量や売上を追わず、自分のペースで土と暮らす心地よさ。"
+                },
+                {
+                  icon:"👥", title:"仲間と分担する共同耕作", tag:"共同耕作OK",
+                  image:"/lifestyle-restoration.jpg",
+                  desc:"一人で抱え込まず仲間とシェア。種まき、草刈り、収穫など、できる作業を持ち寄る安心感。"
+                },
+                {
+                  icon:"🌾", title:"荒れ地の開墾・再生", tag:"開墾・再生",
+                  image:"/lifestyle-restoration.jpg",
+                  desc:"長年放置された農地を仲間と蘇らせる。土をならし、地域と深くつながる確かな達成感。"
+                },
+                {
+                  icon:"🚜", title:"土と向き合う本格就農", tag:"本格就農向き",
+                  image:"/lifestyle-tilling.jpg",
+                  desc:"農業を仕事にしたい。土を耕し汗を流す日々と、人生の新しい生業をつくる道。"
+                },
+              ].map(card => (
+                <div key={card.title} style={{
+                  background:C.cream, border:`1.5px solid ${C.border}`, borderRadius:14, overflow:"hidden",
+                  display:"flex", flexDirection:"column", boxShadow:"0 2px 8px rgba(0,0,0,0.04)"
+                }}>
+                  <div style={{ height:120, position:"relative", overflow:"hidden" }}>
+                    <img src={card.image} alt={card.title} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.65) 100%)" }}/>
+                    <div style={{ position:"absolute", bottom:8, left:10, color:"#fff", fontSize:13, fontWeight:800, textShadow:"0 1px 3px rgba(0,0,0,0.6)" }}>
+                      {card.icon} {card.title}
+                    </div>
+                  </div>
+                  <div style={{ padding:"12px 14px", flex:1, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+                    <p style={{ fontSize:11.5, color:C.text, lineHeight:1.65, margin:"0 0 10px" }}>
+                      {card.desc}
+                    </p>
+                    <button
+                      onClick={() => {
+                        setStyleTag(card.tag);
+                        const el = document.getElementById("farm-list-section");
+                        if (el) el.scrollIntoView({ behavior:"smooth" });
+                      }}
+                      style={{
+                        background:C.white, color:C.green, border:`1.5px solid ${C.green}`, borderRadius:18,
+                        padding:"5px 12px", fontSize:11, fontWeight:700, cursor:"pointer", width:"100%", textAlign:"center"
+                      }}>
+                      「{card.tag}」を見る →
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -3469,7 +3565,9 @@ export default function App() {
       {tab==="farms" && (
         <div style={{ background:`linear-gradient(180deg, ${C.cream} 0%, #EAE4D8 100%)`, padding:"36px 20px 32px" }}>
           <style>{`
+            .fm-br-mobile { display: none; }
             @media (max-width: 640px) {
+              .fm-br-mobile { display: block; }
               .fm-hub-node { width: 72px !important; height: 72px !important; padding: 5px !important; }
               .fm-hub-center { width: 92px !important; height: 92px !important; }
               .fm-hub-icon { font-size: 16px !important; margin-top: 0 !important; }
@@ -3653,7 +3751,7 @@ export default function App() {
       </div>
 
       {/* コンテンツ */}
-      <div style={{ maxWidth:1100, margin:"0 auto", padding:"20px 16px" }}>
+      <div id="farm-list-section" style={{ maxWidth:1100, margin:"0 auto", padding:"20px 16px" }}>
         {loading && (
           <div style={{ textAlign:"center", padding:60, color:C.muted }}>
             <div style={{ fontSize:32, marginBottom:8 }}>🌱</div>
