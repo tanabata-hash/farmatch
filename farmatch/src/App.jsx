@@ -3488,22 +3488,26 @@ export default function App() {
 
       {/* ライフスタイル提案カード（写真付き） */}
       {tab==="farms" && (
-        <div style={{ background:C.white, borderBottom:`2px solid ${C.border}`, padding:"36px 20px 32px" }}>
+        <div style={{
+          background: "linear-gradient(180deg, rgba(243, 248, 238, 0.92) 0%, rgba(234, 243, 226, 0.94) 100%), url('/lifestyle-section-bg.jpg') center/cover no-repeat",
+          borderBottom: `2px solid ${C.border}`,
+          padding: "48px 20px 42px"
+        }}>
           <div style={{ maxWidth:920, margin:"0 auto" }}>
-            <div style={{ textAlign:"center", marginBottom:24 }}>
-              <div style={{ display:"inline-block", background:C.paleGreen, borderRadius:20, padding:"4px 16px",
-                fontSize:11, fontWeight:700, color:C.midGreen, letterSpacing:"0.05em", marginBottom:8 }}>
-                LIFESTYLE STORIES
+            <div style={{ textAlign:"center", marginBottom:26 }}>
+              <div style={{ display:"inline-block", background:"rgba(255,255,255,0.92)", border:`1px solid ${C.border}`, borderRadius:20, padding:"5px 18px",
+                fontSize:11, fontWeight:800, color:C.midGreen, letterSpacing:"0.06em", marginBottom:10, boxShadow:"0 2px 6px rgba(0,0,0,0.04)" }}>
+                🌿 LIFESTYLE STORIES
               </div>
-              <h2 style={{ fontSize:20, fontWeight:800, color:C.deepGreen, margin:"0 0 6px" }}>
+              <h2 style={{ fontSize:22, fontWeight:800, color:C.deepGreen, margin:"0 0 8px", textShadow:"0 1px 2px rgba(255,255,255,0.8)" }}>
                 農業との関わり方は、ひとつじゃない
               </h2>
-              <p style={{ fontSize:12.5, color:C.muted, margin:0 }}>
+              <p style={{ fontSize:13, color:C.text, margin:0, fontWeight:500 }}>
                 あなたのライフスタイルや想いに合わせた、4つの新しい関わり方
               </p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:14 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:16 }}>
               {[
                 {
                   icon:"🍃", title:"晴耕雨読のスローライフ", tag:"Slow Life向き",
@@ -3527,18 +3531,18 @@ export default function App() {
                 },
               ].map(card => (
                 <div key={card.title} style={{
-                  background:C.cream, border:`1.5px solid ${C.border}`, borderRadius:14, overflow:"hidden",
-                  display:"flex", flexDirection:"column", boxShadow:"0 2px 8px rgba(0,0,0,0.04)"
+                  background: "#ffffff", border: "1.5px solid #D5E4C3", borderRadius: 16, overflow: "hidden",
+                  display: "flex", flexDirection: "column", boxShadow: "0 6px 20px rgba(45,80,22,0.09)"
                 }}>
-                  <div style={{ height:120, position:"relative", overflow:"hidden" }}>
+                  <div style={{ height:124, position:"relative", overflow:"hidden" }}>
                     <img src={card.image} alt={card.title} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
-                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.65) 100%)" }}/>
-                    <div style={{ position:"absolute", bottom:8, left:10, color:"#fff", fontSize:13, fontWeight:800, textShadow:"0 1px 3px rgba(0,0,0,0.6)" }}>
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.68) 100%)" }}/>
+                    <div style={{ position:"absolute", bottom:8, left:10, right:10, color:"#fff", fontSize:13, fontWeight:800, textShadow:"0 1px 3px rgba(0,0,0,0.7)" }}>
                       {card.icon} {card.title}
                     </div>
                   </div>
-                  <div style={{ padding:"12px 14px", flex:1, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
-                    <p style={{ fontSize:11.5, color:C.text, lineHeight:1.65, margin:"0 0 10px" }}>
+                  <div style={{ padding:"14px 14px 16px", flex:1, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+                    <p style={{ fontSize:11.8, color:C.text, lineHeight:1.68, margin:"0 0 12px" }}>
                       {card.desc}
                     </p>
                     <button
@@ -3548,8 +3552,9 @@ export default function App() {
                         if (el) el.scrollIntoView({ behavior:"smooth" });
                       }}
                       style={{
-                        background:C.white, color:C.green, border:`1.5px solid ${C.green}`, borderRadius:18,
-                        padding:"5px 12px", fontSize:11, fontWeight:700, cursor:"pointer", width:"100%", textAlign:"center"
+                        background:"#F6FAF2", color:C.green, border:`1.5px solid ${C.green}`, borderRadius:18,
+                        padding:"6px 12px", fontSize:11.5, fontWeight:700, cursor:"pointer", width:"100%", textAlign:"center",
+                        boxShadow:"0 1px 3px rgba(0,0,0,0.04)"
                       }}>
                       「{card.tag}」を見る →
                     </button>
