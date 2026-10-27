@@ -4,6 +4,8 @@ import { TermsPage, PrivacyPage, SpecifiedCommercialPage } from "./pages/Legal";
 import { InheritedFarmlandColumn } from "./pages/Column";
 import { FarmingLifeGuide } from "./pages/FarmingLife";
 import { OwnerGuide } from "./pages/OwnerGuide";
+import { LifestylePage } from "./pages/Lifestyle";
+import { LIFESTYLE_TAGS } from "./lifestyle";
 import { MigrationMap } from "./pages/MigrationMap";
 import { AuthModal } from "./components/Auth";
 import { InquiryManager } from "./components/InquiryManager";
@@ -37,6 +39,7 @@ const PATH_TO_PAGE = {
   "/column/inherited-farmland": "column-inherited-farmland",
   "/farming-life": "farming-life",
   "/owner-guide": "owner-guide",
+  "/lifestyle": "lifestyle",
 };
 const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([k,v])=>[v,k]));
 
@@ -2312,6 +2315,19 @@ function OwnerListingForm({ type, editItem, userId, onClose, onSaved }) {
           placeholder="例：初心者向け、温暖気候"
           style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
             padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:6, alignItems:"center" }}>
+          <span style={{ fontSize:10.5, color:C.muted }}>関わり方（クリックで追加）：</span>
+          {LIFESTYLE_TAGS.map(t=>{
+            const cur = form.tags.split(/[、,]/).map(x=>x.trim()).filter(Boolean);
+            const on = cur.includes(t);
+            return (
+              <button type="button" key={t}
+                onClick={()=>setForm({...form,tags:(on?cur.filter(x=>x!==t):[...cur,t]).join("、")})}
+                style={{ background:on?C.green:"#fff", color:on?"#fff":C.green, border:`1px solid ${C.green}`,
+                  borderRadius:14, padding:"2px 10px", fontSize:10.5, cursor:"pointer" }}>{t}</button>
+            );
+          })}
+        </div>
       </div>
 
       <div style={{ marginBottom:12 }}>
@@ -3260,6 +3276,7 @@ export default function App() {
   const [reportTarget, setReportTarget] = useState(null);
   const [search, setSearch]       = useState("");
   const [filter, setFilter]       = useState("すべて");
+  const [styleTag, setStyleTag]   = useState("すべて");
   const [prefFilter, setPrefFilter] = useState("すべて");
   const [showMap, setShowMap]       = useState(true);
   const [mapFocus, setMapFocus]   = useState(null);
@@ -3366,7 +3383,8 @@ export default function App() {
 
   const prefectures=[...new Set(farms.map(f=>f.region).filter(Boolean))].sort();
   const filteredFarms=farms.filter(f=>{
-    const mf=filter==="すべて"||f.status===filter||f.farm_type===filter;
+    const mf=(filter==="すべて"||f.status===filter||f.farm_type===filter)&&
+      (styleTag==="すべて"||(f.tags||[]).includes(styleTag));
     const mp=prefFilter==="すべて"||f.region===prefFilter;
     const ms=!search||(f.crops||[]).some(c=>c.includes(search))||
       f.name.includes(search)||(f.tags||[]).some(t=>t.includes(search))||
@@ -3407,6 +3425,15 @@ export default function App() {
         setTab("calendar");
       }}
     />
+  );
+  if(page==="lifestyle") return (
+    <div style={{ background:C.cream, minHeight:"100vh", fontFamily:"'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" }}>
+      <LifestylePage onBack={()=>setPage("main")} onGoFarms={tag=>{
+        setStyleTag(tag);
+        setPage("main");
+        setTab("farms");
+      }}/>
+    </div>
   );
   if(page==="owner-guide") return (
     <OwnerGuide onBack={()=>setPage("main")} onGoApp={()=>{
@@ -3654,6 +3681,7 @@ export default function App() {
             <div className="fm-guides" style={{ display:"flex", gap:14 }}>
               {[
                 ["/farming-life","farming-life","🌾","就農希望者の方へ","就農後の生活はどうなる？","#8A6423","#F2EAD8"],
+                ["/lifestyle","lifestyle","🍃","自分のペースで","あなたに合う関わり方を診断","#6B8E23","#EEF3DD"],
                 ["/owner-guide","owner-guide","🏞️","農地オーナーの方へ","登録のメリットと放置のリスク","#5C9484","#E4EEEA"],
               ].map(([href,pageId,icon,eyebrow,title,accent,bg])=>(
                 <a key={pageId} href={href} onClick={e=>{ e.preventDefault(); setPage(pageId); }}
@@ -3723,6 +3751,14 @@ export default function App() {
                   padding:"5px 14px", fontSize:12, cursor:"pointer", fontWeight:filter===f?700:400 }}>{f}</button>
               ))}
             </div>
+            <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap", alignItems:"center" }}>
+              <span style={{ fontSize:11, color:C.muted }}>関わり方：</span>
+              {["すべて",...LIFESTYLE_TAGS].map(t=>(
+                <button key={t} onClick={()=>setStyleTag(t)} style={{ background:styleTag===t?C.green:C.white,
+                  color:styleTag===t?"#fff":C.green, border:`1.5px solid ${C.green}`, borderRadius:20,
+                  padding:"4px 12px", fontSize:11, cursor:"pointer", fontWeight:styleTag===t?700:400 }}>{t}</button>
+              ))}
+            </div>
             <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center" }}>
               <select value={prefFilter} onChange={e=>{setPrefFilter(e.target.value);}}
                 style={{ border:`1.5px solid ${C.green}`, borderRadius:20, padding:"5px 14px",
@@ -3738,8 +3774,8 @@ export default function App() {
                   <option key={r} value={r} disabled>{r}（一時停止中）</option>
                 ))}
               </select>
-              {(prefFilter!=="すべて"||filter!=="すべて") && (
-                <button onClick={()=>{setPrefFilter("すべて");setFilter("すべて");}}
+              {(prefFilter!=="すべて"||filter!=="すべて"||styleTag!=="すべて") && (
+                <button onClick={()=>{setPrefFilter("すべて");setFilter("すべて");setStyleTag("すべて");}}
                   style={{ border:`1px solid ${C.muted}`, borderRadius:20, padding:"5px 12px",
                     fontSize:11, cursor:"pointer", background:"#fff", color:C.muted }}>✕ リセット</button>
               )}
