@@ -1606,6 +1606,19 @@ function AdminPanel({ onLogout }) {
               placeholder="例：初心者向け、温暖気候"
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"8px 10px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:6, alignItems:"center" }}>
+              <span style={{ fontSize:10.5, color:C.muted }}>関わり方（クリックで追加）：</span>
+              {LIFESTYLE_TAGS.map(t=>{
+                const cur = form.tags.split(/[、,]/).map(x=>x.trim()).filter(Boolean);
+                const on = cur.includes(t);
+                return (
+                  <button type="button" key={t}
+                    onClick={()=>setForm({...form,tags:(on?cur.filter(x=>x!==t):[...cur,t]).join("、")})}
+                    style={{ background:on?C.green:"#fff", color:on?"#fff":C.green, border:`1px solid ${C.green}`,
+                      borderRadius:14, padding:"2px 10px", fontSize:10.5, cursor:"pointer" }}>{t}</button>
+                );
+              })}
+            </div>
           </div>
 
           <div style={{ marginBottom:12 }}>
