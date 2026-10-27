@@ -22,8 +22,7 @@ const BRAND = {
   sub: "全国の遊休農地と就農希望者・移住希望者をマッチング", year: 2025,
 };
 
-// フェーズ1（登録農地数拡大期間）は有償機能を無料開放。true にするとフェーズ2の実料金表示に切り替わる。
-const PAID_FEATURES_ACTIVE = false;
+
 
 // 都道府県ごとにこの件数登録されると「地域ページ公開」の目安を達成した表示にする（進捗表示のみ・実際のページ公開機能は未実装）
 const REGION_PAGE_THRESHOLD = 5;
@@ -1435,7 +1434,7 @@ function AdminPanel({ onLogout }) {
           <h3 style={{ margin:"0 0 6px", color:C.green }}>
             {editItem ? "✏️ 編集" : (formType==="farm"?"🌱 農地を登録":"🏡 物件を登録")}
           </h3>
-          {!editItem && !PAID_FEATURES_ACTIVE && (
+          {!editItem && (
             <p style={{ fontSize:12, color:C.green, background:C.paleGreen, border:"1px solid #B8D98A",
               borderRadius:8, padding:"6px 10px", margin:"0 0 14px" }}>
               🎉 掲載料は無料です。安心してご登録ください。
@@ -2658,17 +2657,7 @@ function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegi
         </div>
       )}
 
-      {farm.is_premium&&!isPremium ? (
-        <div style={{ background:C.soilLight, border:`1px solid ${C.soilBorder}`, borderRadius:8, padding:"12px 14px", marginBottom:14, textAlign:"center" }}>
-          <div style={{ fontSize:13, fontWeight:700, color:C.soil, marginBottom:4 }}>🔒 プレミアム限定情報</div>
-          <p style={{ fontSize:12, color:C.muted, margin:"0 0 10px" }}>詳細情報はプレミアム会員のみ閲覧できます</p>
-          <Btn style={{ background:C.soil, width:"100%", textAlign:"center" }}>
-            {PAID_FEATURES_ACTIVE ? "プレミアム会員に登録（¥1,480/月）" : "プレミアム会員に登録（今なら無料）"}
-          </Btn>
-        </div>
-      ) : (
-        <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>{farm.description}</p>
-      )}
+      <p style={{ fontSize:13, color:C.muted, lineHeight:1.7, marginBottom:14 }}>{farm.description}</p>
 
       {/* 支援・補助金情報（詳細） */}
       <SubsidyPanel farm={farm} />
@@ -3451,13 +3440,11 @@ export default function App() {
           <h1 className="fm-hero-title" style={{ color:"#fff", fontSize:26, margin:"0 0 6px", fontWeight:800, lineHeight:1.3 }}>{BRAND.tagline}</h1>
           <p style={{ color:"#B8D98A", fontSize:13, margin:"0 0 10px" }}>遊休農地を活かし、新しい農業の担い手へつなぐ</p>
           <p style={{ color:"#fff", fontSize:15, fontWeight:800, margin:"0 0 20px" }}>🌾 農業で日本を豊かにしたい！</p>
-          {!PAID_FEATURES_ACTIVE && (
-            <div style={{ display:"inline-block", marginTop:14, background:"rgba(255,255,255,0.15)",
-              border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, padding:"5px 16px",
-              color:"#fff", fontSize:12, fontWeight:700 }}>
-              🎉 掲載料は無料です
-            </div>
-          )}
+          <div style={{ display:"inline-block", marginTop:14, background:"rgba(255,255,255,0.15)",
+            border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, padding:"5px 16px",
+            color:"#fff", fontSize:12, fontWeight:700 }}>
+            🎉 掲載料は無料です
+          </div>
           <div style={{ marginTop:18 }}>
             {user ? (
               <button onClick={()=>setShowMyListings(true)}
