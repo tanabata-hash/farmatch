@@ -9,7 +9,7 @@ const C = {
 // 支援制度データを各都道府県公式サイトで確認・取得した日付。
 // 都道府県ごとに予算・条例に基づき制度が随時改定されるため、全国一律の更新タイミングは存在しない。
 // そのため自動更新は行わず、この日付を表示して「いつ時点の情報か」を必ず明示する運用とする。
-export const DATA_VERIFIED_ON = "2026-09-16";
+export const DATA_VERIFIED_ON = "2026-10-01";
 
 // 都道府県ごとの支援概要・名産品・移住の魅力データ
 // summary/url は各県公式サイトを調査のうえ記載。制度内容・金額は年度や自治体により変更されるため、
@@ -22,7 +22,7 @@ export const PREF_DATA = {
     summary:"新規就農者向けの研修支援や経営開始資金制度に加え、「あおもり移住支援事業」として東京圏から青森への移住・就業で最大100万円を支給する制度があります。",
     specialties:["りんご","にんにく","ながいも"], highlights:["十和田湖・奥入瀬渓流の自然","酸ヶ湯温泉など豊富な温泉地"] },
   "岩手県": { url:"https://www.pref.iwate.jp/sangyoukoyou/nougyou/shuunou/index.html",
-    summary:"岩手県農業公社による総合的な就農支援に加え、研修資金（農業次世代人材投資事業）や「いわて若者移住支援金」制度も用意されています。",
+    summary:"岩手県農業公社による総合的な就農支援に加え、研修資金（農業次世代人材投資事業）や「いわて若者U・Iターン支援金」制度も用意されています。",
     specialties:["ピーマン","雑穀","前沢牛"], highlights:["世界遺産・平泉の歴史的景観","八幡平・雫石エリアの自然と温泉"] },
   "宮城県": { url:"https://www.pref.miyagi.jp/soshiki/nosin/syunoshien.html",
     summary:"宮城県農業経営・就農支援センターが窓口となり、新規就農者向けの研修支援や経営開始資金制度、移住支援金制度などが用意されています。",
@@ -90,7 +90,7 @@ export const PREF_DATA = {
   "三重県": { url:"https://new-farmer-portal.pref.mie.lg.jp/",
     summary:"三重県新規就農ポータルサイトを窓口に、新規就農者向けの研修支援や経営開始資金、移住支援金制度などが用意されています。",
     specialties:["松阪牛","伊勢茶","伊勢海老・真珠"], highlights:["伊勢志摩国立公園の海と真珠養殖の景観","湯の山温泉などの自然豊かな温泉地"] },
-  "滋賀県": { url:"https://www.pref.shiga.lg.jp/ippan/shigotosangyou/nougyou/nousonshinkou/322768.html",
+  "滋賀県": { url:"https://www.pref.shiga.lg.jp/ippan/shigotosangyou/nougyou/ryutsuu/328951.html",
     summary:"滋賀県農林漁業担い手育成基金による就農相談・研修支援や、県の移住就業支援事業による移住支援金制度などが用意されています。",
     specialties:["近江牛","近江米","鮒寿司"], highlights:["琵琶湖を中心とした自然環境","比良山系での登山や日本酒蔵めぐりなどのグルメ"] },
   "京都府": { url:"https://www.pref.kyoto.jp/ninaite/shinkisyuno.html",
