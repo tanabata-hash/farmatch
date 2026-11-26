@@ -34,7 +34,10 @@ export function trackView(view) {
     if (new URLSearchParams(window.location.search).has("admin")) return;
     if (isTrackingExcluded()) return;
     if (navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl) return;
+    // 自動化ブラウザや画面サイズを持たないヘッドレスクローラーを除外
     if (navigator.webdriver) return;
+    if (window.innerWidth === 0 && window.innerHeight === 0) return;
+    if (Array.isArray(navigator.languages) && navigator.languages.length === 0) return;
 
     // 参照元はセッション最初の1回だけ送る（サイト内移動では送らない）
     let ref = "";

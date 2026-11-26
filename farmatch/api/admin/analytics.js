@@ -62,19 +62,41 @@ export function summarize(rows, days, now = Date.now()) {
   };
 }
 
-function recentSessions(rows, limit = 20) {
+function recentSessions(rows, limit = 30) {
   const m = new Map();
   for (const r of rows) {
     const e = m.get(r.session_id) || {
       session_id: r.session_id, pageViews: 0, first: r.created_at, last: r.created_at,
       device: r.device, country: r.country, excluded: r.excluded,
+      referrer_host: null, views: [],
     };
     e.pageViews += 1;
     if (r.created_at < e.first) e.first = r.created_at;
     if (r.created_at > e.last) e.last = r.created_at;
+    if (!e.referrer_host && r.referrer_host) e.referrer_host = r.referrer_host;
+    if (r.view && e.views[e.views.length - 1] !== r.view && e.views.length < 12) {
+      e.views.push(r.view);
+    }
     m.set(r.session_id, e);
   }
   return [...m.values()].sort((a, b) => (a.last < b.last ? 1 : -1)).slice(0, limit);
+}
+
+// 海外からの1PVのみの単発セッション（ボット・クローラーの疑いが強いセッション）のID一覧を抽出
+function findOverseasSinglePvSessionIds(rows) {
+  const m = new Map();
+  for (const r of rows) {
+    const e = m.get(r.session_id) || { count: 0, country: r.country, excluded: r.excluded };
+    e.count += 1;
+    m.set(r.session_id, e);
+  }
+  const ids = [];
+  for (const [sid, info] of m.entries()) {
+    if (!info.excluded && info.count === 1 && info.country && info.country !== "JP") {
+      ids.push(sid);
+    }
+  }
+  return ids;
 }
 
 export default async function handler(req, res) {
@@ -84,6 +106,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const days = Math.min(90, Math.max(1, parseInt(req.query.days, 10) || 30));
+      const filterMode = String(req.query.filter || "all"); // "all" | "jp" | "human"
       const since = new Date(Date.now() - days * 86400000).toISOString();
 
       const rows = await fetchAll(() =>
@@ -92,19 +115,46 @@ export default async function handler(req, res) {
           .gte("created_at", since)
           .order("created_at", { ascending: true })
       );
-      const counted = rows.filter(r => !r.excluded);
+      const overseasSingleIds = new Set(findOverseasSinglePvSessionIds(rows));
+      let counted = rows.filter(r => !r.excluded);
+      if (filterMode === "jp") {
+        counted = counted.filter(r => r.country === "JP");
+      } else if (filterMode === "human") {
+        counted = counted.filter(r => !overseasSingleIds.has(r.session_id));
+      }
 
       return res.status(200).json({
         days,
+        filterMode,
         ...summarize(counted, days),
-        excludedPageViews: rows.length - counted.length,
+        excludedPageViews: rows.length - rows.filter(r => !r.excluded).length,
+        overseasSinglePvCount: overseasSingleIds.size,
         recentSessions: recentSessions(rows),
       });
     }
 
-    // セッション単位で集計に含める/除外する（自分のテストアクセスの除外など）
+    // セッション単位または海外1PV一括で集計に含める/除外する
     if (req.method === "PATCH") {
-      const { session_id, excluded } = req.body || {};
+      const { session_id, excluded, bulkAction, days = 90 } = req.body || {};
+      if (bulkAction === "exclude_overseas_1pv") {
+        const since = new Date(Date.now() - Math.min(365, Number(days) || 90) * 86400000).toISOString();
+        const rows = await fetchAll(() =>
+          supabase.from("page_views")
+            .select("session_id,country,excluded,created_at")
+            .gte("created_at", since)
+        );
+        const targetIds = findOverseasSinglePvSessionIds(rows);
+        if (targetIds.length > 0) {
+          // PostgRESTのURL長制限を考慮し100件ずつ更新
+          for (let i = 0; i < targetIds.length; i += 100) {
+            const chunk = targetIds.slice(i, i + 100);
+            const { error } = await supabase.from("page_views").update({ excluded: true }).in("session_id", chunk);
+            if (error) return res.status(500).json({ error: error.message });
+          }
+        }
+        return res.status(200).json({ ok: true, excludedSessions: targetIds.length });
+      }
+
       if (typeof session_id !== "string" || !/^[a-zA-Z0-9]{8,64}$/.test(session_id) || typeof excluded !== "boolean") {
         return res.status(400).json({ error: "session_id と excluded(boolean) が必要です" });
       }

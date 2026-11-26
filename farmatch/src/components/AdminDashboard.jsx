@@ -12,6 +12,11 @@ const VIEW_LABELS = {
   calendar: "作物カレンダー", pricing: "料金", privacy: "プライバシーポリシー",
   terms: "利用規約", specified: "特定商取引法表記", "farming-life": "農のある暮らし",
   "owner-guide": "オーナーガイド", "column-inherited-farmland": "コラム（相続農地）",
+  lifestyle: "ライフスタイル提案・診断",
+  "farm-detail": "🔍 農地詳細の閲覧",
+  "house-detail": "🔍 住居詳細の閲覧",
+  "contact-open": "💬 問い合わせ画面の表示",
+  "contact-sent": "✅ 問い合わせ送信完了",
 };
 const DEVICE_LABELS = { mobile: "スマートフォン", tablet: "タブレット", desktop: "PC" };
 
@@ -79,12 +84,13 @@ function DailyChart({ daily }) {
   );
 }
 
-export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEdit }) {
+export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEdit, onDelete, onRefresh }) {
   // 親の再描画で関数が作り直されても再取得が走らないよう、参照を固定する
   const fetchRef = useRef(adminFetchProp);
   fetchRef.current = adminFetchProp;
   const adminFetch = useCallback((...args) => fetchRef.current(...args), []);
   const [days, setDays] = useState(30);
+  const [filterMode, setFilterMode] = useState("human");
   const [analytics, setAnalytics] = useState(null);
   const [analyticsError, setAnalyticsError] = useState("");
   const [users, setUsers] = useState([]);
@@ -96,12 +102,12 @@ export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEd
   const loadAnalytics = useCallback(async () => {
     setAnalyticsError("");
     try {
-      setAnalytics(await adminFetch(`/api/admin/analytics?days=${days}`));
+      setAnalytics(await adminFetch(`/api/admin/analytics?days=${days}&filter=${filterMode}`));
     } catch (e) {
       setAnalytics(null);
       setAnalyticsError(e.message);
     }
-  }, [adminFetch, days]);
+  }, [adminFetch, days, filterMode]);
 
   useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
   useEffect(() => {
@@ -120,10 +126,62 @@ export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEd
 
   const ownerFarms = farms.filter(f => f.owner_id);
   const ownerHouses = houses.filter(h => h.owner_id);
+  const muniFarmsCount = farms.length - ownerFarms.length;
+  const muniHousesCount = houses.length - ownerHouses.length;
   const ownerListings = [
     ...ownerFarms.map(f => ({ ...f, _type: "farm" })),
     ...ownerHouses.map(h => ({ ...h, _type: "house" })),
   ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+  // 重複候補の検出（同一 _type + owner_id + name + region が2件以上ある場合）
+  const duplicateKeys = useMemo(() => {
+    const counts = new Map();
+    for (const it of ownerListings) {
+      const k = `${it._type}::${it.owner_id}::${(it.name || "").trim()}::${(it.region || "").trim()}`;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    return counts;
+  }, [ownerListings]);
+
+  const duplicateCount = useMemo(() => {
+    let c = 0;
+    for (const v of duplicateKeys.values()) if (v > 1) c += (v - 1);
+    return c;
+  }, [duplicateKeys]);
+
+  const [cleaningData, setCleaningData] = useState(false);
+
+  const handlePurgeMunicipalityData = async () => {
+    if (!window.confirm(`自治体収集データ（農地 ${muniFarmsCount}件・住居 ${muniHousesCount}件）をデータベースからすべて削除します。\nオーナー本人が登録したデータ（${ownerListings.length}件）は削除されません。\n実行してよろしいですか？`)) return;
+    setCleaningData(true);
+    try {
+      const [rf, rh] = await Promise.all([
+        adminFetch("/api/admin/farms?mode=municipality", { method: "DELETE" }),
+        adminFetch("/api/admin/houses?mode=municipality", { method: "DELETE" }),
+      ]);
+      setNotice(`🗑 自治体収集データを削除しました（農地 ${rf?.deletedCount ?? 0}件・住居 ${rh?.deletedCount ?? 0}件）`);
+      if (onRefresh) onRefresh();
+    } catch (e) {
+      setNotice("❌ 削除エラー: " + e.message);
+    }
+    setCleaningData(false);
+  };
+
+  const handleCleanDuplicates = async () => {
+    if (!window.confirm(`重複しているオーナー登録データ（${duplicateCount}件の重複分）を整理し、それぞれ最新1件のみを残して削除します。よろしいですか？`)) return;
+    setCleaningData(true);
+    try {
+      const [rf, rh] = await Promise.all([
+        adminFetch("/api/admin/farms?mode=duplicates", { method: "DELETE" }),
+        adminFetch("/api/admin/houses?mode=duplicates", { method: "DELETE" }),
+      ]);
+      setNotice(`🧹 重複データを整理しました（農地 ${rf?.deletedCount ?? 0}件・住居 ${rh?.deletedCount ?? 0}件の重複を削除）`);
+      if (onRefresh) onRefresh();
+    } catch (e) {
+      setNotice("❌ 重複整理エラー: " + e.message);
+    }
+    setCleaningData(false);
+  };
 
   const sinceMs = Date.now() - days * 86400000;
   const newUsers = users.filter(u => new Date(u.created_at).getTime() >= sinceMs).length;
@@ -153,13 +211,39 @@ export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEd
     } catch (e) { setNotice("❌ " + e.message); }
   };
 
+  const bulkExcludeOverseas1Pv = async () => {
+    if (!window.confirm("海外（JP以外）からの1PVのみの単発セッション（ボット・クローラーの疑い）を一括で「除外」に設定しますか？")) return;
+    try {
+      const r = await adminFetch("/api/admin/analytics", {
+        method: "PATCH",
+        body: JSON.stringify({ bulkAction: "exclude_overseas_1pv", days }),
+      });
+      setNotice(`🤖 海外の1PVセッション（${r?.excludedSessions ?? 0}件）を一括除外しました`);
+      loadAnalytics();
+    } catch (e) {
+      setNotice("❌ " + e.message);
+    }
+  };
+
   const t = analytics?.totals;
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
         <h3 style={{ margin: 0, color: C.green, fontSize: 16 }}>📊 ダッシュボード</h3>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 4, marginRight: 6 }}>
+            {[
+              ["human", "🤖 海外1PVボット疑いを除く"],
+              ["jp", "🇯🇵 日本国内のみ"],
+              ["all", "🌍 すべて表示"],
+            ].map(([m, label]) => (
+              <button key={m} onClick={() => setFilterMode(m)}
+                style={{ ...smallBtn, background: filterMode === m ? C.lightGreen : "none", color: filterMode === m ? "#fff" : C.green, borderColor: filterMode === m ? C.lightGreen : C.border }}>
+                {label}
+              </button>
+            ))}
+          </div>
           {[7, 30, 90].map(d => (
             <button key={d} onClick={() => setDays(d)}
               style={{ ...smallBtn, background: days === d ? C.green : "none", color: days === d ? "#fff" : C.green }}>
@@ -219,13 +303,33 @@ export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEd
         </table>
       </div>
 
-      <h4 style={{ color: C.green, fontSize: 14, margin: "20px 0 8px" }}>
-        🌱🏡 オーナー登録の農地・住居（{ownerListings.length}件）
-      </h4>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, margin: "20px 0 8px" }}>
+        <h4 style={{ color: C.green, fontSize: 14, margin: 0 }}>
+          🌱🏡 オーナー登録の農地・住居（{ownerListings.length}件）
+          {duplicateCount > 0 && (
+            <span style={{ marginLeft: 8, background: "#FFF3E0", border: "1px solid #FFB74D", color: "#8A5300", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+              ⚠️ 重複候補が {duplicateCount}件 あります
+            </span>
+          )}
+        </h4>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {duplicateCount > 0 && (
+            <button style={{ ...smallBtn, background: "#FFF8E1", borderColor: "#FFB74D", color: "#8A5300" }}
+              onClick={handleCleanDuplicates} disabled={cleaningData}>
+              🧹 重複データ（{duplicateCount}件）を1件残して整理する
+            </button>
+          )}
+          {(muniFarmsCount > 0 || muniHousesCount > 0) && (
+            <button style={{ ...smallBtn, background: "#FDEDEC", borderColor: "#E57373", color: C.red }}
+              onClick={handlePurgeMunicipalityData} disabled={cleaningData}>
+              🗑 自治体収集データ（農地{muniFarmsCount}件・住居{muniHousesCount}件）をDBから一括削除
+            </button>
+          )}
+        </div>
+      </div>
       {ownerListings.length === 0 ? (
         <div style={{ fontSize: 12, color: C.muted, background: C.cream, borderRadius: 8, padding: "12px 14px" }}>
-          まだありません。現在の掲載はすべて運営登録です（農地 {farms.length}件・住居 {houses.length}件）。
-          オーナーが登録するとここに表示されます。
+          まだありません。オーナーが登録するとここに表示されます。
         </div>
       ) : (
         <div style={{ overflow: "auto", border: `1px solid ${C.border}`, borderRadius: 8 }}>
@@ -236,15 +340,34 @@ export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEd
             <tbody>
               {ownerListings.map(it => {
                 const owner = userById.get(it.owner_id);
+                const dupKey = `${it._type}::${it.owner_id}::${(it.name || "").trim()}::${(it.region || "").trim()}`;
+                const isDup = (duplicateKeys.get(dupKey) || 0) > 1;
                 return (
-                  <tr key={`${it._type}-${it.id}`}>
+                  <tr key={`${it._type}-${it.id}`} style={{ background: isDup ? "#FFFDF5" : "transparent" }}>
                     <td style={td}>{fmtDate(it.created_at)}</td>
                     <td style={td}>{it._type === "farm" ? "農地" : "住居"}</td>
-                    <td style={{ ...td, fontWeight: 600 }}>{it.name}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>
+                      {it.name}
+                      {isDup && (
+                        <span style={{ marginLeft: 6, background: "#FFF3E0", border: "1px solid #FFB74D", color: "#8A5300", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                          重複候補
+                        </span>
+                      )}
+                    </td>
                     <td style={td}>{it.region || "—"}</td>
                     <td style={td}>{it.status}</td>
                     <td style={td}>{owner ? `${owner.name || "（名前なし）"}（${owner.email || "—"}）` : "（不明）"}</td>
-                    <td style={td}><button style={smallBtn} onClick={() => onEdit(it, it._type)}>編集</button></td>
+                    <td style={td}>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button style={smallBtn} onClick={() => onEdit(it, it._type)}>編集</button>
+                        {onDelete && (
+                          <button style={{ ...smallBtn, borderColor: "#E57373", color: C.red }}
+                            onClick={() => onDelete(it._type, it.id)}>
+                            削除
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -268,26 +391,40 @@ export function AdminDashboard({ adminFetch: adminFetchProp, farms, houses, onEd
         </div>
         {analytics && (
           <>
-            <div style={{ fontWeight: 700, color: C.green, margin: "12px 0 6px" }}>
-              最近の訪問セッション（テストアクセスなどは「除外」で集計から外せます／除外中 {analytics.excludedPageViews}PV）
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, margin: "12px 0 8px" }}>
+              <div style={{ fontWeight: 700, color: C.green }}>
+                最近の訪問セッション（テストアクセスなどは「除外」で集計から外せます／除外中 {analytics.excludedPageViews}PV）
+              </div>
+              {analytics.overseasSinglePvCount > 0 && (
+                <button style={{ ...smallBtn, background: "#FFF8E1", borderColor: "#FFB74D", color: "#8A5300" }}
+                  onClick={bulkExcludeOverseas1Pv}>
+                  🤖 海外1PVセッション（{analytics.overseasSinglePvCount}件）をDB上で一括除外する
+                </button>
+              )}
             </div>
             <div style={{ overflow: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
-                <thead><tr>{["最終アクセス", "ID", "端末", "国", "PV", "集計"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+                <thead><tr>{["最終アクセス", "ID", "端末", "国", "流入元", "閲覧した画面の遷移", "PV", "集計"].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {analytics.recentSessions.map(s => (
                     <tr key={s.session_id} style={{ opacity: s.excluded ? 0.5 : 1 }}>
-                      <td style={td}>{fmtDateTime(s.last)}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>{fmtDateTime(s.last)}</td>
                       <td style={td}><code>{s.session_id.slice(0, 6)}</code></td>
-                      <td style={td}>{DEVICE_LABELS[s.device] || "—"}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>{DEVICE_LABELS[s.device] || "—"}</td>
                       <td style={td}>{s.country || "—"}</td>
-                      <td style={td}>{s.pageViews}</td>
-                      <td style={td}>
+                      <td style={{ ...td, fontSize: 11, color: C.muted }}>{s.referrer_host || "（直接 / 不明）"}</td>
+                      <td style={{ ...td, fontSize: 11, lineHeight: 1.5 }}>
+                        {(s.views || []).length > 0
+                          ? s.views.map(v => VIEW_LABELS[v] || v).join(" → ")
+                          : "—"}
+                      </td>
+                      <td style={{ ...td, fontWeight: 700 }}>{s.pageViews}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>
                         <button style={smallBtn} onClick={() => toggleSession(s)}>{s.excluded ? "集計に戻す" : "除外"}</button>
                       </td>
                     </tr>
                   ))}
-                  {analytics.recentSessions.length === 0 && <tr><td style={td} colSpan={6}>記録はまだありません</td></tr>}
+                  {analytics.recentSessions.length === 0 && <tr><td style={td} colSpan={8}>記録はまだありません</td></tr>}
                 </tbody>
               </table>
             </div>

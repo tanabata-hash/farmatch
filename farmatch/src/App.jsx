@@ -1371,7 +1371,7 @@ function AdminPanel({ onLogout }) {
 
       {tab==="dashboard" ? (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
-          <AdminDashboard adminFetch={adminFetch} farms={farms} houses={houses} onEdit={openEdit}/>
+          <AdminDashboard adminFetch={adminFetch} farms={farms} houses={houses} onEdit={openEdit} onDelete={handleDelete} onRefresh={fetchAdminData}/>
         </div>
       ) : tab==="inquiries" ? (
         <div style={{ background:C.white, borderRadius:"0 8px 8px 8px", border:`2px solid ${C.border}`, padding:20 }}>
@@ -1732,13 +1732,23 @@ function AdminPanel({ onLogout }) {
 }
 
 // ── 問い合わせモーダル ────────────────────────────────────
+const QUICK_QUESTION_TEMPLATES = [
+  "はじめまして。まずは現地見学やお話を伺うことは可能でしょうか？",
+  "週末農業や仲間との共同耕作での利用が可能か相談したいです。",
+  "現在の空き状況や、貸し出し条件について詳しく知りたいです。",
+];
+
 function ContactModal({ item, user, onLogin, onOpenMessages, onClose }) {
   const isHouse = !!item.house_type;
   // オーナー本人が登録した掲載はサイト内メッセージでやり取りできる。
-  // オーナー不在の掲載（自治体データ等）は、従来の問い合わせフォーム（運営経由）のまま。
+  // 未ログイン時は「ログイン壁」で離脱させないよう、すぐ入力できるメールフォームを初期表示しつつタブで切替可能にする。
   const canMessage = !!item.owner_id;
   const isOwnListing = !!user && item.owner_id === user.id;
-  const [mode, setMode] = useState(canMessage ? (user ? "message" : "login") : "legacy");
+  const [mode, setMode] = useState(canMessage && user ? "message" : "legacy");
+
+  useEffect(() => {
+    trackView("contact-open");
+  }, []);
 
   // サイト内メッセージ
   const [msgBody, setMsgBody] = useState("");
@@ -1760,6 +1770,7 @@ function ContactModal({ item, user, onLogin, onOpenMessages, onClose }) {
       const r = await sendFirstMessage({ targetType:isHouse?"house":"farm", targetId:item.id, body:msgBody });
       setSentConversationId(r.conversationId);
       setSent(true);
+      trackView("contact-sent");
     } catch(err) {
       setMsgError(err.message);
     }
@@ -1792,6 +1803,7 @@ function ContactModal({ item, user, onLogin, onOpenMessages, onClose }) {
     setLoading(false);
     if(!ok){alert("送信エラー: "+errorMsg);return;}
     setSent(true);
+    trackView("contact-sent");
   };
   return (
     <Modal onClose={onClose}>
@@ -1830,6 +1842,18 @@ function ContactModal({ item, user, onLogin, onOpenMessages, onClose }) {
                 Farmatchの中でオーナーとやり取りできます。お互いのメールアドレスは相手に表示されません。
                 返信があるとメールでお知らせします。やり取りの記録は「💬 メッセージ」に残ります。
               </p>
+              <div style={{ marginBottom:8 }}>
+                <div style={{ fontSize:11, color:C.green, fontWeight:700, marginBottom:5 }}>💡 ワンタップで質問文を入力：</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                  {QUICK_QUESTION_TEMPLATES.map(tpl => (
+                    <button key={tpl} type="button" onClick={()=>setMsgBody(tpl)}
+                      style={{ background:C.paleGreen, border:`1px solid #B8D98A`, borderRadius:14, padding:"4px 10px",
+                        fontSize:11, color:C.green, cursor:"pointer", textAlign:"left" }}>
+                      ＋ {tpl}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <textarea value={msgBody} onChange={e=>setMsgBody(e.target.value)} rows={5} maxLength={2000}
                 placeholder="例：はじめまして。農業を始めたいと考えています。この農地についてお話を伺いたいです。"
                 style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8, padding:"10px 12px",
@@ -1868,25 +1892,49 @@ function ContactModal({ item, user, onLogin, onOpenMessages, onClose }) {
         </>
       ) : (
         <>
-          <h3 style={{ margin:"0 0 4px", color:C.text }}>問い合わせフォーム</h3>
-          <p style={{ fontSize:12, color:C.muted, margin:"0 0 18px" }}>{item.name}</p>
+          <h3 style={{ margin:"0 0 4px", color:C.text }}>💬 この{isHouse?"物件":"農地"}について質問・相談する（無料）</h3>
+          <p style={{ fontSize:12, color:C.muted, margin:"0 0 12px" }}>{item.name}</p>
+          {canMessage && !user && (
+            <div style={{ background:C.paleGreen, border:"1px solid #B8D98A", borderRadius:10, padding:"10px 12px", marginBottom:14,
+              display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+              <div style={{ fontSize:11.5, color:C.text, lineHeight:1.5 }}>
+                <strong>✉️ 会員登録なしでそのままメール質問できます。</strong><br/>
+                サイト内チャットをご希望の場合はログインして送信できます。
+              </div>
+              <button type="button" onClick={onLogin}
+                style={{ background:C.white, color:C.green, border:`1.5px solid ${C.green}`, borderRadius:16,
+                  padding:"5px 12px", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+                💬 ログインしてチャットで送る
+              </button>
+            </div>
+          )}
           <input type="text" name="website" value={website} onChange={e=>setWebsite(e.target.value)}
             tabIndex={-1} autoComplete="off"
             style={{ position:"absolute", left:"-9999px", width:1, height:1, opacity:0 }}
             aria-hidden="true"/>
           {[{key:"name",label:"お名前 *",ph:"山田 太郎",type:"text"},
             {key:"email",label:"メールアドレス *",ph:"example@mail.com",type:"email"},
-            {key:"purpose",label:"ご利用目的",ph:"本格就農 / 週末農業 / 移住 など",type:"text"}].map(({key,label,ph,type})=>(
-            <div key={key} style={{ marginBottom:12 }}>
+            {key:"purpose",label:"ご希望の関わり方（任意）",ph:"週末農業 / 共同耕作 / お試し体験 / 本格就農 など",type:"text"}].map(({key,label,ph,type})=>(
+            <div key={key} style={{ marginBottom:10 }}>
               <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>{label}</label>
               <input type={type} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={ph}
                 style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                   padding:"9px 12px", fontSize:13, boxSizing:"border-box", outline:"none" }}/>
             </div>
           ))}
-          <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>メッセージ</label>
+          <div style={{ marginBottom:14 }}>
+            <label style={{ fontSize:12, color:C.green, fontWeight:600, display:"block", marginBottom:4 }}>質問・メッセージ（ワンタップで入力できます）</label>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:6 }}>
+              {QUICK_QUESTION_TEMPLATES.map(tpl => (
+                <button key={tpl} type="button" onClick={()=>setForm({...form, msg: tpl})}
+                  style={{ background:C.paleGreen, border:`1px solid #B8D98A`, borderRadius:14, padding:"4px 10px",
+                    fontSize:11, color:C.green, cursor:"pointer", textAlign:"left" }}>
+                  ＋ {tpl}
+                </button>
+              ))}
+            </div>
             <textarea value={form.msg} onChange={e=>setForm({...form,msg:e.target.value})} rows={3}
+              placeholder="気になることや見学のご希望など、お気軽にご記入ください。"
               style={{ width:"100%", border:`1.5px solid ${C.border}`, borderRadius:8,
                 padding:"9px 12px", fontSize:13, boxSizing:"border-box", resize:"vertical", outline:"none" }}/>
           </div>
@@ -2668,7 +2716,7 @@ function FarmDetail({ farm, onContact, onClose, onReport, isPremium, isEarlyRegi
       <ListingSourceNote item={farm}/>
       <LegalCautionNote compact/>
 
-      <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>この農地に問い合わせる</Btn>
+      <Btn onClick={()=>onContact(farm)} style={{ width:"100%", textAlign:"center" }}>💬 この農地について質問・相談する（無料）</Btn>
       <button type="button" onClick={()=>onReport(farm)}
         style={{ display:"block", width:"100%", background:"none", border:"none", color:C.muted,
           fontSize:11, cursor:"pointer", marginTop:10, padding:"4px", textDecoration:"underline" }}>
@@ -2945,9 +2993,10 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
   const [focusTarget, setFocusTarget] = useState(null);
   const [hoveredFarmId, setHoveredFarmId] = useState(null);
 
-  // 物件選択時：地図フォーカス＋詳細表示
+  // 物件選択時：地図フォーカス＋詳細表示＋計測
   const handleSelectHouse = (h) => {
     setSelectedHouse(h);
+    if (h) trackView("house-detail");
     if (h.lat && h.lng) setFocusTarget(h);
   };
 
@@ -3073,7 +3122,7 @@ function HousingView({ houses, farms, onContact, onReport, onSelectFarm }) {
           })()}
           <ListingSourceNote item={selectedHouse}/>
           <LegalCautionNote compact isHouse/>
-          <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>この物件に問い合わせる</Btn>
+          <Btn onClick={()=>onContact(selectedHouse)} style={{ width:"100%", textAlign:"center" }}>💬 この物件について質問・相談する（無料）</Btn>
           <button type="button" onClick={()=>onReport(selectedHouse)}
             style={{ display:"block", width:"100%", background:"none", border:"none", color:C.muted,
               fontSize:11, cursor:"pointer", marginTop:10, padding:"4px", textDecoration:"underline" }}>
@@ -3194,7 +3243,11 @@ export default function App() {
   }, [farms]);
   const [houses, setHouses]       = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [selected, setSelected]   = useState(null);
+  const [selected, setSelectedState] = useState(null);
+  const setSelected = (f) => {
+    setSelectedState(f);
+    if (f) trackView("farm-detail");
+  };
   const [contact, setContact]     = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [search, setSearch]       = useState("");
@@ -3283,14 +3336,26 @@ export default function App() {
     setUser(null); setUserProfile(null); setIsPremium(false);
   };
 
+  // 同一オーナーによる同一名称・同一都道府県の重複レコードを除外するヘルパー
+  const dedupeOwnerItems = (items) => {
+    const seen = new Set();
+    return (items || []).filter(it => {
+      const key = `${it.owner_id || "none"}::${(it.name || "").trim()}::${(it.region || "").trim()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   const fetchData = async()=>{
     setLoading(true);
+    // 自治体収集の参考データ（owner_id が null）は混乱を防ぐため除外し、オーナー本人登録データのみを取得
     const[{data:farmsData},{data:housesData}]=await Promise.all([
-      supabase.from("farms").select(PUBLIC_FARM_COLUMNS).neq("status","非公開").order("created_at",{ascending:false}),
-      supabase.from("houses").select(PUBLIC_HOUSE_COLUMNS).neq("status","非公開").order("created_at",{ascending:false}),
+      supabase.from("farms").select(PUBLIC_FARM_COLUMNS).not("owner_id","is",null).neq("status","非公開").order("created_at",{ascending:false}),
+      supabase.from("houses").select(PUBLIC_HOUSE_COLUMNS).not("owner_id","is",null).neq("status","非公開").order("created_at",{ascending:false}),
     ]);
-    setFarms(farmsData||[]);
-    setHouses(housesData||[]);
+    setFarms(dedupeOwnerItems(farmsData));
+    setHouses(dedupeOwnerItems(housesData));
     setLoading(false);
   };
   useEffect(()=>{ fetchData(); },[]);
@@ -3305,13 +3370,24 @@ export default function App() {
 
   const prefectures=[...new Set(farms.map(f=>f.region).filter(Boolean))].sort();
   const filteredFarms=farms.filter(f=>{
-    const mf=(filter==="すべて"||f.status===filter||f.farm_type===filter)&&
-      (styleTag==="すべて"||(f.tags||[]).includes(styleTag));
+    const mf=(
+      filter==="すべて" ||
+      (filter==="📝 オーナー直接登録" && !!f.owner_id) ||
+      f.status===filter ||
+      f.farm_type===filter
+    ) && (styleTag==="すべて"||(f.tags||[]).includes(styleTag));
     const mp=prefFilter==="すべて"||f.region===prefFilter;
     const ms=!search||(f.crops||[]).some(c=>c.includes(search))||
       f.name.includes(search)||(f.tags||[]).some(t=>t.includes(search))||
       f.region?.includes(search)||f.location?.includes(search);
     return mf&&mp&&ms;
+  }).sort((a, b) => {
+    // オーナー直接登録・貸出可能の農地を優先して上位に表示し、問い合わせに繋がりやすくする
+    const ownerDiff = (b.owner_id ? 1 : 0) - (a.owner_id ? 1 : 0);
+    if (ownerDiff !== 0) return ownerDiff;
+    const availDiff = (b.status === "貸出可能" ? 1 : 0) - (a.status === "貸出可能" ? 1 : 0);
+    if (availDiff !== 0) return availDiff;
+    return 0;
   });
 
   if(page==="terms") return (
@@ -3770,6 +3846,12 @@ export default function App() {
         {!loading && tab==="farms" && (
           <>
             {/* フィルター */}
+            <style>{`
+              @media (max-width: 768px) {
+                .fm-farm-split { grid-template-columns: 1fr !important; }
+                .fm-farm-detail-col { order: -1; }
+              }
+            `}</style>
             <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap", alignItems:"center" }}>
               {["すべて","貸出可能","畑","水田・畑"].map(f=>(
                 <button key={f} onClick={()=>setFilter(f)} style={{ background:filter===f?C.green:C.white,
@@ -3839,7 +3921,7 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ display:"grid", gridTemplateColumns:selected?"1fr 1fr":"1fr", gap:20 }}>
+            <div className="fm-farm-split" style={{ display:"grid", gridTemplateColumns:selected?"1fr 1fr":"1fr", gap:20 }}>
               <div>
                 {(selected
                   ? [selected, ...filteredFarms.filter(f=>f.id!==selected.id)]
@@ -3921,6 +4003,23 @@ export default function App() {
                           )}
                         </div>
                       )}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10, paddingTop:8, borderTop:`1px solid ${C.border}` }}>
+                        <span style={{ fontSize:11, color:farm.owner_id?C.green:C.muted, fontWeight:farm.owner_id?700:400 }}>
+                          {farm.owner_id ? "✨ オーナーに直接メッセージ・質問が可能です" : "クリックして詳細・支援制度を見る"}
+                        </span>
+                        <div style={{ display:"flex", gap:6 }}>
+                          <button type="button" onClick={e=>{ e.stopPropagation(); if(!suspended) setSelected(farm); }}
+                            style={{ background:C.white, color:C.green, border:`1px solid ${C.green}`, borderRadius:16,
+                              padding:"4px 11px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                            詳細を見る
+                          </button>
+                          <button type="button" onClick={e=>{ e.stopPropagation(); if(!suspended) setContact(farm); }}
+                            style={{ background:C.green, color:"#fff", border:"none", borderRadius:16,
+                              padding:"4px 12px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                            💬 質問・相談する
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -3934,7 +4033,11 @@ export default function App() {
 
               </div>
 
-              {selected && <FarmDetail farm={selected} isPremium={isPremium} isEarlyRegistrant={earlyFarmIds.has(selected.id)} isLoggedIn={!!user} onContact={f=>setContact(f)} onReport={f=>setReportTarget(f)} onClose={()=>setSelected(null)}/>}
+              {selected && (
+                <div className="fm-farm-detail-col">
+                  <FarmDetail farm={selected} isPremium={isPremium} isEarlyRegistrant={earlyFarmIds.has(selected.id)} isLoggedIn={!!user} onContact={f=>setContact(f)} onReport={f=>setReportTarget(f)} onClose={()=>setSelected(null)}/>
+                </div>
+              )}
             </div>
           </>
         )}

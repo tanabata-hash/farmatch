@@ -7,7 +7,7 @@ const RETENTION_MONTHS = 13;
 const MAX_ROWS_PER_SESSION_10MIN = 60;
 
 const BOT_UA =
-  /bot|crawl|spider|slurp|headless|lighthouse|preview|monitor|uptime|curl|wget|python|node-fetch|axios|go-http|java\/|facebookexternalhit|vercel|pingdom|bingpreview/i;
+  /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|gtmetrix|preview|monitor|uptime|statuscake|datadog|newrelic|synthetics|curl|wget|python|node-fetch|axios|go-http|java\/|okhttp|libwww|scrapy|httpclient|facebookexternalhit|facebot|meta-external|vercel|pingdom|bingpreview|gptbot|chatgpt-user|oai-searchbot|claudebot|claude-web|anthropic|perplexity|google-extended|googleother|applebot|amazonbot|bytespider|petalbot|semrush|ahrefs|mj12bot|dotbot|dataforseo|yandex|baiduspider|duckduck|slackbot|twitterbot|discordbot|whatsapp|telegrambot|linkedinbot|embedly|pinterest|screaming frog|phantomjs|playwright|puppeteer|cypress|selenium/i;
 
 function getServiceClient() {
   return createClient(
@@ -40,6 +40,8 @@ export function refererHost(ref, ownHost) {
 export function buildRecord(req) {
   const ua = String(req.headers["user-agent"] || "");
   if (!ua || BOT_UA.test(ua)) return null;
+  // 通常のブラウザが必ず送信する Accept-Language が無い機械的アクセスを除外
+  if (!req.headers["accept-language"]) return null;
   // ブラウザのトラッキング拒否設定(DNT / GPC)を尊重する
   if (req.headers["dnt"] === "1" || req.headers["sec-gpc"] === "1") return null;
 
